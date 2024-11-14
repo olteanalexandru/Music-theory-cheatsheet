@@ -4,7 +4,7 @@ import React from 'react';
 type PatternType = 'scales' | 'arpeggios';
 
 type PatternControlsProps = {
-    patterns: { [key: string]: any },
+    patterns: { [key: string]: { [key: string]: string[] } },
     patternType: string,
     setPatternType: (type: string) => void,
     selectedPattern: string | null,
