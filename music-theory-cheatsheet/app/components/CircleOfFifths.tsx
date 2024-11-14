@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const circleOfFifths = {
     order: ['C', 'G', 'D', 'A', 'E', 'B', 'F#', 'Db', 'Ab', 'Eb', 'Bb', 'F'],
@@ -45,8 +45,16 @@ interface CircleOfFifthsProps {
 }
 
 export const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ initialSelectedRoot }) => {
-    const [selectedRoot, setSelectedRoot] = useState<string>(initialSelectedRoot);
+    const [selectedRoot, setSelectedRoot] = useState<string>('');
     const [showChords, setShowChords] = useState<boolean>(false);
+
+    useEffect(() => {
+        setSelectedRoot(initialSelectedRoot);
+    }, [initialSelectedRoot]);
+
+    useEffect(() => {
+        // Any client-specific logic can go here
+    }, []);
 
     type Note = keyof typeof circleOfFifths.numberOfSharps;
 
@@ -69,8 +77,8 @@ export const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ initialSelectedR
 
     const renderNote = (note: string, index: number, radius: number, isMajor: boolean) => {
         const angle = (index * 30 - 90) * (Math.PI / 180);
-        const x = 50 + radius * Math.cos(angle);
-        const y = 50 + radius * Math.sin(angle);
+        const x = (50 + radius * Math.cos(angle)).toFixed(2);
+        const y = (50 + radius * Math.sin(angle)).toFixed(2);
         const isSelected = selectedRoot === note;
         const bgColor = isMajor ? (isSelected ? 'bg-indigo-500' : 'bg-gray-700 hover:bg-gray-600') : (isSelected ? 'bg-indigo-400' : 'bg-gray-600');
         const size = isMajor ? 'w-12 h-12' : 'w-10 h-10';
