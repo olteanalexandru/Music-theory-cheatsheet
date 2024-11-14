@@ -99,9 +99,9 @@ export const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ initialSelectedR
     };
 
     return (
-        <div className="bg-gray-800 rounded-lg p-6 shadow-lg">
+        <div className="bg-gray-800 rounded-lg p-4 md:p-6 shadow-lg">
             <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-bold text-white">Circle of Fifths</h3>
+                <h3 className="text-lg md:text-xl font-bold text-white">Circle of Fifths</h3>
                 <button
                     onClick={() => setShowChords(!showChords)}
                     className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
@@ -110,7 +110,7 @@ export const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ initialSelectedR
                 </button>
             </div>
 
-            <div className="relative w-full aspect-square max-w-[500px] mx-auto">
+            <div className="relative w-full aspect-square max-w-[300px] md:max-w-[500px] mx-auto">
                 {/* Outer circle background */}
                 <div className="absolute inset-0 rounded-full border-4 border-gray-600" />
                 

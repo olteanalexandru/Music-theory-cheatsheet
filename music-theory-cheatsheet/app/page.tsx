@@ -33,6 +33,7 @@ const InteractiveBassDisplay = () => {
     const [selectedPattern, setSelectedPattern] = useState<PatternName | null>(null);
     const [patternType, setPatternType] = useState<PatternType>('scales');
     const [showTheory, setShowTheory] = useState(false);
+    const [numChords, setNumChords] = useState<number>(4); // Default to 4 chords
 
     // Bass strings from highest to lowest
     const strings = ['G', 'D', 'A', 'E'];
@@ -162,11 +163,11 @@ const InteractiveBassDisplay = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-900 p-8">
+        <div className="min-h-screen bg-gray-900 p-4 md:p-8">
             <div className="max-w-7xl mx-auto">
                 {/* Header */}
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-white mb-2">Bass Fretboard Navigator</h1>
+                <div className="mb-8 text-center md:text-left">
+                    <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">Bass Fretboard Navigator</h1>
                     <p className="text-gray-400">Explore modes, scales, arpeggios, and chords on the bass</p>
                 </div>
 
@@ -180,12 +181,14 @@ const InteractiveBassDisplay = () => {
                     chromaticScale={chromaticScale}
                     selectedRoot={selectedRoot}
                     setSelectedRoot={setSelectedRoot}
+                    numChords={numChords} // Pass new state
+                    setNumChords={setNumChords} // Pass new state setter
                 />
 
                 {/* Theory Toggle */}
                 <button
                     onClick={() => setShowTheory(!showTheory)}
-                    className="mb-4 flex items-center space-x-2 text-indigo-400 hover:text-indigo-300 transition-colors"
+                    className="mb-4 flex items-center justify-center md:justify-start space-x-2 text-indigo-400 hover:text-indigo-300 transition-colors"
                 >
                     <Info size={20} />
                     <span>{showTheory ? 'Hide Theory' : 'Show Theory'}</span>
@@ -202,12 +205,13 @@ const InteractiveBassDisplay = () => {
                     patterns={patterns}
                     patternType={patternType}
                     isNoteInPattern={isNoteInPattern}
+                    numChords={numChords} // Pass new state
                 />
 
                 {/* Theory Information */}
                 {showTheory && selectedPattern && selectedRoot && (
-                    <div className="mt-8 bg-gray-800 rounded-lg p-6 shadow-lg">
-                        <h3 className="text-xl font-bold text-white mb-4">Pattern Details</h3>
+                    <div className="mt-8 bg-gray-800 rounded-lg p-4 md:p-6 shadow-lg">
+                        <h3 className="text-lg md:text-xl font-bold text-white mb-4">Pattern Details</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <h4 className="text-indigo-400 font-semibold mb-2">

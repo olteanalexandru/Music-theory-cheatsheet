@@ -23,7 +23,9 @@ type PatternControlsProps = {
     setSelectedPattern: (pattern: string | null) => void,
     chromaticScale: string[][],
     selectedRoot: string,
-    setSelectedRoot: (root: string) => void
+    setSelectedRoot: (root: string) => void,
+    numChords: number,
+    setNumChords: (num: number) => void
 };
 
 const PatternControls: React.FC<PatternControlsProps> = ({
@@ -34,14 +36,16 @@ const PatternControls: React.FC<PatternControlsProps> = ({
     setSelectedPattern,
     chromaticScale,
     selectedRoot,
-    setSelectedRoot
+    setSelectedRoot,
+    numChords,
+    setNumChords
 }) => {
     return (
-        <div className="mb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Pattern Type Selection */}
             <div className="bg-gray-800 rounded-lg p-4">
                 <label className="text-gray-300 text-sm mb-2 block">Pattern Type</label>
-                <div className="flex space-x-2">
+                <div className="flex flex-wrap gap-2">
                     {Object.keys(patterns).map(option => (
                         <button
                             key={option}
@@ -63,7 +67,7 @@ const PatternControls: React.FC<PatternControlsProps> = ({
             {/* Root Note Selection */}
             <div className="bg-gray-800 rounded-lg p-4">
                 <label className="text-gray-300 text-sm mb-2 block">Root Note</label>
-                <div className="grid grid-cols-6 gap-1">
+                <div className="grid grid-cols-4 sm:grid-cols-6 gap-1">
                     {chromaticScale.flat().map(note => (
                         <button
                             key={note}
@@ -79,12 +83,28 @@ const PatternControls: React.FC<PatternControlsProps> = ({
                 </div>
             </div>
 
+            {/* Number of Chords Selection */}
+            <div className="bg-gray-800 rounded-lg p-4">
+                <label className="text-gray-300 text-sm mb-2 block">Number of Chords</label>
+                <select
+                    value={numChords}
+                    onChange={(e) => setNumChords(Number(e.target.value))}
+                    className="w-full bg-gray-700 text-gray-300 p-2 rounded-lg"
+                >
+                    {[4, 5, 6].map(num => (
+                        <option key={num} value={num}>
+                            {num}
+                        </option>
+                    ))}
+                </select>
+            </div>
+
             {/* Pattern Selection */}
             <div className="bg-gray-800 rounded-lg p-4 col-span-2">
                 <label className="text-gray-300 text-sm mb-2 block">
                     {patternType === 'scales' ? 'Scale/Mode' : patternType === 'arpeggios' ? 'Arpeggio Type' : 'Chord Type'}
                 </label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {Object.keys(patterns[patternType]).map(pattern => (
                         <button
                             key={pattern}
