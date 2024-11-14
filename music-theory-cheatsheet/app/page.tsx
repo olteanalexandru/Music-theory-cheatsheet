@@ -2,6 +2,8 @@
 import React, { useState } from 'react';
 import { Info } from 'lucide-react';
 import { CircleOfFifths } from '@/app/components/CircleOfFifths';
+import PatternControls from '@/app/components/PatternControls';
+import Fretboard from '@/app/components/Fretboard';
 // Note types
 type NoteName = string;  // e.g., 'C', 'C♯', 'D♭', etc.
 
@@ -17,11 +19,10 @@ interface Pattern {
 }
 
 interface Patterns {
+  [key: string]: Record<PatternName, Pattern>;
   scales: Record<PatternName, Pattern>;
   arpeggios: Record<PatternName, Pattern>;
 }
-
-
 
 const InteractiveBassDisplay = () => {
     const [hoveredNote, setHoveredNote] = useState<NoteName | null>(null);
@@ -139,7 +140,6 @@ const InteractiveBassDisplay = () => {
         return patternIntervals.includes(interval);
     };
 
-
     return (
         <div className="min-h-screen bg-gray-900 p-8">
             <div className="max-w-7xl mx-auto">
@@ -150,69 +150,16 @@ const InteractiveBassDisplay = () => {
                 </div>
 
                 {/* Controls */}
-                <div className="mb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {/* Pattern Type Selection */}
-                    <div className="bg-gray-800 rounded-lg p-4">
-                        <label className="text-gray-300 text-sm mb-2 block">Pattern Type</label>
-                        <div className="flex space-x-2">
-                            {Object.keys(patterns).map(option => (
-                                <button
-                                    key={option}
-                                    onClick={() => {
-                                        setPatternType(option as PatternType);
-                                        setSelectedPattern(null);
-                                    }}
-                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors
-                                        ${patternType === option 
-                                            ? 'bg-indigo-500 text-white' 
-                                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
-                                >
-                                    {option.charAt(0).toUpperCase() + option.slice(1)}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Root Note Selection */}
-                    <div className="bg-gray-800 rounded-lg p-4">
-                        <label className="text-gray-300 text-sm mb-2 block">Root Note</label>
-                        <div className="grid grid-cols-6 gap-1">
-                            {chromaticScale.flat().map(note => (
-                                <button
-                                    key={note}
-                                    onClick={() => setSelectedRoot(note)}
-                                    className={`p-2 rounded text-sm font-medium transition-colors
-                                        ${selectedRoot === note 
-                                            ? 'bg-indigo-500 text-white' 
-                                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
-                                >
-                                    {note}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Pattern Selection */}
-                    <div className="bg-gray-800 rounded-lg p-4 col-span-2">
-                        <label className="text-gray-300 text-sm mb-2 block">
-                            {patternType === 'scales' ? 'Scale/Mode' : 'Arpeggio Type'}
-                        </label>
-                        <div className="grid grid-cols-2 gap-2">
-                            {Object.keys(patterns[patternType]).map(pattern => (
-                                <button
-                                    key={pattern}
-                                    onClick={() => setSelectedPattern(pattern)}
-                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors
-                                        ${selectedPattern === pattern 
-                                            ? 'bg-indigo-500 text-white' 
-                                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
-                                >
-                                    {pattern}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                </div>
+                <PatternControls
+                    patterns={patterns}
+                    patternType={patternType}
+                    setPatternType={(type: string) => setPatternType(type as PatternType)}
+                    selectedPattern={selectedPattern}
+                    setSelectedPattern={setSelectedPattern}
+                    chromaticScale={chromaticScale}
+                    selectedRoot={selectedRoot || ''}
+                    setSelectedRoot={setSelectedRoot}
+                />
 
                 {/* Theory Toggle */}
                 <button
@@ -224,71 +171,17 @@ const InteractiveBassDisplay = () => {
                 </button>
 
                 {/* Fretboard */}
-                <div className="bg-gray-800 rounded-xl shadow-2xl overflow-x-auto">
-                    {/* Fret numbers and markers */}
-                    <div className="flex px-16 py-2 border-b border-gray-700">
-                        <div className="w-16 flex-shrink-0"></div>
-                        {[...Array(16)].map((_, i) => (
-                            <div key={i} className="flex-1 min-w-[60px] text-center text-gray-400 text-sm">
-                                {i}
-                                {[3, 5, 7, 9, 12, 15].includes(i) && (
-                                    <div className={`flex justify-center mt-1 ${[12].includes(i) ? 'space-x-2' : ''}`}>
-                                        <div className="w-2 h-2 rounded-full bg-indigo-400"></div>
-                                        {[12].includes(i) && <div className="w-2 h-2 rounded-full bg-indigo-400"></div>}
-                                    </div>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Strings and notes */}
-                    <div className="px-4 py-6">
-                        {strings.map((string) => (
-                            <div key={string} className="flex items-center mb-6 last:mb-0">
-                                <div className="w-12 text-right pr-4">
-                                    <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-indigo-500 text-white font-semibold">
-                                        {string}
-                                    </span>
-                                </div>
-                                
-                                {[...Array(16)].map((_, fret) => {
-                                    const note = getNoteAtFret(string, fret);
-                                    const isHovered = hoveredNote === note;
-                                    const isInPattern = selectedPattern && selectedRoot && 
-                                        isNoteInPattern(note, selectedRoot, patterns[patternType][selectedPattern as PatternName].intervals);
-                                    const isRoot = note === selectedRoot;
-                                    
-                                    return (
-                                        <div 
-                                            key={fret}
-                                            className="flex-1 min-w-[60px] flex justify-center relative"
-                                        >
-                                            <div 
-                                                className={`
-                                                    w-12 h-12 rounded-full flex items-center justify-center
-                                                    text-sm font-medium transition-all duration-200
-                                                    ${isRoot ? 'bg-indigo-500 text-white scale-110' :
-                                                        isInPattern ? 'bg-indigo-400 bg-opacity-75 text-white' :
-                                                        isHovered ? 'bg-gray-600 text-white' :
-                                                        'bg-gray-700 text-gray-300 hover:bg-gray-600'}
-                                                    cursor-pointer transform hover:scale-105
-                                                    ${fret === 0 ? 'border-2 border-gray-600' : ''}
-                                                `}
-                                                onMouseEnter={() => setHoveredNote(note)}
-                                                onMouseLeave={() => setHoveredNote(null)}
-                                            >
-                                                {note}
-                                            </div>
-                                            {fret !== 0 && (
-                                                <div className="absolute top-1/2 w-full h-[2px] bg-gradient-to-r from-gray-600 via-gray-500 to-gray-600" style={{ zIndex: -1 }}></div>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        ))}
-                    </div>
-                </div>
+                <Fretboard
+                    strings={strings}
+                    getNoteAtFret={getNoteAtFret}
+                    hoveredNote={hoveredNote}
+                    setHoveredNote={setHoveredNote}
+                    selectedRoot={selectedRoot}
+                    selectedPattern={selectedPattern}
+                    patterns={patterns}
+                    patternType={patternType}
+                    isNoteInPattern={isNoteInPattern}
+                />
 
                 {/* Theory Information */}
                 {showTheory && selectedPattern && selectedRoot && (
@@ -353,10 +246,7 @@ const InteractiveBassDisplay = () => {
                 </div>
                 <CircleOfFifths initialSelectedRoot={selectedRoot || 'C'} />
             </div>
-        
         </div>
-
-
     );
 };
 
