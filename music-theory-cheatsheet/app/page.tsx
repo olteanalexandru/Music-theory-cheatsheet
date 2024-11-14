@@ -30,9 +30,10 @@ const InteractiveBassDisplay = () => {
     const [selectedPattern, setSelectedPattern] = useState<PatternName | null>(null);
     const [patternType, setPatternType] = useState<PatternType>('scales');
     const [showTheory, setShowTheory] = useState(false);
+    const [numStrings, setNumStrings] = useState(4); // New state for number of strings
 
-    // Bass strings from highest to lowest
-    const strings = ['G', 'D', 'A', 'E'];
+    // Updated strings array based on numStrings
+    const strings = numStrings === 4 ? ['G', 'D', 'A', 'E'] : numStrings === 5 ? ['C', 'G', 'D', 'A', 'E'] : ['B', 'E', 'A', 'D', 'G', 'C'];
     
     // Chromatic scale with enharmonic spellings
     const chromaticScale = [
@@ -160,6 +161,20 @@ const InteractiveBassDisplay = () => {
                     selectedRoot={selectedRoot || ''}
                     setSelectedRoot={setSelectedRoot}
                 />
+
+                {/* String Number Controls */}
+                <div className="mb-4">
+                    <label className="text-gray-400 mr-2">Number of Strings:</label>
+                    <select
+                        value={numStrings}
+                        onChange={(e) => setNumStrings(parseInt(e.target.value))}
+                        className="bg-gray-700 text-white p-2 rounded"
+                    >
+                        <option value={4}>4</option>
+                        <option value={5}>5</option>
+                        <option value={6}>6</option>
+                    </select>
+                </div>
 
                 {/* Theory Toggle */}
                 <button
