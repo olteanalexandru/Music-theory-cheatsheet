@@ -1,12 +1,24 @@
-
 import React from 'react';
 
-type PatternType = 'scales' | 'arpeggios';
+type PatternType = 'scales' | 'arpeggios' | 'chords';
+
+interface Pattern {
+    intervals: number[];
+    description: string;
+    relatedArpeggios?: string[];
+    relatedModes?: string[];
+}
+
+interface Patterns {
+    scales: Record<string, Pattern>;
+    arpeggios: Record<string, Pattern>;
+    chords: Record<string, Pattern>;
+}
 
 type PatternControlsProps = {
-    patterns: { [key: string]: { [key: string]: string[] } },
-    patternType: string,
-    setPatternType: (type: string) => void,
+    patterns: Patterns,
+    patternType: PatternType,
+    setPatternType: (type: PatternType) => void,
     selectedPattern: string | null,
     setSelectedPattern: (pattern: string | null) => void,
     chromaticScale: string[][],
@@ -70,7 +82,7 @@ const PatternControls: React.FC<PatternControlsProps> = ({
             {/* Pattern Selection */}
             <div className="bg-gray-800 rounded-lg p-4 col-span-2">
                 <label className="text-gray-300 text-sm mb-2 block">
-                    {patternType === 'scales' ? 'Scale/Mode' : 'Arpeggio Type'}
+                    {patternType === 'scales' ? 'Scale/Mode' : patternType === 'arpeggios' ? 'Arpeggio Type' : 'Chord Type'}
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                     {Object.keys(patterns[patternType]).map(pattern => (

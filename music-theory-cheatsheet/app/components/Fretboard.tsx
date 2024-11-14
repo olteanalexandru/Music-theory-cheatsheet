@@ -1,5 +1,5 @@
-
 import React from 'react';
+import type { Patterns, PatternType } from '@/app/page';
 
 type FretboardProps = {
     strings: string[],
@@ -8,14 +8,12 @@ type FretboardProps = {
     setHoveredNote: (note: string | null) => void,
     selectedRoot: string | null,
     selectedPattern: string | null,
-    patterns: Record<string, Record<string, { intervals: number[] }>>,
-    patternType: string,
+    patterns: Patterns,
+    patternType: PatternType,
     isNoteInPattern: (note: string, root: string, intervals: number[]) => boolean
 };
 
-
 type PatternName = string;  // e.g., 'Ionian (Major)', 'Dorian', etc.
-
 
 const Fretboard: React.FC<FretboardProps> = ({
     strings,

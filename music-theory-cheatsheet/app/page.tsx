@@ -4,11 +4,12 @@ import { Info } from 'lucide-react';
 import { CircleOfFifths } from '@/app/components/CircleOfFifths';
 import PatternControls from '@/app/components/PatternControls';
 import Fretboard from '@/app/components/Fretboard';
+
 // Note types
 type NoteName = string;  // e.g., 'C', 'C♯', 'D♭', etc.
 
 // Pattern-related types
-type PatternType = 'scales' | 'arpeggios';
+type PatternType = 'scales' | 'arpeggios' | 'chords';
 type PatternName = string;  // e.g., 'Ionian (Major)', 'Dorian', etc.
 
 interface Pattern {
@@ -19,10 +20,12 @@ interface Pattern {
 }
 
 interface Patterns {
-  [key: string]: Record<PatternName, Pattern>;
   scales: Record<PatternName, Pattern>;
   arpeggios: Record<PatternName, Pattern>;
+  chords: Record<PatternName, Pattern>;
 }
+
+export type { Patterns, PatternType };
 
 const InteractiveBassDisplay = () => {
     const [hoveredNote, setHoveredNote] = useState<NoteName | null>(null);
@@ -30,10 +33,9 @@ const InteractiveBassDisplay = () => {
     const [selectedPattern, setSelectedPattern] = useState<PatternName | null>(null);
     const [patternType, setPatternType] = useState<PatternType>('scales');
     const [showTheory, setShowTheory] = useState(false);
-    const [numStrings, setNumStrings] = useState(4); // New state for number of strings
 
-    // Updated strings array based on numStrings
-    const strings = numStrings === 4 ? ['G', 'D', 'A', 'E'] : numStrings === 5 ? ['C', 'G', 'D', 'A', 'E'] : ['B', 'E', 'A', 'D', 'G', 'C'];
+    // Bass strings from highest to lowest
+    const strings = ['G', 'D', 'A', 'E'];
     
     // Chromatic scale with enharmonic spellings
     const chromaticScale = [
@@ -104,6 +106,24 @@ const InteractiveBassDisplay = () => {
                 intervals: [0, 3, 6, 9],
                 description: 'Root-♭3-♭5-♭♭7'
             }
+        },
+        chords: {
+            'Major': {
+                intervals: [0, 4, 7],
+                description: 'Major chord: Root-3-5'
+            },
+            'Minor': {
+                intervals: [0, 3, 7],
+                description: 'Minor chord: Root-♭3-5'
+            },
+            'Diminished': {
+                intervals: [0, 3, 6],
+                description: 'Diminished chord: Root-♭3-♭5'
+            },
+            'Augmented': {
+                intervals: [0, 4, 8],
+                description: 'Augmented chord: Root-3-♯5'
+            }
         }
     };
 
@@ -147,34 +167,20 @@ const InteractiveBassDisplay = () => {
                 {/* Header */}
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold text-white mb-2">Bass Fretboard Navigator</h1>
-                    <p className="text-gray-400">Explore modes, scales, and arpeggios on the bass</p>
+                    <p className="text-gray-400">Explore modes, scales, arpeggios, and chords on the bass</p>
                 </div>
 
                 {/* Controls */}
                 <PatternControls
                     patterns={patterns}
                     patternType={patternType}
-                    setPatternType={(type: string) => setPatternType(type as PatternType)}
+                    setPatternType={setPatternType}
                     selectedPattern={selectedPattern}
                     setSelectedPattern={setSelectedPattern}
                     chromaticScale={chromaticScale}
-                    selectedRoot={selectedRoot || ''}
+                    selectedRoot={selectedRoot}
                     setSelectedRoot={setSelectedRoot}
                 />
-
-                {/* String Number Controls */}
-                <div className="mb-4">
-                    <label className="text-gray-400 mr-2">Number of Strings:</label>
-                    <select
-                        value={numStrings}
-                        onChange={(e) => setNumStrings(parseInt(e.target.value))}
-                        className="bg-gray-700 text-white p-2 rounded"
-                    >
-                        <option value={4}>4</option>
-                        <option value={5}>5</option>
-                        <option value={6}>6</option>
-                    </select>
-                </div>
 
                 {/* Theory Toggle */}
                 <button
@@ -211,15 +217,19 @@ const InteractiveBassDisplay = () => {
                             </div>
                             <div>
                                 <h4 className="text-indigo-400 font-semibold mb-2">
-                                    {patternType === 'scales' ? 'Related Arpeggios' : 'Related Modes'}
+                                    {patternType === 'scales' ? 'Related Arpeggios' : patternType === 'arpeggios' ? 'Related Modes' : 'Related Chords'}
                                 </h4>
                                 <ul className="list-disc list-inside text-gray-300">
                                     {patternType === 'scales' 
                                         ? patterns[patternType][selectedPattern].relatedArpeggios?.map(arp => (
                                                 <li key={arp} className="mb-1">{arp}</li>
                                             ))
-                                        : patterns[patternType][selectedPattern].relatedModes?.map(mode => (
+                                        : patternType === 'arpeggios'
+                                        ? patterns[patternType][selectedPattern].relatedModes?.map(mode => (
                                                 <li key={mode} className="mb-1">{mode}</li>
+                                            ))
+                                        : patterns[patternType][selectedPattern].relatedModes?.map(chord => (
+                                                <li key={chord} className="mb-1">{chord}</li>
                                             ))}
                                 </ul>
                             </div>
