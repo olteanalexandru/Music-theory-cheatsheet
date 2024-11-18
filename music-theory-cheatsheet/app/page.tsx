@@ -277,8 +277,7 @@ const InteractiveBassDisplay = () => {
                     <h3 className="text-lg md:text-xl font-bold text-white mb-4">Nashville Number System</h3>
                     <p className="text-gray-300 mb-4">
                         The Nashville Number System is a method of musical notation that represents the relationship between chords using numbers instead of traditional chord names. 
-                        Each number represents a scale degree relative to the key you're in.
-                    </p>
+                        Each number represents a scale degree relative to the key you&apos;re in.  </p>
                     <p className="text-gray-300 mb-4">
                         All major scales follow the same pattern of whole steps (W) and half steps (H): W-W-H-W-W-W-H. 
                         The only difference between keys is the starting note. For example:
