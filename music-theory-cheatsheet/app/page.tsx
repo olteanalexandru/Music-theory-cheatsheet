@@ -273,7 +273,53 @@ const InteractiveBassDisplay = () => {
                         </div>
                     </div>
                 </div>
-                <CircleOfFifths initialSelectedRoot={selectedRoot || 'C'} />
+                <div className="mt-8 bg-gray-800 rounded-lg p-4 md:p-6 shadow-lg">
+                    <h3 className="text-lg md:text-xl font-bold text-white mb-4">Nashville Number System</h3>
+                    <p className="text-gray-300 mb-4">
+                        The Nashville Number System is a method of musical notation that represents the relationship between chords using numbers instead of traditional chord names. 
+                        Each number represents a scale degree relative to the key you're in.
+                    </p>
+                    <p className="text-gray-300 mb-4">
+                        All major scales follow the same pattern of whole steps (W) and half steps (H): W-W-H-W-W-W-H. 
+                        The only difference between keys is the starting note. For example:
+                    </p>
+                    <ul className="list-disc list-inside text-gray-300 mb-4">
+                        <li>C major: C D E F G A B (no sharps or flats)</li>
+                        <li>G major: G A B C D E F♯ (one sharp)</li>
+                        <li>F major: F G A B♭ C D E (one flat)</li>
+                    </ul>
+                    <p className="text-gray-300 mb-4">
+                        In the number system, regardless of the key, the scale degrees are always:
+                    </p>
+                    <ul className="list-disc list-inside text-gray-300 mb-4">
+                        <li>1 - Root/Tonic</li>
+                        <li>2 - Second</li>
+                        <li>3 - Third</li>
+                        <li>4 - Fourth</li>
+                        <li>5 - Fifth</li>
+                        <li>6 - Sixth</li>
+                        <li>7 - Seventh</li>
+                    </ul>
+                    <p className="text-gray-300 mb-4">
+                        By using numbers instead of chord names, musicians can easily:
+                    </p>
+                    <ul className="list-disc list-inside text-gray-300 mb-4">
+                        <li>Transpose songs to any key without rewriting</li>
+                        <li>Recognize chord relationships regardless of key</li>
+                        <li>Communicate chord progressions efficiently</li>
+                    </ul>
+                    <p className="text-gray-300">
+                        For example, a I-IV-V progression in C would be C-F-G, but in G it would be G-C-D. 
+                        The relationship between the chords remains the same, just starting from a different root note.
+                    </p>
+                </div>
+                
+                <div className="mt-8 bg-gray-800 rounded-lg p-4 md:p-6 shadow-lg">
+                    <h3 className="text-lg md:text-xl font-bold text-white mb-4">Finding the relative move to a chord using the Circle of fifths:</h3>
+
+                    <CircleOfFifths initialSelectedRoot={selectedRoot || 'C'} />
+                </div>
+              
             </div>
         </div>
     );

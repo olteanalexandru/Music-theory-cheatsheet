@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 
 const circleOfFifths = {
-    order: ['C', 'G', 'D', 'A', 'E', 'B', 'F#', 'Db', 'Ab', 'Eb', 'Bb', 'F'],
+    order: ['C', 'G', 'D', 'A', 'E', 'B', 'F#', 'C#', 'G#', 'D#', 'A#', 'F'],
     relatives: {
         C: 'Am',
         G: 'Em',
@@ -12,11 +12,25 @@ const circleOfFifths = {
         E: 'C#m',
         B: 'G#m',
         'F#': 'D#m',
-        Db: 'Bbm',
-        Ab: 'Fm',
-        Eb: 'Cm',
-        Bb: 'Gm',
+        'C#': 'A#m',
+        'G#': 'E#m',
+        'D#': 'B#m',
+        'A#': 'F##m',
         F: 'Dm'
+    },
+    scaleDegrees: {
+        C: ['C', 'D', 'E', 'F', 'G', 'A', 'B'],
+        G: ['G', 'A', 'B', 'C', 'D', 'E', 'F#'],
+        D: ['D', 'E', 'F#', 'G', 'A', 'B', 'C#'],
+        A: ['A', 'B', 'C#', 'D', 'E', 'F#', 'G#'],
+        E: ['E', 'F#', 'G#', 'A', 'B', 'C#', 'D#'],
+        B: ['B', 'C#', 'D#', 'E', 'F#', 'G#', 'A#'],
+        'F#': ['F#', 'G#', 'A#', 'B', 'C#', 'D#', 'E#'],
+        'C#': ['C#', 'D#', 'E#', 'F#', 'G#', 'A#', 'B#'],
+        'G#': ['G#', 'A#', 'B#', 'C#', 'D#', 'E#', 'F##'],
+        'D#': ['D#', 'E#', 'F##', 'G#', 'A#', 'B#', 'C##'],
+        'A#': ['A#', 'B#', 'C##', 'D#', 'E#', 'F##', 'G##'],
+        F: ['F', 'G', 'A', 'Bb', 'C', 'D', 'E']
     },
     numberOfSharps: {
         C: 0,
@@ -26,18 +40,15 @@ const circleOfFifths = {
         E: 4,
         B: 5,
         'F#': 6,
-        Db: 5,
-        Ab: 4,
-        Eb: 3,
-        Bb: 2,
+        'C#': 7,
+        'G#': 8,
+        'D#': 9,
+        'A#': 10,
         F: 1
     },
     sharpsOrder: ['F#', 'C#', 'G#', 'D#', 'A#', 'E#', 'B#'],
-    flatsOrder: ['Bb', 'Eb', 'Ab', 'Db', 'Gb', 'Cb', 'Fb'],
-    chordQualities: {
-        major: ['I', 'V', 'IV'],
-        minor: ['vi', 'ii', 'iii']
-    }
+    flatsOrder: ['Bb', 'Eb', 'Ab', 'Db', 'Gb', 'Cb', 'Fb']
+
 };
 
 interface CircleOfFifthsProps {
@@ -52,10 +63,6 @@ export const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ initialSelectedR
         setSelectedRoot(initialSelectedRoot);
     }, [initialSelectedRoot]);
 
-    useEffect(() => {
-        // Any client-specific logic can go here
-    }, []);
-
     type Note = keyof typeof circleOfFifths.numberOfSharps;
 
     const getKeySignature = (note: Note): string => {
@@ -68,10 +75,21 @@ export const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ initialSelectedR
     };
 
     const getPrimaryChords = (root: string) => {
+        const scale = circleOfFifths.scaleDegrees[root as keyof typeof circleOfFifths.scaleDegrees];
         return {
-            I: root,
-            IV: circleOfFifths.order[(circleOfFifths.order.indexOf(root) + 11) % 12],
-            V: circleOfFifths.order[(circleOfFifths.order.indexOf(root) + 1) % 12]
+            I: scale[0],             // Tonic (1st degree)
+            IV: scale[3],            // Subdominant (4th degree)
+            V: scale[4]              // Dominant (5th degree)
+        };
+    };
+
+    const getDerivedChords = (root: string) => {
+        const scale = circleOfFifths.scaleDegrees[root as keyof typeof circleOfFifths.scaleDegrees];
+        return {
+            ii: `${scale[1]}m`,      // Supertonic (2nd degree)
+            iii: `${scale[2]}m`,     // Mediant (3rd degree)
+            vi: `${scale[5]}m`,      // Submediant (6th degree)
+            vii: `${scale[6]}dim`    // Leading tone (7th degree)
         };
     };
 
@@ -111,10 +129,7 @@ export const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ initialSelectedR
             </div>
 
             <div className="relative w-full aspect-square max-w-[300px] md:max-w-[500px] mx-auto">
-                {/* Outer circle background */}
                 <div className="absolute inset-0 rounded-full border-4 border-gray-600" />
-                
-                {/* Inner circle background */}
                 <div className="absolute inset-[25%] rounded-full border-2 border-gray-600" />
 
                 {circleOfFifths.order.map((note, index) => renderNote(note, index, 40, true))}
@@ -139,6 +154,16 @@ export const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ initialSelectedR
                                 </div>
                             ))}
                         </div>
+
+                        <h4 className="font-semibold mt-4 mb-2">Derived Chords</h4>
+                        <div className="grid grid-cols-4 gap-4">
+                            {Object.entries(getDerivedChords(selectedRoot)).map(([roman, chord]) => (
+                                <div key={roman} className="bg-gray-700 p-2 rounded text-center">
+                                    <div className="text-sm text-gray-400">{roman}</div>
+                                    <div className="font-bold">{chord}</div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 )}
 
@@ -152,6 +177,40 @@ export const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ initialSelectedR
                     </ul>
                 </div>
             </div>
+            <br/><br/>
+    <h1>Finding Relatives Using the Circle of Fifths</h1>
+    <ul>
+        <li>
+            <p><strong>To find the 2nd degree (Dorian mode)</strong></p>
+            <p>Count 2 notes to the right.<br/>
+               Or, look below at the note on the left.</p>
+        </li>
+        <li>
+            <p><strong>To find the 3rd degree (Phrygian mode)</strong></p>
+            <p>Count 4 notes to the right.<br/>
+               Or, look below at the note on the right.</p>
+        </li>
+        <li>
+            <p><strong>To find the 4th degree (Lydian mode)</strong></p>
+            <p>Count 1 note to the left.</p>
+        </li>
+        <li>
+            <p><strong>To find the 5th degree (Mixolydian mode)</strong></p>
+            <p>Count 1 note to the right.</p>
+        </li>
+        <li>
+            <p><strong>To find the 6th degree (Aeolian mode/relative minor)</strong></p>
+            <p>Count 3 notes to the right.<br/>
+               Or, look below.</p>
+        </li>
+        <li>
+            <p><strong>To find the 7th degree (Locrian mode)</strong></p>
+            <p>Count 5 notes to the right.<br/>
+               Or, look below at the note on the right.</p>
+        </li>
+    </ul>
+
+
         </div>
     );
 };
