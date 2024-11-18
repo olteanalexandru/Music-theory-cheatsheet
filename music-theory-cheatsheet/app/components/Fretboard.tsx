@@ -19,6 +19,7 @@ type FretboardProps = {
 type PatternName = string;
 
 const Fretboard: React.FC<FretboardProps> = ({
+    
     getNoteAtFret,
     hoveredNote,
     setHoveredNote,
@@ -33,20 +34,16 @@ const Fretboard: React.FC<FretboardProps> = ({
 }) => {
     // Function to get the appropriate strings based on numChords
     const getStringsForBass = () => {
-        switch (numChords) {
-            case 4:
-                return ['G', 'D', 'A', 'E'];
-            case 5:
-                return ['G', 'D', 'A', 'E', 'B'];
-            case 6:
-                return ['C', 'G', 'D', 'A', 'E', 'B'];
-            default:
-                return ['G', 'D', 'A', 'E']; // Default to 4-string bass
-        }
+        const stringsMap: Record<number, string[]> = {
+            4: ['G', 'D', 'A', 'E'],
+            5: ['G', 'D', 'A', 'E', 'B'],
+            6: ['C', 'G', 'D', 'A', 'E', 'B']
+        };
+        return stringsMap[numChords];
     };
 
-    // Get the actual strings to display
-    const displayStrings = getStringsForBass();
+    // Get the actual strings to use
+    const bassStrings = getStringsForBass();
 
     return (
         <div className="bg-gray-800 rounded-xl shadow-2xl overflow-x-auto">
@@ -68,7 +65,7 @@ const Fretboard: React.FC<FretboardProps> = ({
 
             {/* Strings and notes */}
             <div className={`px-2 md:px-4 py-4 ${numChords > 4 ? 'space-y-2' : 'space-y-4'}`}>
-                {displayStrings.map((string, stringIndex) => (
+                {bassStrings.map((string) => (
                     <div key={string} className="flex items-center">
                         <div className="w-8 md:w-12 text-right pr-2 md:pr-4">
                             <span className={`
@@ -78,11 +75,13 @@ const Fretboard: React.FC<FretboardProps> = ({
                                 text-white font-semibold
                                 ${numChords > 4 ? 'text-xs md:text-sm' : 'text-sm md:text-base'}
                             `}>
-                                {string}
+                                {useLandmarkNumbers ? noteToLandmarkNumber(getNoteAtFret(string, 0)) : string}
                             </span>
                         </div>
                         
                         {[...Array(16)].map((_, fret) => {
+                            // if fret is 0 skip
+                            if (fret === 0) return null;
                             const note = getNoteAtFret(string, fret);
                             const displayNote = useLandmarkNumbers ? noteToLandmarkNumber(note) : note;
                             const isHovered = hoveredNote === note;
