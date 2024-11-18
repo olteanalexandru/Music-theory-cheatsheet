@@ -34,6 +34,7 @@ const InteractiveBassDisplay = () => {
     const [patternType, setPatternType] = useState<PatternType>('scales');
     const [showTheory, setShowTheory] = useState(false);
     const [numChords, setNumChords] = useState<number>(4); // Default to 4 chords
+    const [useLandmarkNumbers, setUseLandmarkNumbers] = useState(false);
 
     // Bass strings from highest to lowest
     const strings = ['G', 'D', 'A', 'E'];
@@ -101,7 +102,7 @@ const InteractiveBassDisplay = () => {
             },
             'Minor 7th ♭5': {
                 intervals: [0, 3, 6, 10],
-                description: 'Root-♭3-♭5-♭7'
+                description: 'Root-♭3-♭5-���7'
             },
             'Diminished 7th': {
                 intervals: [0, 3, 6, 9],
@@ -162,6 +163,15 @@ const InteractiveBassDisplay = () => {
         return patternIntervals.includes(interval);
     };
 
+    // Helper function to convert note names to landmark numbers
+    const noteToLandmarkNumber = (note: string) => {
+        const noteMap: Record<string, number> = {
+            'C': 1, 'C♯': 2, 'D♭': 2, 'D': 2, 'D♯': 3, 'E♭': 3, 'E': 3, 'F': 4, 
+            'F♯': 5, 'G♭': 5, 'G': 5, 'G♯': 6, 'A♭': 6, 'A': 6, 'A♯': 7, 'B♭': 7, 'B': 7
+        };
+        return noteMap[note] || note;
+    };
+
     return (
         <div className="min-h-screen bg-gray-900 p-4 md:p-8">
             <div className="max-w-7xl mx-auto">
@@ -183,6 +193,8 @@ const InteractiveBassDisplay = () => {
                     setSelectedRoot={setSelectedRoot}
                     numChords={numChords} // Pass new state
                     setNumChords={setNumChords} // Pass new state setter
+                    useLandmarkNumbers={useLandmarkNumbers}
+                    setUseLandmarkNumbers={setUseLandmarkNumbers}
                 />
 
                 {/* Theory Toggle */}
@@ -206,6 +218,8 @@ const InteractiveBassDisplay = () => {
                     patternType={patternType}
                     isNoteInPattern={isNoteInPattern}
                     numChords={numChords} // Pass new state
+                    useLandmarkNumbers={useLandmarkNumbers}
+                    noteToLandmarkNumber={noteToLandmarkNumber}
                 />
 
                 {/* Theory Information */}

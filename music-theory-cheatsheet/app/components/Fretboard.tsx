@@ -11,7 +11,9 @@ type FretboardProps = {
     patterns: Patterns,
     patternType: PatternType,
     isNoteInPattern: (note: string, root: string, intervals: number[]) => boolean,
-    numChords: number
+    numChords: number,
+    useLandmarkNumbers: boolean,
+    noteToLandmarkNumber: (note: string) => number | string
 };
 
 type PatternName = string;
@@ -25,7 +27,9 @@ const Fretboard: React.FC<FretboardProps> = ({
     patterns,
     patternType,
     isNoteInPattern,
-    numChords
+    numChords,
+    useLandmarkNumbers,
+    noteToLandmarkNumber
 }) => {
     // Function to get the appropriate strings based on numChords
     const getStringsForBass = () => {
@@ -64,7 +68,7 @@ const Fretboard: React.FC<FretboardProps> = ({
 
             {/* Strings and notes */}
             <div className={`px-2 md:px-4 py-4 ${numChords > 4 ? 'space-y-2' : 'space-y-4'}`}>
-                {displayStrings.map((string) => (
+                {displayStrings.map((string, stringIndex) => (
                     <div key={string} className="flex items-center">
                         <div className="w-8 md:w-12 text-right pr-2 md:pr-4">
                             <span className={`
@@ -80,6 +84,7 @@ const Fretboard: React.FC<FretboardProps> = ({
                         
                         {[...Array(16)].map((_, fret) => {
                             const note = getNoteAtFret(string, fret);
+                            const displayNote = useLandmarkNumbers ? noteToLandmarkNumber(note) : note;
                             const isHovered = hoveredNote === note;
                             const isInPattern = selectedPattern && selectedRoot && 
                                 isNoteInPattern(note, selectedRoot, patterns[patternType][selectedPattern as PatternName].intervals);
@@ -105,7 +110,7 @@ const Fretboard: React.FC<FretboardProps> = ({
                                         onMouseEnter={() => setHoveredNote(note)}
                                         onMouseLeave={() => setHoveredNote(null)}
                                     >
-                                        {note}
+                                        {displayNote}
                                     </div>
                                     {fret !== 0 && (
                                         <div className="absolute top-1/2 w-full h-[1px] md:h-[2px] bg-gradient-to-r from-gray-600 via-gray-500 to-gray-600" style={{ zIndex: -1 }}></div>

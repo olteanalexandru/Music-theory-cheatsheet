@@ -25,7 +25,9 @@ type PatternControlsProps = {
     selectedRoot: string,
     setSelectedRoot: (root: string) => void,
     numChords: number,
-    setNumChords: (num: number) => void
+    setNumChords: (num: number) => void,
+    useLandmarkNumbers: boolean,
+    setUseLandmarkNumbers: (use: boolean) => void
 };
 
 const PatternControls: React.FC<PatternControlsProps> = ({
@@ -38,7 +40,9 @@ const PatternControls: React.FC<PatternControlsProps> = ({
     selectedRoot,
     setSelectedRoot,
     numChords,
-    setNumChords
+    setNumChords,
+    useLandmarkNumbers,
+    setUseLandmarkNumbers
 }) => {
     return (
         <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -118,6 +122,20 @@ const PatternControls: React.FC<PatternControlsProps> = ({
                         </button>
                     ))}
                 </div>
+            </div>
+
+            {/* Display Mode Selection */}
+            <div className="bg-gray-800 rounded-lg p-4">
+                <label className="text-gray-300 text-sm mb-2 block">Display Mode</label>
+                <button
+                    onClick={() => setUseLandmarkNumbers(!useLandmarkNumbers)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors
+                        ${useLandmarkNumbers 
+                            ? 'bg-indigo-500 text-white' 
+                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
+                >
+                    {useLandmarkNumbers ? 'Landmark Numbers' : 'Note System'}
+                </button>
             </div>
         </div>
     );
