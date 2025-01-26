@@ -1,61 +1,14 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-
-const circleOfFifths = {
-    order: ['C', 'G', 'D', 'A', 'E', 'B', 'F#', 'C#', 'G#', 'D#', 'A#', 'F'],
-    relatives: {
-        C: 'Am',
-        G: 'Em',
-        D: 'Bm',
-        A: 'F#m',
-        E: 'C#m',
-        B: 'G#m',
-        'F#': 'D#m',
-        'C#': 'A#m',
-        'G#': 'E#m',
-        'D#': 'B#m',
-        'A#': 'F##m',
-        F: 'Dm'
-    },
-    scaleDegrees: {
-        C: ['C', 'D', 'E', 'F', 'G', 'A', 'B'],
-        G: ['G', 'A', 'B', 'C', 'D', 'E', 'F#'],
-        D: ['D', 'E', 'F#', 'G', 'A', 'B', 'C#'],
-        A: ['A', 'B', 'C#', 'D', 'E', 'F#', 'G#'],
-        E: ['E', 'F#', 'G#', 'A', 'B', 'C#', 'D#'],
-        B: ['B', 'C#', 'D#', 'E', 'F#', 'G#', 'A#'],
-        'F#': ['F#', 'G#', 'A#', 'B', 'C#', 'D#', 'E#'],
-        'C#': ['C#', 'D#', 'E#', 'F#', 'G#', 'A#', 'B#'],
-        'G#': ['G#', 'A#', 'B#', 'C#', 'D#', 'E#', 'F##'],
-        'D#': ['D#', 'E#', 'F##', 'G#', 'A#', 'B#', 'C##'],
-        'A#': ['A#', 'B#', 'C##', 'D#', 'E#', 'F##', 'G##'],
-        F: ['F', 'G', 'A', 'Bb', 'C', 'D', 'E']
-    },
-    numberOfSharps: {
-        C: 0,
-        G: 1,
-        D: 2,
-        A: 3,
-        E: 4,
-        B: 5,
-        'F#': 6,
-        'C#': 7,
-        'G#': 8,
-        'D#': 9,
-        'A#': 10,
-        F: 1
-    },
-    sharpsOrder: ['F#', 'C#', 'G#', 'D#', 'A#', 'E#', 'B#'],
-    flatsOrder: ['Bb', 'Eb', 'Ab', 'Db', 'Gb', 'Cb', 'Fb']
-
-};
+import { circleOfFifths } from '@/app/utils/musicTheory';
 
 interface CircleOfFifthsProps {
     initialSelectedRoot: string;
+    mode: 'bass' | 'guitar';
 }
 
-export const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ initialSelectedRoot }) => {
+export const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ initialSelectedRoot, mode }) => {
     const [selectedRoot, setSelectedRoot] = useState<string>('');
     const [showChords, setShowChords] = useState<boolean>(false);
 

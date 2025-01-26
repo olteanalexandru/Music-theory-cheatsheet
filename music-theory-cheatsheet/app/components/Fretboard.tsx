@@ -13,13 +13,13 @@ type FretboardProps = {
     isNoteInPattern: (note: string, root: string, intervals: number[]) => boolean,
     numChords: number,
     useLandmarkNumbers: boolean,
-    noteToLandmarkNumber: (note: string) => number | string
+    noteToLandmarkNumber: (note: string) => number | string,
+    instrument: 'bass' | 'guitar'
 };
 
 type PatternName = string;
 
 const Fretboard: React.FC<FretboardProps> = ({
-    
     getNoteAtFret,
     hoveredNote,
     setHoveredNote,
@@ -30,20 +30,27 @@ const Fretboard: React.FC<FretboardProps> = ({
     isNoteInPattern,
     numChords,
     useLandmarkNumbers,
-    noteToLandmarkNumber
+    noteToLandmarkNumber,
+    instrument
 }) => {
     // Function to get the appropriate strings based on numChords
-    const getStringsForBass = () => {
-        const stringsMap: Record<number, string[]> = {
-            4: ['G', 'D', 'A', 'E'],
-            5: ['G', 'D', 'A', 'E', 'B'],
-            6: ['C', 'G', 'D', 'A', 'E', 'B']
+    const getStringsForInstrument = () => {
+        const stringsMap: Record<string, Record<number, string[]>> = {
+            bass: {
+                4: ['G', 'D', 'A', 'E'],
+                5: ['G', 'D', 'A', 'E', 'B'],
+                6: ['C', 'G', 'D', 'A', 'E', 'B']
+            },
+            guitar: {
+                6: ['E', 'A', 'D', 'G', 'B', 'E']
+            }
         };
-        return stringsMap[numChords];
+        const fallback = instrument === 'guitar' ? 6 : 4;
+        return stringsMap[instrument][numChords] || stringsMap[instrument][fallback];
     };
 
     // Get the actual strings to use
-    const bassStrings = getStringsForBass();
+    const instrumentStrings = getStringsForInstrument();
 
     return (
         <div className="bg-gray-800 rounded-xl shadow-2xl overflow-x-auto">
@@ -65,8 +72,8 @@ const Fretboard: React.FC<FretboardProps> = ({
 
             {/* Strings and notes */}
             <div className={`px-2 md:px-4 py-4 ${numChords > 4 ? 'space-y-2' : 'space-y-4'}`}>
-                {bassStrings.map((string) => (
-                    <div key={string} className="flex items-center">
+                {instrumentStrings.map((string, index) => (
+                    <div key={`${string}-${index}`} className="flex items-center">
                         <div className="w-8 md:w-12 text-right pr-2 md:pr-4">
                             <span className={`
                                 inline-flex items-center justify-center 
