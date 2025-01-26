@@ -35,6 +35,7 @@ const InteractiveBassDisplay = () => {
     const [showTheory, setShowTheory] = useState(false);
     const [numChords, setNumChords] = useState<number>(4); // Default to 4 chords
     const [useLandmarkNumbers, setUseLandmarkNumbers] = useState(false);
+    const [instrument, setInstrument] = useState<'bass' | 'guitar'>('bass'); // New state variable for instrument
 
     // Bass strings from highest to lowest
     const strings = ['G', 'D', 'A', 'E'];
@@ -102,7 +103,7 @@ const InteractiveBassDisplay = () => {
             },
             'Minor 7th ♭5': {
                 intervals: [0, 3, 6, 10],
-                description: 'Root-♭3-♭5-���7'
+                description: 'Root-♭3-♭5-♭7'
             },
             'Diminished 7th': {
                 intervals: [0, 3, 6, 9],
@@ -198,6 +199,8 @@ const InteractiveBassDisplay = () => {
                     setNumChords={setNumChords} // Pass new state setter
                     useLandmarkNumbers={useLandmarkNumbers}
                     setUseLandmarkNumbers={setUseLandmarkNumbers}
+                    instrument={instrument} // Pass new state
+                    setInstrument={setInstrument} // Pass new state setter
                 />
 
                 {/* Theory Toggle */}
@@ -223,6 +226,7 @@ const InteractiveBassDisplay = () => {
                     numChords={numChords} // Pass new state
                     useLandmarkNumbers={useLandmarkNumbers}
                     noteToLandmarkNumber={noteToLandmarkNumber}
+                    instrument={instrument} // Pass new state
                 />
 
                 {/* Theory Information */}
@@ -333,7 +337,7 @@ const InteractiveBassDisplay = () => {
                 <div className="mt-8 bg-gray-800 rounded-lg p-4 md:p-6 shadow-lg">
                     <h3 className="text-lg md:text-xl font-bold text-white mb-4">Finding the relative move to a chord using the Circle of fifths:</h3>
 
-                    <CircleOfFifths initialSelectedRoot={selectedRoot || 'C'} />
+                    <CircleOfFifths initialSelectedRoot={selectedRoot || 'C'} mode={instrument} />
                 </div>
               
             </div>

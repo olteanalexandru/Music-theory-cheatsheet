@@ -27,7 +27,9 @@ type PatternControlsProps = {
     numChords: number,
     setNumChords: (num: number) => void,
     useLandmarkNumbers: boolean,
-    setUseLandmarkNumbers: (use: boolean) => void
+    setUseLandmarkNumbers: (use: boolean) => void,
+    instrument: 'bass' | 'guitar',
+    setInstrument: (instrument: 'bass' | 'guitar') => void
 };
 
 const PatternControls: React.FC<PatternControlsProps> = ({
@@ -42,7 +44,9 @@ const PatternControls: React.FC<PatternControlsProps> = ({
     numChords,
     setNumChords,
     useLandmarkNumbers,
-    setUseLandmarkNumbers
+    setUseLandmarkNumbers,
+    instrument,
+    setInstrument
 }) => {
     return (
         <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -98,6 +102,22 @@ const PatternControls: React.FC<PatternControlsProps> = ({
                     {[4, 5, 6].map(num => (
                         <option key={num} value={num}>
                             {num}
+                        </option>
+                    ))}
+                </select>
+            </div>
+
+            {/* Instrument Selection */}
+            <div className="bg-gray-800 rounded-lg p-4">
+                <label className="text-gray-300 text-sm mb-2 block">Instrument</label>
+                <select
+                    value={instrument}
+                    onChange={(e) => setInstrument(e.target.value as 'bass' | 'guitar')}
+                    className="w-full bg-gray-700 text-gray-300 p-2 rounded-lg"
+                >
+                    {['bass', 'guitar'].map(inst => (
+                        <option key={inst} value={inst}>
+                            {inst.charAt(0).toUpperCase() + inst.slice(1)}
                         </option>
                     ))}
                 </select>
