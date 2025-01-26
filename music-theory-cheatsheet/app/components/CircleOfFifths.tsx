@@ -5,9 +5,10 @@ import { circleOfFifths } from '@/app/utils/musicTheory';
 
 interface CircleOfFifthsProps {
     initialSelectedRoot: string;
+    mode: 'bass' | 'guitar';
 }
 
-export const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ initialSelectedRoot }) => {
+export const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ initialSelectedRoot, mode }) => {
     const [selectedRoot, setSelectedRoot] = useState<string>('');
     const [showChords, setShowChords] = useState<boolean>(false);
 
@@ -69,7 +70,7 @@ export const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ initialSelectedR
     };
 
     return (
-        <div className="bg-gray-800 rounded-lg p-4 md:p-6 shadow-lg">
+        <div className={`bg-gray-800 rounded-lg p-4 md:p-6 shadow-lg ${mode === 'guitar' ? 'guitar-mode' : 'bass-mode'}`}>
             <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg md:text-xl font-bold text-white">Circle of Fifths</h3>
                 <button
