@@ -5,10 +5,9 @@ import { circleOfFifths } from '@/app/utils/musicTheory';
 
 interface CircleOfFifthsProps {
     initialSelectedRoot: string;
-    mode: 'bass' | 'guitar';
 }
 
-export const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ initialSelectedRoot, mode }) => {
+export const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ initialSelectedRoot }) => {
     const [selectedRoot, setSelectedRoot] = useState<string>('');
     const [showChords, setShowChords] = useState<boolean>(false);
 
@@ -129,41 +128,39 @@ export const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ initialSelectedR
                         <li>Adjacent keys are closely related</li>
                     </ul>
                 </div>
+                <br/><br/>
+                <h1>Finding Relatives Using the Circle of Fifths</h1>
+                <ul>
+                    <li>
+                        <p><strong>To find the 2nd degree (Dorian mode)</strong></p>
+                        <p>Count 2 notes to the right.<br/>
+                           Or, look below at the note on the left.</p>
+                    </li>
+                    <li>
+                        <p><strong>To find the 3rd degree (Phrygian mode)</strong></p>
+                        <p>Count 4 notes to the right.<br/>
+                           Or, look below at the note on the right.</p>
+                    </li>
+                    <li>
+                        <p><strong>To find the 4th degree (Lydian mode)</strong></p>
+                        <p>Count 1 note to the left.</p>
+                    </li>
+                    <li>
+                        <p><strong>To find the 5th degree (Mixolydian mode)</strong></p>
+                        <p>Count 1 note to the right.</p>
+                    </li>
+                    <li>
+                        <p><strong>To find the 6th degree (Aeolian mode/relative minor)</strong></p>
+                        <p>Count 3 notes to the right.<br/>
+                           Or, look below.</p>
+                    </li>
+                    <li>
+                        <p><strong>To find the 7th degree (Locrian mode)</strong></p>
+                        <p>Count 5 notes to the right.<br/>
+                           Or, look below at the note on the right.</p>
+                    </li>
+                </ul>
             </div>
-            <br/><br/>
-    <h1>Finding Relatives Using the Circle of Fifths</h1>
-    <ul>
-        <li>
-            <p><strong>To find the 2nd degree (Dorian mode)</strong></p>
-            <p>Count 2 notes to the right.<br/>
-               Or, look below at the note on the left.</p>
-        </li>
-        <li>
-            <p><strong>To find the 3rd degree (Phrygian mode)</strong></p>
-            <p>Count 4 notes to the right.<br/>
-               Or, look below at the note on the right.</p>
-        </li>
-        <li>
-            <p><strong>To find the 4th degree (Lydian mode)</strong></p>
-            <p>Count 1 note to the left.</p>
-        </li>
-        <li>
-            <p><strong>To find the 5th degree (Mixolydian mode)</strong></p>
-            <p>Count 1 note to the right.</p>
-        </li>
-        <li>
-            <p><strong>To find the 6th degree (Aeolian mode/relative minor)</strong></p>
-            <p>Count 3 notes to the right.<br/>
-               Or, look below.</p>
-        </li>
-        <li>
-            <p><strong>To find the 7th degree (Locrian mode)</strong></p>
-            <p>Count 5 notes to the right.<br/>
-               Or, look below at the note on the right.</p>
-        </li>
-    </ul>
-
-
         </div>
     );
 };
