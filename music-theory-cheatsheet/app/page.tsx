@@ -165,11 +165,14 @@ const InteractiveBassDisplay = () => {
 
     // Helper function to convert note names to landmark numbers
     const noteToLandmarkNumber = (note: string) => {
-        const noteMap: Record<string, number> = {
-            'C': 1, 'C♯': 2, 'D♭': 2, 'D': 2, 'D♯': 3, 'E♭': 3, 'E': 3, 'F': 4, 
-            'F♯': 5, 'G♭': 5, 'G': 5, 'G♯': 6, 'A♭': 6, 'A': 6, 'A♯': 7, 'B♭': 7, 'B': 7
-        };
-        return noteMap[note] || note;
+      if (!selectedRoot) return note;
+      const rootIndex = getNoteIndex(selectedRoot);
+      const noteIndex = getNoteIndex(note);
+      const distance = (noteIndex - rootIndex + 12) % 12;
+      // Major scale intervals
+      const majorScale = [0, 2, 4, 5, 7, 9, 11];
+      const scaleDegree = majorScale.indexOf(distance);
+      return scaleDegree !== -1 ? scaleDegree + 1 : note;
     };
 
     return (
