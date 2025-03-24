@@ -36,6 +36,7 @@ const InteractiveBassDisplay = () => {
     const [numChords, setNumChords] = useState<number>(4); // Default to 4 chords
     const [useLandmarkNumbers, setUseLandmarkNumbers] = useState(false);
     const [instrument, setInstrument] = useState<'bass' | 'guitar'>('bass'); // New state variable for instrument
+    const [tuning, setTuning] = useState<string[]>(['E', 'A', 'D', 'G', 'B', 'E']); // New state variable for tuning
 
     // Bass strings from highest to lowest
     const strings = ['G', 'D', 'A', 'E'];
@@ -201,6 +202,8 @@ const InteractiveBassDisplay = () => {
                     setUseLandmarkNumbers={setUseLandmarkNumbers}
                     instrument={instrument} // Pass new state
                     setInstrument={setInstrument} // Pass new state setter
+                    tuning={tuning} // Pass new state
+                    setTuning={setTuning} // Pass new state setter
                 />
 
                 {/* Theory Toggle */}
@@ -227,6 +230,7 @@ const InteractiveBassDisplay = () => {
                     useLandmarkNumbers={useLandmarkNumbers}
                     noteToLandmarkNumber={noteToLandmarkNumber}
                     instrument={instrument} // Pass new state
+                    tuning={tuning} // Pass new state
                 />
 
                 {/* Theory Information */}

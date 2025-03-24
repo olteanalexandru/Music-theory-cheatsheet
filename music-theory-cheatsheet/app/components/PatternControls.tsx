@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 type PatternType = 'scales' | 'arpeggios' | 'chords';
 
@@ -29,7 +29,9 @@ type PatternControlsProps = {
     useLandmarkNumbers: boolean,
     setUseLandmarkNumbers: (use: boolean) => void,
     instrument: 'bass' | 'guitar',
-    setInstrument: (instrument: 'bass' | 'guitar') => void
+    setInstrument: (instrument: 'bass' | 'guitar') => void,
+    tuning: string[], // New prop for tuning
+    setTuning: (tuning: string[]) => void // New prop setter for tuning
 };
 
 const PatternControls: React.FC<PatternControlsProps> = ({
@@ -46,8 +48,24 @@ const PatternControls: React.FC<PatternControlsProps> = ({
     useLandmarkNumbers,
     setUseLandmarkNumbers,
     instrument,
-    setInstrument
+    setInstrument,
+    tuning, // New prop for tuning
+    setTuning // New prop setter for tuning
 }) => {
+    const handleTuningChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const selectedTuning = e.target.value;
+        const tuningMap: Record<string, string[]> = {
+            standard: ['E', 'A', 'D', 'G', 'B', 'E'],
+            dropD: ['D', 'A', 'D', 'G', 'B', 'E'],
+            openG: ['D', 'G', 'D', 'G', 'B', 'D'],
+            openD: ['D', 'A', 'D', 'F#', 'A', 'D'],
+            openE: ['E', 'B', 'E', 'G#', 'B', 'E'],
+            openA: ['E', 'A', 'E', 'A', 'C#', 'E'],
+            openC: ['C', 'G', 'C', 'G', 'C', 'E']
+        };
+        setTuning(tuningMap[selectedTuning]);
+    };
+
     return (
         <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Pattern Type Selection */}
@@ -122,6 +140,26 @@ const PatternControls: React.FC<PatternControlsProps> = ({
                     ))}
                 </select>
             </div>
+
+            {/* Tuning Selection */}
+            {instrument === 'guitar' && (
+                <div className="bg-gray-800 rounded-lg p-4">
+                    <label className="text-gray-300 text-sm mb-2 block">Tuning</label>
+                    <select
+                        value={tuning.join(',')}
+                        onChange={handleTuningChange}
+                        className="w-full bg-gray-700 text-gray-300 p-2 rounded-lg"
+                    >
+                        <option value="standard">Standard</option>
+                        <option value="dropD">Drop D</option>
+                        <option value="openG">Open G</option>
+                        <option value="openD">Open D</option>
+                        <option value="openE">Open E</option>
+                        <option value="openA">Open A</option>
+                        <option value="openC">Open C</option>
+                    </select>
+                </div>
+            )}
 
             {/* Pattern Selection */}
             <div className="bg-gray-800 rounded-lg p-4 col-span-2">
