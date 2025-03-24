@@ -44,7 +44,8 @@ const Fretboard: React.FC<FretboardProps> = ({
                 6: ['C', 'G', 'D', 'A', 'E', 'B']
             },
             guitar: {
-                6: tuning // Use the selected tuning for guitar
+                6: tuning, // Use the selected tuning for guitar
+                7: [...tuning, 'B'] // Example for 7-string guitar
             }
         };
         const fallback = instrument === 'guitar' ? 6 : 4;
