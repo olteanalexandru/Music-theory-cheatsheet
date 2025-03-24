@@ -36,6 +36,7 @@ const InteractiveBassDisplay = () => {
     const [numChords, setNumChords] = useState<number>(4); // Default to 4 chords
     const [useLandmarkNumbers, setUseLandmarkNumbers] = useState(false);
     const [instrument, setInstrument] = useState<'bass' | 'guitar'>('bass'); // New state variable for instrument
+    const [tuning, setTuning] = useState<string[]>(['E', 'A', 'D', 'G', 'B', 'E']); // New state variable for tuning
 
     // Bass strings from highest to lowest
     const strings = ['G', 'D', 'A', 'E'];
@@ -86,6 +87,26 @@ const InteractiveBassDisplay = () => {
             'Locrian': {
                 intervals: [0, 1, 3, 5, 6, 8, 10],
                 description: 'Diminished scale'
+            },
+            'Harmonic Minor': {
+                intervals: [0, 2, 3, 5, 7, 8, 11],
+                description: 'Minor scale with raised 7th'
+            },
+            'Melodic Minor': {
+                intervals: [0, 2, 3, 5, 7, 9, 11],
+                description: 'Minor scale with raised 6th and 7th'
+            },
+            'Pentatonic Major': {
+                intervals: [0, 2, 4, 7, 9],
+                description: 'Five-note major scale'
+            },
+            'Pentatonic Minor': {
+                intervals: [0, 3, 5, 7, 10],
+                description: 'Five-note minor scale'
+            },
+            'Blues Scale': {
+                intervals: [0, 3, 5, 6, 7, 10],
+                description: 'Minor pentatonic with added ♭5'
             }
         },
         arpeggios: {
@@ -201,6 +222,8 @@ const InteractiveBassDisplay = () => {
                     setUseLandmarkNumbers={setUseLandmarkNumbers}
                     instrument={instrument} // Pass new state
                     setInstrument={setInstrument} // Pass new state setter
+                    tuning={tuning} // Pass new state
+                    setTuning={setTuning} // Pass new state setter
                 />
 
                 {/* Theory Toggle */}
@@ -227,6 +250,7 @@ const InteractiveBassDisplay = () => {
                     useLandmarkNumbers={useLandmarkNumbers}
                     noteToLandmarkNumber={noteToLandmarkNumber}
                     instrument={instrument} // Pass new state
+                    tuning={tuning} // Pass new state
                 />
 
                 {/* Theory Information */}
@@ -276,6 +300,11 @@ const InteractiveBassDisplay = () => {
                                 <li>Mixolydian: Major with ♭7 (1 2 3 4 5 6 ♭7)</li>
                                 <li>Aeolian: Natural minor (1 2 ♭3 4 5 ♭6 ♭7)</li>
                                 <li>Locrian: Diminished (1 ♭2 ♭3 4 ♭5 ♭6 ♭7)</li>
+                                <li>Harmonic Minor: Minor with raised 7th (1 2 ♭3 4 5 ♭6 7)</li>
+                                <li>Melodic Minor: Minor with raised 6th and 7th (1 2 ♭3 4 5 6 7)</li>
+                                <li>Pentatonic Major: Five-note major scale (1 2 3 5 6)</li>
+                                <li>Pentatonic Minor: Five-note minor scale (1 ♭3 4 5 ♭7)</li>
+                                <li>Blues Scale: Minor pentatonic with added ♭5 (1 ♭3 4 ♭5 5 ♭7)</li>
                             </ul>
                         </div>
                     </div>

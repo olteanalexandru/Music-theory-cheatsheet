@@ -34,5 +34,9 @@ export const guitarTheory = {
     openD: ['D', 'A', 'D', 'F#', 'A', 'D'],
     openE: ['E', 'B', 'E', 'G#', 'B', 'E'],
     openA: ['E', 'A', 'E', 'A', 'C#', 'E'],
-    openC: ['C', 'G', 'C', 'G', 'C', 'E']
+    openC: ['C', 'G', 'C', 'G', 'C', 'E'],
+    dadgad: ['D', 'A', 'D', 'G', 'A', 'D'],
+    doubleDropD: ['D', 'A', 'D', 'G', 'B', 'D'],
+    halfStepDown: ['Eb', 'Ab', 'Db', 'Gb', 'Bb', 'Eb'],
+    fullStepDown: ['D', 'G', 'C', 'F', 'A', 'D']
 };

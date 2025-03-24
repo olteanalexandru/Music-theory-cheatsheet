@@ -14,7 +14,8 @@ type FretboardProps = {
     numChords: number,
     useLandmarkNumbers: boolean,
     noteToLandmarkNumber: (note: string) => number | string,
-    instrument: 'bass' | 'guitar'
+    instrument: 'bass' | 'guitar',
+    tuning: string[] // New prop for tuning
 };
 
 type PatternName = string;
@@ -31,7 +32,8 @@ const Fretboard: React.FC<FretboardProps> = ({
     numChords,
     useLandmarkNumbers,
     noteToLandmarkNumber,
-    instrument
+    instrument,
+    tuning // New prop for tuning
 }) => {
     // Function to get the appropriate strings based on numChords
     const getStringsForInstrument = () => {
@@ -42,7 +44,8 @@ const Fretboard: React.FC<FretboardProps> = ({
                 6: ['C', 'G', 'D', 'A', 'E', 'B']
             },
             guitar: {
-                6: ['E', 'A', 'D', 'G', 'B', 'E']
+                6: tuning, // Use the selected tuning for guitar
+                7: [...tuning, 'B'] // Example for 7-string guitar
             }
         };
         const fallback = instrument === 'guitar' ? 6 : 4;
