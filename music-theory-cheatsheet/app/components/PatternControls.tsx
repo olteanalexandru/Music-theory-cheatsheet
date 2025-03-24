@@ -1,5 +1,4 @@
 import React from 'react';
-import { getGuitarTunings } from '@/app/utils/guitarTunings';
 
 type PatternType = 'scales' | 'arpeggios' | 'chords';
 
@@ -53,35 +52,18 @@ const PatternControls: React.FC<PatternControlsProps> = ({
     tuning, // New prop for tuning
     setTuning // New prop setter for tuning
 }) => {
-    // Add state for string count
-    const [stringCount, setStringCount] = React.useState<6 | 7>(6);
-    
-    // Get available tunings based on string count for guitar
-    const guitarTunings = React.useMemo(() => {
-        return getGuitarTunings(stringCount);
-    }, [stringCount]);
-    
     const handleTuningChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const selectedTuningKey = e.target.value;
-        if (instrument === 'guitar') {
-            // Use the tuning from guitarTunings
-            setTuning(guitarTunings[selectedTuningKey].notes.map(note => note.slice(0, -1)));
-        } else {
-            // Original bass tuning logic
-            const basstuningMap: Record<string, string[]> = {
-                standard: ['E', 'A', 'D', 'G'],
-                // Add more bass tunings if needed
-            };
-            setTuning(basstuningMap[selectedTuningKey] || basstuningMap.standard);
-        }
-    };
-    
-    // Handle string count change
-    const handleStringCountChange = (count: 6 | 7) => {
-        setStringCount(count);
-        // Reset to standard tuning when changing string count
-        const standardTuning = getGuitarTunings(count).standard.notes.map(note => note.slice(0, -1));
-        setTuning(standardTuning);
+        const selectedTuning = e.target.value;
+        const tuningMap: Record<string, string[]> = {
+            standard: ['E', 'A', 'D', 'G', 'B', 'E'],
+            dropD: ['D', 'A', 'D', 'G', 'B', 'E'],
+            openG: ['D', 'G', 'D', 'G', 'B', 'D'],
+            openD: ['D', 'A', 'D', 'F#', 'A', 'D'],
+            openE: ['E', 'B', 'E', 'G#', 'B', 'E'],
+            openA: ['E', 'A', 'E', 'A', 'C#', 'E'],
+            openC: ['C', 'G', 'C', 'G', 'C', 'E']
+        };
+        setTuning(tuningMap[selectedTuning]);
     };
 
     return (
@@ -161,45 +143,22 @@ const PatternControls: React.FC<PatternControlsProps> = ({
 
             {/* Tuning Selection */}
             {instrument === 'guitar' && (
-                <>
-                    <div className="bg-gray-800 rounded-lg p-4">
-                        <label className="text-gray-300 text-sm mb-2 block">Guitar Strings</label>
-                        <div className="flex gap-2">
-                            <button
-                                onClick={() => handleStringCountChange(6)}
-                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors
-                                    ${stringCount === 6 
-                                        ? 'bg-indigo-500 text-white' 
-                                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
-                            >
-                                6 Strings
-                            </button>
-                            <button
-                                onClick={() => handleStringCountChange(7)}
-                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors
-                                    ${stringCount === 7
-                                        ? 'bg-indigo-500 text-white' 
-                                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
-                            >
-                                7 Strings
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div className="bg-gray-800 rounded-lg p-4">
-                        <label className="text-gray-300 text-sm mb-2 block">Guitar Tuning</label>
-                        <select
-                            onChange={handleTuningChange}
-                            className="w-full bg-gray-700 text-gray-300 p-2 rounded-lg"
-                        >
-                            {Object.entries(guitarTunings).map(([key, tuningObj]) => (
-                                <option key={key} value={key}>
-                                    {tuningObj.name}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                </>
+                <div className="bg-gray-800 rounded-lg p-4">
+                    <label className="text-gray-300 text-sm mb-2 block">Tuning</label>
+                    <select
+                        value={tuning.join(',')}
+                        onChange={handleTuningChange}
+                        className="w-full bg-gray-700 text-gray-300 p-2 rounded-lg"
+                    >
+                        <option value="standard">Standard</option>
+                        <option value="dropD">Drop D</option>
+                        <option value="openG">Open G</option>
+                        <option value="openD">Open D</option>
+                        <option value="openE">Open E</option>
+                        <option value="openA">Open A</option>
+                        <option value="openC">Open C</option>
+                    </select>
+                </div>
             )}
 
             {/* Pattern Selection */}
@@ -227,10 +186,7 @@ const PatternControls: React.FC<PatternControlsProps> = ({
             <div className="bg-gray-800 rounded-lg p-4">
                 <label className="text-gray-300 text-sm mb-2 block">Display Mode</label>
                 <button
-                    onClick={() => {
-                        console.log("Toggling landmark mode:", !useLandmarkNumbers);
-                        setUseLandmarkNumbers(!useLandmarkNumbers);
-                    }}
+                    onClick={() => setUseLandmarkNumbers(!useLandmarkNumbers)}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors
                         ${useLandmarkNumbers 
                             ? 'bg-indigo-500 text-white' 
@@ -238,9 +194,6 @@ const PatternControls: React.FC<PatternControlsProps> = ({
                 >
                     {useLandmarkNumbers ? 'Landmark Numbers' : 'Note System'}
                 </button>
-                <p className="mt-2 text-xs text-gray-400">
-                    Current mode: {useLandmarkNumbers ? 'Landmark Numbers' : 'Note System'}
-                </p>
             </div>
         </div>
     );

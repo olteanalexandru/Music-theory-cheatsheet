@@ -37,7 +37,6 @@ const InteractiveBassDisplay = () => {
     const [useLandmarkNumbers, setUseLandmarkNumbers] = useState(false);
     const [instrument, setInstrument] = useState<'bass' | 'guitar'>('bass'); // New state variable for instrument
     const [tuning, setTuning] = useState<string[]>(['E', 'A', 'D', 'G', 'B', 'E']); // New state variable for tuning
-    const [stringCount, setStringCount] = useState<6 | 7>(6);
 
     // Bass strings from highest to lowest
     const strings = ['G', 'D', 'A', 'E'];
@@ -189,18 +188,18 @@ const InteractiveBassDisplay = () => {
     // Helper function to convert note names to landmark numbers
     const noteToLandmarkNumber = (note: string) => {
       if (!selectedRoot) return note;
-      
-      // Ensure we have valid note indices
       const rootIndex = getNoteIndex(selectedRoot);
       const noteIndex = getNoteIndex(note);
-      
-      // If either note isn't found in the chromatic scale, return the original note
-      if (rootIndex === -1 || noteIndex === -1) return note;
-      
-      // Calculate the interval between the notes
       const distance = (noteIndex - rootIndex + 12) % 12;
-      
       // Major scale intervals
+      const majorScale = [0, 2, 4, 5, 7, 9, 11];
+      const scaleDegree = majorScale.indexOf(distance);
+      return scaleDegree !== -1 ? scaleDegree + 1 : note;
+    };
+
+    return (
+        <div className="min-h-screen bg-gray-900 p-4 md:p-8">
+            <div className="max-w-7xl mx-auto">
                 {/* Header */}
                 <div className="mb-8 text-center md:text-left">
                     <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">Bass Fretboard Navigator</h1>

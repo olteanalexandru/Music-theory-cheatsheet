@@ -37,18 +37,19 @@ const Fretboard: React.FC<FretboardProps> = ({
 }) => {
     // Function to get the appropriate strings based on numChords
     const getStringsForInstrument = () => {
-        if (instrument === 'bass') {
-            const bassStrings: Record<number, string[]> = {
+        const stringsMap: Record<string, Record<number, string[]>> = {
+            bass: {
                 4: ['G', 'D', 'A', 'E'],
                 5: ['G', 'D', 'A', 'E', 'B'],
                 6: ['C', 'G', 'D', 'A', 'E', 'B']
-            };
-            return bassStrings[numChords] || bassStrings[4];
-        } else {
-            // For guitar, just use the tuning prop which will have the correct
-            // number of strings (6 or 7) already set by PatternControls
-            return tuning;
-        }
+            },
+            guitar: {
+                6: tuning, // Use the selected tuning for guitar
+                7: [...tuning, 'B'] // Example for 7-string guitar
+            }
+        };
+        const fallback = instrument === 'guitar' ? 6 : 4;
+        return stringsMap[instrument][numChords] || stringsMap[instrument][fallback];
     };
 
     // Get the actual strings to use
@@ -84,9 +85,7 @@ const Fretboard: React.FC<FretboardProps> = ({
                                 text-white font-semibold
                                 ${numChords > 4 ? 'text-xs md:text-sm' : 'text-sm md:text-base'}
                             `}>
-                                {useLandmarkNumbers && selectedRoot 
-                                    ? noteToLandmarkNumber(getNoteAtFret(string, 0)) 
-                                    : string}
+                                {useLandmarkNumbers ? noteToLandmarkNumber(getNoteAtFret(string, 0)) : string}
                             </span>
                         </div>
                         
@@ -94,9 +93,7 @@ const Fretboard: React.FC<FretboardProps> = ({
                             // if fret is 0 skip
                             if (fret === 0) return null;
                             const note = getNoteAtFret(string, fret);
-                            const displayNote = useLandmarkNumbers && selectedRoot 
-                                ? noteToLandmarkNumber(note) 
-                                : note;
+                            const displayNote = useLandmarkNumbers ? noteToLandmarkNumber(note) : note;
                             const isHovered = hoveredNote === note;
                             const isInPattern = selectedPattern && selectedRoot && 
                                 isNoteInPattern(note, selectedRoot, patterns[patternType][selectedPattern as PatternName].intervals);
