@@ -29,6 +29,17 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
+        <footer className="bg-gray-800 text-white py-4 mt-8">
+          <div className="container mx-auto text-center">
+            <p className="text-sm">Helpful Interactive Websites for Music Theory:</p>
+            <ul className="list-none mt-2">
+              <li><a href="https://www.musictheory.net/" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">musictheory.net</a></li>
+              <li><a href="https://www.teoria.com/" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">teoria.com</a></li>
+              <li><a href="https://www.8notes.com/" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">8notes.com</a></li>
+              <li><a href="https://www.musictheoryacademy.com/" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">Music Theory Academy</a></li>
+            </ul>
+          </div>
+        </footer>
       </body>
     </html>
   );
