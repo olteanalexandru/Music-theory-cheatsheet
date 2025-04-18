@@ -198,7 +198,12 @@ const InteractiveBassDisplay = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-900 p-4 md:p-8">
+        <div className="min-h-screen bg-gray-900 p-4 md:p-8 relative">
+            <div className="absolute inset-0 overflow-hidden">
+                <div className="moving-part bg-indigo-500 opacity-50"></div>
+                <div className="moving-part bg-indigo-400 opacity-50"></div>
+                <div className="moving-part bg-indigo-300 opacity-50"></div>
+            </div>
             <div className="max-w-7xl mx-auto">
                 {/* Header */}
                 <div className="mb-8 text-center md:text-left">

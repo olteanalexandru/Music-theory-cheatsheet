@@ -70,7 +70,12 @@ export const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ initialSelectedR
     };
 
     return (
-        <div className={`bg-gray-800 rounded-lg p-4 md:p-6 shadow-lg ${mode === 'guitar' ? 'guitar-mode' : 'bass-mode'}`}>
+        <div className={`bg-gray-800 rounded-lg p-4 md:p-6 shadow-lg ${mode === 'guitar' ? 'guitar-mode' : 'bass-mode'} relative`}>
+            <div className="absolute inset-0 overflow-hidden">
+                <div className="moving-part bg-indigo-500 opacity-50"></div>
+                <div className="moving-part bg-indigo-400 opacity-50"></div>
+                <div className="moving-part bg-indigo-300 opacity-50"></div>
+            </div>
             <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg md:text-xl font-bold text-white">Circle of Fifths</h3>
                 <button
