@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
+import Footer from "./components/Footer";
+import { useState } from "react";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -23,12 +25,21 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const [isLightMode, setIsLightMode] = useState(false);
+
+  const toggleLightMode = () => {
+    setIsLightMode(!isLightMode);
+  };
+
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased ${
+          isLightMode ? "light-mode" : ""
+        }`}
       >
         {children}
+        <Footer isLightMode={isLightMode} toggleLightMode={toggleLightMode} />
       </body>
     </html>
   );
