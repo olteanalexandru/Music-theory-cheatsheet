@@ -5,10 +5,10 @@ const Footer = ({ isLightMode, toggleLightMode }) => {
     <footer className="bg-gray-800 text-white py-4 relative">
       <div className="container mx-auto flex justify-between items-center">
         <div className="flex space-x-4">
-          <a href="/" className="hover:underline">Home</a>
-          <a href="/about" className="hover:underline">About</a>
-          <a href="/contact" className="hover:underline">Contact</a>
-          <a href="/privacy" className="hover:underline">Privacy Policy</a>
+          <a href="https://www.musictheory.net/exercises" className="hover:underline">Interactive Music Theory</a>
+          <a href="https://www.musictheory.net/lessons" className="hover:underline">Music Theory Lessons</a>
+          <a href="https://www.musictheory.net/exercises" className="hover:underline">Music Theory Exercises</a>
+          <a href="https://www.musictheory.net/games" className="hover:underline">Music Theory Games</a>
         </div>
         <button
           onClick={toggleLightMode}
