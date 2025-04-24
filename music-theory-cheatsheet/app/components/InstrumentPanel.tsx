@@ -5,17 +5,7 @@ import { getGuitarTunings } from '../utils/guitarTunings';
 export function InstrumentPanel() {
   const [instrument, setInstrument] = useState('guitar');
   const [guitarStringCount, setGuitarStringCount] = useState<6 | 7>(6);
-  const [bassStringCount, setBassStringCount] = useState<4 | 5 | 6>(4);
   const [tuning, setTuning] = useState('standard');
-  
-  const handleInstrumentChange = (newInstrument: string) => {
-    setInstrument(newInstrument);
-    // Reset tuning when changing instruments
-    setTuning('standard');
-    if (newInstrument !== 'bass') {
-      setBassStringCount(4); // Reset bass string count when changing instruments
-    }
-  };
   
   const availableTunings = instrument === 'guitar' 
     ? getGuitarTunings(guitarStringCount)
