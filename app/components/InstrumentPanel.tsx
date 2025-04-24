@@ -7,12 +7,6 @@ export function InstrumentPanel() {
   const [guitarStringCount, setGuitarStringCount] = useState<6 | 7>(6);
   const [tuning, setTuning] = useState('standard');
   
-  const handleInstrumentChange = (newInstrument: string) => {
-    setInstrument(newInstrument);
-    // Reset tuning when changing instruments
-    setTuning('standard');
-  };
-  
   const availableTunings = instrument === 'guitar' 
     ? getGuitarTunings(guitarStringCount)
     : otherInstrumentTunings;
