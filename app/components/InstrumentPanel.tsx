@@ -1,16 +1,16 @@
 import { useState } from 'react';
 import GuitarOptions from './GuitarOptions';
-import { getGuitarTunings } from '../utils/guitarTunings';
+import { getGuitarTunings, getBassTunings } from '../utils/guitarTunings';
 
 export function InstrumentPanel() {
-  const [instrument, setInstrument] = useState('guitar');
+  const [instrument, setInstrument] = useState<'guitar' | 'bass'>('guitar');
   const [guitarStringCount, setGuitarStringCount] = useState<6 | 7>(6);
   const [tuning, setTuning] = useState('standard');
-  
+
   const availableTunings = instrument === 'guitar' 
     ? getGuitarTunings(guitarStringCount)
-    : otherInstrumentTunings;
-  
+    : getBassTunings();
+
   return (
     <div>
       {/* Instrument selection UI */}

@@ -30,6 +30,23 @@ export const sevenStringTunings: Record<string, GuitarTuning> = {
   // Add more 7-string tunings as needed
 };
 
+// Bass tunings
+export const bassTunings: Record<string, GuitarTuning> = {
+  standard: {
+    name: "Standard (E A D G)",
+    notes: ["E1", "A1", "D2", "G2"]
+  },
+  dropD: {
+    name: "Drop D (D A D G)",
+    notes: ["D1", "A1", "D2", "G2"]
+  },
+  // Add more bass tunings as needed
+};
+
 export const getGuitarTunings = (stringCount: 6 | 7) => {
   return stringCount === 6 ? sixStringTunings : sevenStringTunings;
+};
+
+export const getBassTunings = () => {
+  return bassTunings;
 };
