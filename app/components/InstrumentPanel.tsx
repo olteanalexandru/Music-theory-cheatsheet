@@ -9,7 +9,7 @@ export function InstrumentPanel() {
   
   const availableTunings = instrument === 'guitar' 
     ? getGuitarTunings(guitarStringCount)
-    : otherInstrumentTunings;
+    : {};
   
   return (
     <div>
