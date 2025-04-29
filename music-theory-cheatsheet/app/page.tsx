@@ -1,9 +1,10 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Info } from 'lucide-react';
 import { CircleOfFifths } from '@/app/components/CircleOfFifths';
 import PatternControls from '@/app/components/PatternControls';
 import Fretboard from '@/app/components/Fretboard';
+import { guitarTunings,  defaultGuitarTuningName } from '@/app/utils/guitarTunings';
 
 // Note types
 type NoteName = string;  // e.g., 'C', 'C♯', 'D♭', etc.
@@ -27,7 +28,7 @@ interface Patterns {
 
 export type { Patterns, PatternType };
 
-const InteractiveBassDisplay = () => {
+const InteractiveFretboardDisplay = () => {
     const [hoveredNote, setHoveredNote] = useState<NoteName | null>(null);
     const [selectedRoot, setSelectedRoot] = useState<NoteName | null>(null);
     const [selectedPattern, setSelectedPattern] = useState<PatternName | null>(null);
@@ -35,12 +36,23 @@ const InteractiveBassDisplay = () => {
     const [showTheory, setShowTheory] = useState(false);
     const [numChords, setNumChords] = useState<number>(4); // Default to 4 chords
     const [useLandmarkNumbers, setUseLandmarkNumbers] = useState(false);
-    const [instrument, setInstrument] = useState<'bass' | 'guitar'>('bass'); // New state variable for instrument
-    const [tuning, setTuning] = useState<string[]>(['E', 'A', 'D', 'G', 'B', 'E']); // New state variable for tuning
+    const [instrument, setInstrument] = useState<'bass' | 'guitar'>('bass');
+    const [tuning, setTuning] = useState<string[]>(['G', 'D', 'A', 'E']); // Default bass tuning
 
-    // Bass strings from highest to lowest
-    const strings = ['G', 'D', 'A', 'E'];
-    
+    useEffect(() => {
+        if (instrument === 'bass') {
+            const bassStringsMap: Record<number, string[]> = {
+                4: ['G', 'D', 'A', 'E'],
+                5: ['G', 'D', 'A', 'E', 'B'],
+                6: ['C', 'G', 'D', 'A', 'E', 'B']
+            };
+            const fallbackBassStrings = bassStringsMap[4];
+            setTuning(bassStringsMap[numChords] || fallbackBassStrings);
+        } else { // instrument === 'guitar'
+            setTuning(guitarTunings[defaultGuitarTuningName]);
+        }
+    }, [instrument, numChords]);
+
     // Chromatic scale with enharmonic spellings
     const chromaticScale = [
         ['C'], 
@@ -198,17 +210,21 @@ const InteractiveBassDisplay = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-900 p-4 md:p-8 relative">
-            <div className="absolute inset-0 overflow-hidden">
+        <div className="min-h-screen theme-bg p-4 md:p-8 relative">
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <div className="moving-part bg-indigo-500 opacity-50"></div>
                 <div className="moving-part bg-indigo-400 opacity-50"></div>
                 <div className="moving-part bg-indigo-300 opacity-50"></div>
             </div>
-            <div className="max-w-7xl mx-auto">
+            <div className="max-w-7xl mx-auto relative z-10">
                 {/* Header */}
                 <div className="mb-8 text-center md:text-left">
-                    <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">Bass Fretboard Navigator</h1>
-                    <p className="text-gray-400">Explore modes, scales, arpeggios, and chords on the bass</p>
+                    <h1 className="text-2xl md:text-3xl font-bold theme-text mb-2">
+                        {instrument === 'bass' ? 'Bass' : 'Guitar'} Fretboard Navigator
+                    </h1>
+                    <p className="theme-secondary-text">
+                        Explore modes, scales, arpeggios, and chords on the {instrument}
+                    </p>
                 </div>
 
                 {/* Controls */}
@@ -216,19 +232,18 @@ const InteractiveBassDisplay = () => {
                     patterns={patterns}
                     patternType={patternType}
                     setPatternType={setPatternType}
-                    selectedPattern={selectedPattern}
+                    selectedPattern={selectedPattern} // Corrected: Pass the state value, not the setter
                     setSelectedPattern={setSelectedPattern}
                     chromaticScale={chromaticScale}
-                    selectedRoot={selectedRoot}
+                    selectedRoot={selectedRoot} // Pass selectedRoot directly
                     setSelectedRoot={setSelectedRoot}
-                    numChords={numChords} // Pass new state
-                    setNumChords={setNumChords} // Pass new state setter
+                    numChords={numChords}
+                    setNumChords={setNumChords}
                     useLandmarkNumbers={useLandmarkNumbers}
                     setUseLandmarkNumbers={setUseLandmarkNumbers}
-                    instrument={instrument} // Pass new state
-                    setInstrument={setInstrument} // Pass new state setter
-                    tuning={tuning} // Pass new state
-                    setTuning={setTuning} // Pass new state setter
+                    instrument={instrument}
+                    setInstrument={setInstrument}
+                    setTuning={setTuning}
                 />
 
                 {/* Theory Toggle */}
@@ -242,7 +257,6 @@ const InteractiveBassDisplay = () => {
 
                 {/* Fretboard */}
                 <Fretboard
-                    strings={strings}
                     getNoteAtFret={getNoteAtFret}
                     hoveredNote={hoveredNote}
                     setHoveredNote={setHoveredNote}
@@ -251,29 +265,29 @@ const InteractiveBassDisplay = () => {
                     patterns={patterns}
                     patternType={patternType}
                     isNoteInPattern={isNoteInPattern}
-                    numChords={numChords} // Pass new state
+                    numChords={numChords}
                     useLandmarkNumbers={useLandmarkNumbers}
                     noteToLandmarkNumber={noteToLandmarkNumber}
-                    instrument={instrument} // Pass new state
-                    tuning={tuning} // Pass new state
+                    instrument={instrument}
+                    tuning={tuning}
                 />
 
                 {/* Theory Information */}
                 {showTheory && selectedPattern && selectedRoot && (
-                    <div className="mt-8 bg-gray-800 rounded-lg p-4 md:p-6 shadow-lg">
-                        <h3 className="text-lg md:text-xl font-bold text-white mb-4">Pattern Details</h3>
+                    <div className="mt-8 theme-card rounded-lg p-4 md:p-6 shadow-lg">
+                        <h3 className="text-lg md:text-xl font-bold theme-text mb-4">Pattern Details</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <h4 className="text-indigo-400 font-semibold mb-2">
                                     {selectedPattern} in {selectedRoot}
                                 </h4>
-                                <p className="text-gray-300 mb-4">{patterns[patternType][selectedPattern].description}</p>
+                                <p className="theme-secondary-text mb-4">{patterns[patternType][selectedPattern].description}</p>
                             </div>
                             <div>
                                 <h4 className="text-indigo-400 font-semibold mb-2">
                                     {patternType === 'scales' ? 'Related Arpeggios' : patternType === 'arpeggios' ? 'Related Modes' : 'Related Chords'}
                                 </h4>
-                                <ul className="list-disc list-inside text-gray-300">
+                                <ul className="list-disc list-inside theme-secondary-text">
                                     {patternType === 'scales' 
                                         ? patterns[patternType][selectedPattern].relatedArpeggios?.map(arp => (
                                                 <li key={arp} className="mb-1">{arp}</li>
@@ -293,9 +307,9 @@ const InteractiveBassDisplay = () => {
 
                 {/* Pattern Information */}
                 <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-gray-800 rounded-lg p-4 shadow-lg">
-                        <h3 className="text-white font-semibold mb-2">Scale/Mode Characteristics</h3>
-                        <div className="space-y-2 text-gray-400 text-sm">
+                    <div className="theme-card rounded-lg p-4 shadow-lg">
+                        <h3 className="theme-text font-semibold mb-2">Scale/Mode Characteristics</h3>
+                        <div className="space-y-2 theme-secondary-text text-sm">
                             <p>Each mode has a unique character based on its intervals:</p>
                             <ul className="list-disc list-inside space-y-1">
                                 <li>Ionian: Natural major scale (1 2 3 4 5 6 7)</li>
@@ -314,9 +328,9 @@ const InteractiveBassDisplay = () => {
                         </div>
                     </div>
                 
-                    <div className="bg-gray-800 rounded-lg p-4 shadow-lg">
-                        <h3 className="text-white font-semibold mb-2">Arpeggio Construction</h3>
-                        <div className="space-y-2 text-gray-400 text-sm">
+                    <div className="theme-card rounded-lg p-4 shadow-lg">
+                        <h3 className="theme-text font-semibold mb-2">Arpeggio Construction</h3>
+                        <div className="space-y-2 theme-secondary-text text-sm">
                             <p>Common arpeggio formulas:</p>
                             <ul className="list-disc list-inside space-y-1">
                                 <li>Major 7th: Root, Major 3rd, Perfect 5th, Major 7th</li>
@@ -328,24 +342,24 @@ const InteractiveBassDisplay = () => {
                         </div>
                     </div>
                 </div>
-                <div className="mt-8 bg-gray-800 rounded-lg p-4 md:p-6 shadow-lg">
-                    <h3 className="text-lg md:text-xl font-bold text-white mb-4">Nashville Number System</h3>
-                    <p className="text-gray-300 mb-4">
+                <div className="mt-8 theme-card rounded-lg p-4 md:p-6 shadow-lg">
+                    <h3 className="text-lg md:text-xl font-bold theme-text mb-4">Nashville Number System</h3>
+                    <p className="theme-secondary-text mb-4">
                         The Nashville Number System is a method of musical notation that represents the relationship between chords using numbers instead of traditional chord names. 
                         Each number represents a scale degree relative to the key you&apos;re in.  </p>
-                    <p className="text-gray-300 mb-4">
+                    <p className="theme-secondary-text mb-4">
                         All major scales follow the same pattern of whole steps (W) and half steps (H): W-W-H-W-W-W-H. 
                         The only difference between keys is the starting note. For example:
                     </p>
-                    <ul className="list-disc list-inside text-gray-300 mb-4">
+                    <ul className="list-disc list-inside theme-secondary-text mb-4">
                         <li>C major: C D E F G A B (no sharps or flats)</li>
                         <li>G major: G A B C D E F♯ (one sharp)</li>
                         <li>F major: F G A B♭ C D E (one flat)</li>
                     </ul>
-                    <p className="text-gray-300 mb-4">
+                    <p className="theme-secondary-text mb-4">
                         In the number system, regardless of the key, the scale degrees are always:
                     </p>
-                    <ul className="list-disc list-inside text-gray-300 mb-4">
+                    <ul className="list-disc list-inside theme-secondary-text mb-4">
                         <li>1 - Root/Tonic</li>
                         <li>2 - Second</li>
                         <li>3 - Third</li>
@@ -354,23 +368,21 @@ const InteractiveBassDisplay = () => {
                         <li>6 - Sixth</li>
                         <li>7 - Seventh</li>
                     </ul>
-                    <p className="text-gray-300 mb-4">
+                    <p className="theme-secondary-text mb-4">
                         By using numbers instead of chord names, musicians can easily:
                     </p>
-                    <ul className="list-disc list-inside text-gray-300 mb-4">
+                    <ul className="list-disc list-inside theme-secondary-text mb-4">
                         <li>Transpose songs to any key without rewriting</li>
                         <li>Recognize chord relationships regardless of key</li>
                         <li>Communicate chord progressions efficiently</li>
                     </ul>
-                    <p className="text-gray-300">
+                    <p className="theme-secondary-text">
                         For example, a I-IV-V progression in C would be C-F-G, but in G it would be G-C-D. 
                         The relationship between the chords remains the same, just starting from a different root note.
                     </p>
                 </div>
                 
-                <div className="mt-8 bg-gray-800 rounded-lg p-4 md:p-6 shadow-lg">
-                    <h3 className="text-lg md:text-xl font-bold text-white mb-4">Finding the relative move to a chord using the Circle of fifths:</h3>
-
+                <div className="mt-8">
                     <CircleOfFifths initialSelectedRoot={selectedRoot || 'C'} mode={instrument} />
                 </div>
               
@@ -379,4 +391,4 @@ const InteractiveBassDisplay = () => {
     );
 };
 
-export default InteractiveBassDisplay;
+export default InteractiveFretboardDisplay;

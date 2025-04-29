@@ -3,44 +3,143 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Default dark mode */
+  --background: #0a0a0a; /* Dark background */
+  --foreground: #ededed; /* Light text */
+  --card-background: #1f2937; /* Darker card background */
+  --card-foreground: #d1d5db; /* Lighter card text */
+  --button-background: #4f46e5; /* Indigo button */
+  --button-foreground: #ffffff;
+  --link-color: #818cf8; /* Lighter indigo for links */
+  --secondary-bg: #111827; /* Secondary background */
+  --secondary-fg: #d1d5db; /* Secondary foreground */
+  --muted-bg: #374151; /* For inputs and less emphasized areas */
+  --muted-fg: #9ca3af; /* For muted text */
+  --accent-bg: #4f46e5; /* Accent background */
+  --accent-fg: #ffffff; /* Accent foreground */
+  --hover-bg: #4338ca; /* Hover background */
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+.light-mode {
+  /* Light mode overrides */
+  --background: #f3f4f6; /* Light gray background */
+  --foreground: #111827; /* Dark text */
+  --card-background: #ffffff; /* White card background */
+  --card-foreground: #374151; /* Darker card text */
+  --button-background: #6366f1; /* Slightly lighter indigo button */
+  --button-foreground: #ffffff;
+  --link-color: #4f46e5; /* Darker indigo for links */
+  --secondary-bg: #f9fafb; /* Secondary background */
+  --secondary-fg: #4b5563; /* Secondary foreground */
+  --muted-bg: #e5e7eb; /* For inputs and less emphasized areas */
+  --muted-fg: #6b7280; /* For muted text */
+  --accent-bg: #6366f1; /* Accent background */
+  --accent-fg: #ffffff; /* Accent foreground */
+  --hover-bg: #4f46e5; /* Hover background */
+}
+
+/* Apply background and foreground variables to the root elements */
+html, body {
+  background-color: var(--background);
+  color: var(--foreground);
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease; /* Smooth transition */
 }
 
-.light-mode {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Apply card styles */
+.card {
+  background-color: var(--card-background);
+  color: var(--card-foreground);
+  border-radius: 0.5rem; /* lg */
+  padding: 1.5rem; /* p-6 */
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-lg */
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-.moving-part {
-  position: absolute;
-  width: 200px;
-  height: 200px;
-  border-radius: 50%;
-  animation: move 10s linear infinite;
+/* Apply button styles */
+.btn {
+  background-color: var(--button-background);
+  color: var(--button-foreground);
+  padding: 0.5rem 1rem; /* px-4 py-2 */
+  border-radius: 0.375rem; /* rounded */
+  transition: background-color 0.3s ease;
 }
 
-@keyframes move {
-  0% {
-    transform: translate(0, 0);
+.btn:hover {
+  opacity: 0.9;
+}
+
+/* Apply link styles */
+a {
+  color: var(--link-color);
+  transition: color 0.3s ease;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Theme aware utility classes */
+.theme-bg {
+  background-color: var(--background);
+}
+
+.theme-text {
+  color: var(--foreground);
+}
+
+.theme-card {
+  background-color: var(--card-background);
+  color: var(--card-foreground);
+}
+
+.theme-btn {
+  background-color: var(--button-background);
+  color: var(--button-foreground);
+}
+
+.theme-btn:hover {
+  background-color: var(--hover-bg);
+}
+
+.theme-secondary-bg {
+  background-color: var(--secondary-bg);
+}
+
+.theme-secondary-text {
+  color: var(--secondary-fg);
+}
+
+.theme-muted-bg {
+  background-color: var(--muted-bg);
+}
+
+.theme-muted-text {
+  color: var(--muted-fg);
+}
+
+.theme-accent-bg {
+  background-color: var(--accent-bg);
+  color: var(--accent-fg);
+}
+
+@keyframes galaxy {
+   0%, 100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.7;
   }
   50% {
-    transform: translate(100px, 100px);
+    /* Subtle movement and twinkle */
+    transform: translate(2px, -2px) scale(1.1);
+    opacity: 1;
   }
-  100% {
-    transform: translate(0, 0);
-  }
+}
+
+.animate-galaxy {
+  animation: galaxy linear infinite;
 }

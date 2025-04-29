@@ -51,7 +51,9 @@ export const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ initialSelectedR
         const x = (50 + radius * Math.cos(angle)).toFixed(2);
         const y = (50 + radius * Math.sin(angle)).toFixed(2);
         const isSelected = selectedRoot === note;
-        const bgColor = isMajor ? (isSelected ? 'bg-indigo-500' : 'bg-gray-700 hover:bg-gray-600') : (isSelected ? 'bg-indigo-400' : 'bg-gray-600');
+        const bgColor = isMajor 
+            ? (isSelected ? 'theme-accent-bg' : 'theme-muted-bg hover:opacity-90') 
+            : (isSelected ? 'bg-indigo-400' : 'theme-secondary-bg');
         const size = isMajor ? 'w-12 h-12' : 'w-10 h-10';
         const fontSize = isMajor ? 'font-bold' : 'text-sm';
 
@@ -60,7 +62,7 @@ export const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ initialSelectedR
                 key={note}
                 className={`absolute transform -translate-x-1/2 -translate-y-1/2 ${size} rounded-full 
                     flex items-center justify-center cursor-pointer transition-colors duration-200
-                    ${bgColor} text-white ${fontSize}`}
+                    ${bgColor} theme-text ${fontSize}`}
                 style={{ left: `${x}%`, top: `${y}%` }}
                 onClick={() => setSelectedRoot(note)}
             >
@@ -70,103 +72,107 @@ export const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ initialSelectedR
     };
 
     return (
-        <div className={`bg-gray-800 rounded-lg p-4 md:p-6 shadow-lg ${mode === 'guitar' ? 'guitar-mode' : 'bass-mode'} relative`}>
-            <div className="absolute inset-0 overflow-hidden">
+        <div className={`theme-card rounded-lg p-4 md:p-6 shadow-lg ${mode === 'guitar' ? 'guitar-mode' : 'bass-mode'} relative`}>
+            {/* Background animation - ensure it's behind other elements */}
+            <div className="absolute inset-0 overflow-hidden -z-10"> 
                 <div className="moving-part bg-indigo-500 opacity-50"></div>
                 <div className="moving-part bg-indigo-400 opacity-50"></div>
                 <div className="moving-part bg-indigo-300 opacity-50"></div>
             </div>
-            <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg md:text-xl font-bold text-white">Circle of Fifths</h3>
-                <button
-                    onClick={() => setShowChords(!showChords)}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
-                >
-                    {showChords ? 'Hide Chords' : 'Show Chords'}
-                </button>
-            </div>
-
-            <div className="relative w-full aspect-square max-w-[300px] md:max-w-[500px] mx-auto">
-                <div className="absolute inset-0 rounded-full border-4 border-gray-600" />
-                <div className="absolute inset-[25%] rounded-full border-2 border-gray-600" />
-
-                {circleOfFifths.order.map((note, index) => renderNote(note, index, 40, true))}
-                {circleOfFifths.order.map((note, index) => renderNote(note, index, 25, false))}
-            </div>
-
-            <div className="mt-6 text-gray-300 space-y-4">
-                <div>
-                    <h4 className="font-semibold mb-2">Selected Key: {selectedRoot}</h4>
-                    <p>Key Signature: {getKeySignature(selectedRoot as Note)}</p>
-                    <p>Relative Minor: {circleOfFifths.relatives[selectedRoot as Note]}</p>
+            {/* Content container - ensure it's above the background */}
+            <div className="relative z-10">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg md:text-xl font-bold theme-text">Circle of Fifths</h3>
+                    <button
+                        onClick={() => setShowChords(!showChords)}
+                        className="px-4 py-2 theme-btn rounded hover:opacity-90 z-20" // Added z-20
+                    >
+                        {showChords ? 'Hide Chords' : 'Show Chords'}
+                    </button>
                 </div>
 
-                {showChords && (
+                <div className="relative w-full aspect-square max-w-[300px] md:max-w-[500px] mx-auto">
+                    <div className="absolute inset-0 rounded-full border-4 theme-secondary-text opacity-30" />
+                    <div className="absolute inset-[25%] rounded-full border-2 theme-secondary-text opacity-30" />
+
+                    {circleOfFifths.order.map((note, index) => renderNote(note, index, 40, true))}
+                    {circleOfFifths.order.map((note, index) => renderNote(note, index, 25, false))}
+                </div>
+
+                <div className="mt-6 theme-text space-y-4">
                     <div>
-                        <h4 className="font-semibold mb-2">Primary Chords:</h4>
-                        <div className="grid grid-cols-3 gap-4">
-                            {Object.entries(getPrimaryChords(selectedRoot)).map(([roman, chord]) => (
-                                <div key={roman} className="bg-gray-700 p-2 rounded text-center">
-                                    <div className="text-sm text-gray-400">{roman}</div>
-                                    <div className="font-bold">{chord}</div>
-                                </div>
-                            ))}
-                        </div>
-
-                        <h4 className="font-semibold mt-4 mb-2">Derived Chords</h4>
-                        <div className="grid grid-cols-4 gap-4">
-                            {Object.entries(getDerivedChords(selectedRoot)).map(([roman, chord]) => (
-                                <div key={roman} className="bg-gray-700 p-2 rounded text-center">
-                                    <div className="text-sm text-gray-400">{roman}</div>
-                                    <div className="font-bold">{chord}</div>
-                                </div>
-                            ))}
-                        </div>
+                        <h4 className="font-semibold mb-2">Selected Key: {selectedRoot}</h4>
+                        <p>Key Signature: {getKeySignature(selectedRoot as Note)}</p>
+                        <p>Relative Minor: {circleOfFifths.relatives[selectedRoot as Note]}</p>
                     </div>
-                )}
 
-                <div>
-                    <h4 className="font-semibold mb-2">Key Relationships:</h4>
-                    <ul className="list-disc list-inside space-y-1">
-                        <li>Moving clockwise: add one sharp</li>
-                        <li>Moving counterclockwise: add one flat</li>
-                        <li>Inner circle shows relative minor keys</li>
-                        <li>Adjacent keys are closely related</li>
+                    {showChords && (
+                        <div>
+                            <h4 className="font-semibold mb-2">Primary Chords:</h4>
+                            <div className="grid grid-cols-3 gap-4">
+                                {Object.entries(getPrimaryChords(selectedRoot)).map(([roman, chord]) => (
+                                    <div key={roman} className="theme-secondary-bg p-2 rounded text-center">
+                                        <div className="text-sm theme-secondary-text">{roman}</div>
+                                        <div className="font-bold theme-text">{chord}</div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <h4 className="font-semibold mt-4 mb-2">Derived Chords</h4>
+                            <div className="grid grid-cols-4 gap-4">
+                                {Object.entries(getDerivedChords(selectedRoot)).map(([roman, chord]) => (
+                                    <div key={roman} className="theme-secondary-bg p-2 rounded text-center">
+                                        <div className="text-sm theme-secondary-text">{roman}</div>
+                                        <div className="font-bold theme-text">{chord}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    <div>
+                        <h4 className="font-semibold mb-2">Key Relationships:</h4>
+                        <ul className="list-disc list-inside space-y-1">
+                            <li>Moving clockwise: add one sharp</li>
+                            <li>Moving counterclockwise: add one flat</li>
+                            <li>Inner circle shows relative minor keys</li>
+                            <li>Adjacent keys are closely related</li>
+                        </ul>
+                    </div>
+                    <br/><br/>
+                    <h1>Finding Relatives Using the Circle of Fifths</h1>
+                    <ul>
+                        <li>
+                            <p><strong>To find the 2nd degree (Dorian mode)</strong></p>
+                            <p>Count 2 notes to the right.<br/>
+                               Or, look below at the note on the left.</p>
+                        </li>
+                        <li>
+                            <p><strong>To find the 3rd degree (Phrygian mode)</strong></p>
+                            <p>Count 4 notes to the right.<br/>
+                               Or, look below at the note on the right.</p>
+                        </li>
+                        <li>
+                            <p><strong>To find the 4th degree (Lydian mode)</strong></p>
+                            <p>Count 1 note to the left.</p>
+                        </li>
+                        <li>
+                            <p><strong>To find the 5th degree (Mixolydian mode)</strong></p>
+                            <p>Count 1 note to the right.</p>
+                        </li>
+                        <li>
+                            <p><strong>To find the 6th degree (Aeolian mode/relative minor)</strong></p>
+                            <p>Count 3 notes to the right.<br/>
+                               Or, look below.</p>
+                        </li>
+                        <li>
+                            <p><strong>To find the 7th degree (Locrian mode)</strong></p>
+                            <p>Count 5 notes to the right.<br/>
+                               Or, look below at the note on the right.</p>
+                        </li>
                     </ul>
                 </div>
-                <br/><br/>
-                <h1>Finding Relatives Using the Circle of Fifths</h1>
-                <ul>
-                    <li>
-                        <p><strong>To find the 2nd degree (Dorian mode)</strong></p>
-                        <p>Count 2 notes to the right.<br/>
-                           Or, look below at the note on the left.</p>
-                    </li>
-                    <li>
-                        <p><strong>To find the 3rd degree (Phrygian mode)</strong></p>
-                        <p>Count 4 notes to the right.<br/>
-                           Or, look below at the note on the right.</p>
-                    </li>
-                    <li>
-                        <p><strong>To find the 4th degree (Lydian mode)</strong></p>
-                        <p>Count 1 note to the left.</p>
-                    </li>
-                    <li>
-                        <p><strong>To find the 5th degree (Mixolydian mode)</strong></p>
-                        <p>Count 1 note to the right.</p>
-                    </li>
-                    <li>
-                        <p><strong>To find the 6th degree (Aeolian mode/relative minor)</strong></p>
-                        <p>Count 3 notes to the right.<br/>
-                           Or, look below.</p>
-                    </li>
-                    <li>
-                        <p><strong>To find the 7th degree (Locrian mode)</strong></p>
-                        <p>Count 5 notes to the right.<br/>
-                           Or, look below at the note on the right.</p>
-                    </li>
-                </ul>
-            </div>
+            </div> {/* Close relative z-10 container */}
         </div>
     );
 };
