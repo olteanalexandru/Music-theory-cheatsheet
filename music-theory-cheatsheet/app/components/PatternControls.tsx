@@ -128,21 +128,23 @@ const PatternControls: React.FC<PatternControlsProps> = ({
                 </div>
             </div>
 
-            {/* Number of Chords Selection */}
-            <div className="theme-card rounded-lg p-4">
-                <label className="theme-secondary-text text-sm mb-2 block">Number of Chords</label>
-                <select
-                    value={numChords}
-                    onChange={(e) => setNumChords(Number(e.target.value))}
-                    className="w-full theme-muted-bg theme-secondary-text p-2 rounded-lg"
-                >
-                    {[4, 5, 6].map(num => (
-                        <option key={num} value={num}>
-                            {num}
-                        </option>
-                    ))}
-                </select>
-            </div>
+            {/* Number of Chords Selection - Only show for bass */}
+            {instrument === 'bass' && (
+                <div className="theme-card rounded-lg p-4">
+                    <label className="theme-secondary-text text-sm mb-2 block">Number of Strings</label>
+                    <select
+                        value={numChords}
+                        onChange={(e) => setNumChords(Number(e.target.value))}
+                        className="w-full theme-muted-bg theme-secondary-text p-2 rounded-lg"
+                    >
+                        {[4, 5, 6].map(num => (
+                            <option key={num} value={num}>
+                                {num}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            )}
 
             {/* Instrument Selection */}
             <div className="theme-card rounded-lg p-4">

@@ -37,6 +37,7 @@ const Fretboard: React.FC<FretboardProps> = ({
     // Function to get the appropriate strings based on instrument and tuning/numChords
     const getStringsForDisplay = () => {
         if (instrument === 'guitar') {
+            // For guitar, always return the full tuning regardless of numChords
             return tuning || []; // Add null check to ensure tuning is not undefined
         } else { // instrument === 'bass'
              const bassStringsMap: Record<number, string[]> = {

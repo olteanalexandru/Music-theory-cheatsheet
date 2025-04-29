@@ -49,6 +49,7 @@ const InteractiveFretboardDisplay = () => {
             const fallbackBassStrings = bassStringsMap[4];
             setTuning(bassStringsMap[numChords] || fallbackBassStrings);
         } else { // instrument === 'guitar'
+            // For guitar, always use the 6-string tuning regardless of numChords setting
             setTuning(guitarTunings[defaultGuitarTuningName]);
         }
     }, [instrument, numChords]);
