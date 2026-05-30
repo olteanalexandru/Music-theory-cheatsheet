@@ -8,9 +8,14 @@ interface StaffSectionProps {
 
 type DisplayMode = 'letters' | 'movable-do' | 'fixed-do';
 
-const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoot = 'C' }) => {
+const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoot: initialRoot = 'C' }) => {
   const [displayMode, setDisplayMode] = useState<DisplayMode>('letters');
   const [selectedNote, setSelectedNote] = useState<string | null>(null);
+  const [selectedKey, setSelectedKey] = useState<string>(initialRoot);
+  const [hoveredNote, setHoveredNote] = useState<string | null>(null);
+
+  // All available keys
+  const keys = ['C', 'C♯', 'D♭', 'D', 'D♯', 'E♭', 'E', 'F', 'F♯', 'G♭', 'G', 'G♯', 'A♭', 'A', 'A♯', 'B♭', 'B'];
 
   // Notes on a treble clef staff from bottom to top
   // Lines: E, G, B, D, F (bottom to top)
@@ -46,20 +51,20 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
     return fixedDoMap[note] || note;
   };
 
-  // Convert note to movable solfège based on selected root
-  const noteToMovableDo = (note: string, root: string): string => {
+  // Convert note to movable solfège based on selected key
+  const noteToMovableDo = (note: string, key: string): string => {
     const movableDoMap: Record<number, string> = {
       0: 'Do',
-      1: 'Di/Re',
+      1: 'Di/Ra',
       2: 'Re',
-      3: 'Ri/Mi',
+      3: 'Ri/Me',
       4: 'Mi',
       5: 'Fa',
-      6: 'Fi/Sol',
+      6: 'Fi/Se',
       7: 'Sol',
-      8: 'Si/La',
+      8: 'Si/Le',
       9: 'La',
-      10: 'Li/Ti',
+      10: 'Li/Te',
       11: 'Ti'
     };
 
@@ -67,9 +72,9 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
       return chromaticScale.findIndex(notes => notes.some(en => en === n));
     };
 
-    const rootIndex = getNoteIndex(root);
+    const keyIndex = getNoteIndex(key);
     const noteIndex = getNoteIndex(note);
-    const interval = (noteIndex - rootIndex + 12) % 12;
+    const interval = (noteIndex - keyIndex + 12) % 12;
 
     return movableDoMap[interval] || note;
   };
@@ -83,10 +88,15 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
       case 'fixed-do':
         return noteToFixedDo(baseNote);
       case 'movable-do':
-        return noteToMovableDo(note, selectedRoot);
+        return noteToMovableDo(note, selectedKey);
       default:
         return note;
     }
+  };
+
+  // Check if note should be visible (on hover or click)
+  const isNoteVisible = (note: string): boolean => {
+    return note === hoveredNote || note === selectedNote;
   };
 
   return (
@@ -94,7 +104,26 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
       <h2 className="text-2xl font-bold theme-text mb-6">Interactive Staff</h2>
 
       {/* Controls */}
-      <div className="mb-8 flex flex-wrap gap-4 items-center">
+      <div className="mb-8 flex flex-col gap-4">
+        {/* Key Selector */}
+        <div>
+          <label className="theme-secondary-text mr-3 block md:inline-block mb-2 md:mb-0">
+            Select Key:
+          </label>
+          <select
+            value={selectedKey}
+            onChange={(e) => setSelectedKey(e.target.value)}
+            className="px-4 py-2 rounded-lg bg-indigo-900/30 text-indigo-300 border border-indigo-500/50 hover:bg-indigo-900/50 transition-colors"
+          >
+            {keys.map((key) => (
+              <option key={key} value={key}>
+                {key}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Display Mode */}
         <div>
           <label className="theme-secondary-text mr-3 block md:inline-block mb-2 md:mb-0">
             Display Mode:
@@ -128,7 +157,7 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
                   : 'bg-indigo-900/30 text-indigo-300 hover:bg-indigo-900/50'
               }`}
             >
-              Movable Do (Root: {selectedRoot})
+              Movable Do (Key: {selectedKey})
             </button>
           </div>
         </div>
@@ -170,10 +199,17 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
               const spacing = 60;
               const noteX = xStart + pos.position * spacing;
               const isSelected = selectedNote === pos.note;
+              const isHovered = hoveredNote === pos.note;
               const displayText = getDisplayText(pos.note);
+              const shouldShowNote = isNoteVisible(pos.note);
 
               return (
-                <g key={`note-${pos.position}`}>
+                <g
+                  key={`note-${pos.position}`}
+                  onMouseEnter={() => setHoveredNote(pos.note)}
+                  onMouseLeave={() => setHoveredNote(null)}
+                  style={{ cursor: 'pointer' }}
+                >
                   {/* Ledger line for notes outside staff */}
                   {pos.isLedger && (
                     <line
@@ -187,55 +223,61 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
                   )}
 
                   {/* Clickable note position */}
-                  <g
-                    onClick={() => setSelectedNote(pos.note)}
-                    style={{ cursor: 'pointer' }}
-                  >
+                  <g onClick={() => setSelectedNote(shouldShowNote ? null : pos.note)}>
                     {/* Highlight circle on hover/select */}
                     <circle
                       cx={noteX}
                       cy={yPosition}
                       r="20"
-                      fill={isSelected ? 'rgba(99, 102, 241, 0.4)' : 'rgba(99, 102, 241, 0.1)'}
-                      stroke={isSelected ? 'rgba(129, 140, 248, 1)' : 'rgba(129, 140, 248, 0.3)'}
+                      fill={
+                        isSelected
+                          ? 'rgba(99, 102, 241, 0.6)'
+                          : isHovered
+                          ? 'rgba(99, 102, 241, 0.4)'
+                          : 'rgba(99, 102, 241, 0.1)'
+                      }
+                      stroke={
+                        isSelected || isHovered
+                          ? 'rgba(129, 140, 248, 1)'
+                          : 'rgba(129, 140, 248, 0.3)'
+                      }
                       strokeWidth="2"
                       style={{
                         transition: 'all 0.2s ease'
                       }}
                     />
 
-                    {/* Note head (filled circle) */}
-                    <circle
-                      cx={noteX}
-                      cy={yPosition}
-                      r="12"
-                      fill="rgba(129, 140, 248, 0.8)"
-                    />
+                    {/* Note head (filled circle) - only visible on hover/click */}
+                    {shouldShowNote && (
+                      <circle
+                        cx={noteX}
+                        cy={yPosition}
+                        r="12"
+                        fill="rgba(129, 140, 248, 0.9)"
+                        style={{
+                          transition: 'all 0.2s ease'
+                        }}
+                      />
+                    )}
                   </g>
 
-                  {/* Display text below the staff */}
-                  <text
-                    x={noteX}
-                    y={yPosition + 60}
-                    fontSize="14"
-                    fill="rgba(129, 140, 248, 0.7)"
-                    fontFamily="sans-serif"
-                    textAnchor="middle"
-                  >
-                    {displayText}
-                  </text>
-
-                  {/* Position labels */}
-                  <text
-                    x={noteX}
-                    y={yPosition - 40}
-                    fontSize="12"
-                    fill="rgba(129, 140, 248, 0.4)"
-                    fontFamily="sans-serif"
-                    textAnchor="middle"
-                  >
-                    {pos.note}
-                  </text>
+                  {/* Display text below the staff - only visible on hover/click */}
+                  {shouldShowNote && (
+                    <text
+                      x={noteX}
+                      y={yPosition + 60}
+                      fontSize="14"
+                      fill="rgba(129, 140, 248, 0.9)"
+                      fontFamily="sans-serif"
+                      textAnchor="middle"
+                      style={{
+                        transition: 'all 0.2s ease',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      {displayText}
+                    </text>
+                  )}
                 </g>
               );
             })}
@@ -259,9 +301,9 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
               </p>
             </div>
             <div>
-              <p className="theme-secondary-text text-sm">Movable Do (Root: {selectedRoot})</p>
+              <p className="theme-secondary-text text-sm">Movable Do (Key: {selectedKey})</p>
               <p className="text-indigo-300 font-semibold text-lg">
-                {noteToMovableDo(selectedNote, selectedRoot)}
+                {noteToMovableDo(selectedNote, selectedKey)}
               </p>
             </div>
           </div>
@@ -272,15 +314,16 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
       <div className="mt-6 p-4 bg-indigo-900/20 rounded-lg">
         <h4 className="theme-text font-semibold mb-2">How to use:</h4>
         <ul className="theme-secondary-text text-sm space-y-1 list-disc list-inside">
-          <li>Click on any note on the staff to select it</li>
+          <li>Hover over or click any note on the staff to reveal it</li>
+          <li>Use the "Select Key" dropdown to change the key for Movable Do solfège</li>
           <li>
             <strong>Letter Names:</strong> Display traditional musical note names (C, D, E, etc.)
           </li>
           <li>
-            <strong>Fixed Do:</strong> Solfège syllables where C is always DO
+            <strong>Fixed Do:</strong> Solfège syllables where C is always "Do"
           </li>
           <li>
-            <strong>Movable Do:</strong> Solfège syllables relative to the selected root note
+            <strong>Movable Do:</strong> Solfège syllables relative to the selected key
           </li>
         </ul>
       </div>
