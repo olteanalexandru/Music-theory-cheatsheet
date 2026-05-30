@@ -277,7 +277,7 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
             <strong>Letter Names:</strong> Display traditional musical note names (C, D, E, etc.)
           </li>
           <li>
-            <strong>Fixed Do:</strong> Solfège syllables where C is always &quot;Do&quot;
+            <strong>Fixed Do:</strong> Solfège syllables where C is always Do;
           </li>
           <li>
             <strong>Movable Do:</strong> Solfège syllables relative to the selected root note
