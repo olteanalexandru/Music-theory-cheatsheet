@@ -4,6 +4,7 @@ import { Info } from 'lucide-react';
 import { CircleOfFifths } from '@/app/components/CircleOfFifths';
 import PatternControls from '@/app/components/PatternControls';
 import Fretboard from '@/app/components/Fretboard';
+import StaffSection from '@/app/components/StaffSection';
 import { guitarTunings,  defaultGuitarTuningName } from '@/app/utils/guitarTunings';
 
 // Note types
@@ -271,6 +272,12 @@ const InteractiveFretboardDisplay = () => {
                     noteToLandmarkNumber={noteToLandmarkNumber}
                     instrument={instrument}
                     tuning={tuning}
+                />
+
+                {/* Staff Section */}
+                <StaffSection
+                    chromaticScale={chromaticScale}
+                    selectedRoot={selectedRoot || 'C'}
                 />
 
                 {/* Theory Information */}
