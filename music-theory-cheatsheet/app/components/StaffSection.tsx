@@ -38,27 +38,26 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
   };
 
   const activeScale = majorScaleSpelling[effectiveRoot] || majorScaleSpelling.C;
+  const normalizeNote = (note: string) => note.replace(/#/g, '♯').replace(/b/g, '♭');
+  const stripAccidentals = (note: string) => normalizeNote(note).replace(/[♯♭]/g, '');
 
   const getKeySignatureSymbols = () => {
-    const accidentals = activeScale.filter((note) => note.includes('#') || note.includes('b'));
-    const uniqueAccidentals = Array.from(new Set(accidentals));
+    const accidentals = activeScale.filter((note) => /[♯#♭b]/.test(note));
+    const uniqueAccidentals = Array.from(new Set(accidentals.map((note) => normalizeNote(note))));
+
     if (uniqueAccidentals.length === 0) return 'No sharps or flats';
-    const type = uniqueAccidentals.every((note) => note.includes('#')) ? 'sharp' : 'flat';
+    const type = uniqueAccidentals.every((note) => note.includes('♯')) ? 'sharp' : 'flat';
     return `${uniqueAccidentals.length} ${type}${uniqueAccidentals.length > 1 ? 's' : ''}: ${uniqueAccidentals.join(', ')}`;
   };
 
   const applyKeySignatureToNoteLetter = (note: string) => {
-    const letter = note.replace(/[♯♭]/g, '');
-    const mapping: Record<string, string> = {
-      C: activeScale[0],
-      D: activeScale[1],
-      E: activeScale[2],
-      F: activeScale[3],
-      G: activeScale[4],
-      A: activeScale[5],
-      B: activeScale[6]
-    };
-    return mapping[letter] || note;
+    const letter = stripAccidentals(note);
+
+    const spelledNote = activeScale.find((scaleNote) => {
+      return stripAccidentals(scaleNote) === letter;
+    });
+
+    return normalizeNote(spelledNote || note);
   };
   // Notes on a treble clef staff from bottom to top
   // Lines: E, G, B, D, F (bottom to top)
@@ -84,6 +83,24 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
   // (fixed-do syllable mapping intentionally removed — fixed-do now shows absolute pitches)
 
   // Convert note to movable solfège based on selected root
+  const noteToFixedDo = (note: string): string => {
+    const normalizedNote = normalizeNote(note);
+    const letter = stripAccidentals(normalizedNote);
+    const accidental = normalizedNote.replace(/[A-G]/g, '');
+    const fixedDoMap: Record<string, string> = {
+      C: 'Do',
+      D: 'Re',
+      E: 'Mi',
+      F: 'Fa',
+      G: 'Sol',
+      A: 'La',
+      B: 'Ti'
+    };
+
+    const baseSyllable = fixedDoMap[letter] || letter;
+    return `${baseSyllable}${accidental}`;
+  };
+
   const noteToMovableDo = (note: string, root: string): string => {
     const movableDoMap: Record<number, string> = {
       0: 'Do',
@@ -101,7 +118,10 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
     };
 
     const getNoteIndex = (n: string) => {
-      return chromaticScale.findIndex(notes => notes.some(en => en === n));
+      const normalized = normalizeNote(n);
+      return chromaticScale.findIndex(notes =>
+        notes.some(en => normalizeNote(en) === normalized)
+      );
     };
 
     const rootIndex = getNoteIndex(root);
@@ -118,8 +138,7 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
       case 'letters':
         return keyedNote;
       case 'fixed-do':
-        // Fixed Do: show absolute pitch names (C, D, E, etc.) adjusted by key signature
-        return applyKeySignatureToNoteLetter(note);
+        return `${keyedNote} / ${noteToFixedDo(keyedNote)}`;
       case 'movable-do':
         return noteToMovableDo(keyedNote, effectiveRoot);
       default:
@@ -322,9 +341,11 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
               <p className="text-indigo-300 font-semibold text-lg">{applyKeySignatureToNoteLetter(selectedNote)}</p>
             </div>
             <div>
-              <p className="theme-secondary-text text-sm">Fixed Do (Absolute Pitch)</p>
+              <p className="theme-secondary-text text-sm">Fixed Do (Letter + Syllable)</p>
               <p className="text-indigo-300 font-semibold text-lg">
-                {selectedNote ? applyKeySignatureToNoteLetter(selectedNote) : ''}
+                {selectedNote
+                  ? `${applyKeySignatureToNoteLetter(selectedNote)} / ${noteToFixedDo(applyKeySignatureToNoteLetter(selectedNote))}`
+                  : ''}
               </p>
             </div>
             <div>
