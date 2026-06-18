@@ -34,6 +34,7 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
     'A♯': ['A#', 'B#', 'C##', 'D#', 'E#', 'F##', 'G##'],
     'B♭': ['Bb', 'C', 'D', 'Eb', 'F', 'G', 'A'],
     'B': ['B', 'C#', 'D#', 'E', 'F#', 'G#', 'A#']
+
   };
 
   const activeScale = majorScaleSpelling[effectiveRoot] || majorScaleSpelling.C;
@@ -79,13 +80,14 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
     { note: 'A', position: 12, isSpace: false, isLedger: true }, // Above staff
   ];
 
+  
   // (fixed-do syllable mapping intentionally removed — fixed-do now shows absolute pitches)
 
   // Convert note to movable solfège based on selected root
   const noteToMovableDo = (note: string, root: string): string => {
     const movableDoMap: Record<number, string> = {
       0: 'Do',
-      1: 'Di/Re',
+      1: 'Di/Ra',
       2: 'Re',
       3: 'Ri/Mi',
       4: 'Mi',
@@ -226,7 +228,7 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
 
             {/* Staff positions for notes */}
             {staffPositions.map((pos) => {
-              const yPosition = 220 - pos.position * 15; // Calculate Y position on staff
+              const yPosition = 250 - pos.position * 15; // Calculate Y position on staff
               const xStart = 280;
               const spacing = 60;
               const noteX = xStart + pos.position * spacing;
