@@ -13,6 +13,7 @@ type NoteName = string;  // e.g., 'C', 'C♯', 'D♭', etc.
 // Pattern-related types
 type PatternType = 'scales' | 'arpeggios' | 'chords';
 type PatternName = string;  // e.g., 'Ionian (Major)', 'Dorian', etc.
+type VisibleComponent = 'fretboard' | 'theory' | 'circle' | 'staff';
 
 interface Pattern {
   intervals: number[];
@@ -39,6 +40,50 @@ const InteractiveFretboardDisplay = () => {
     const [useLandmarkNumbers, setUseLandmarkNumbers] = useState(false);
     const [instrument, setInstrument] = useState<'bass' | 'guitar'>('bass');
     const [tuning, setTuning] = useState<string[]>(['G', 'D', 'A', 'E']); // Default bass tuning
+    const [visibleComponents, setVisibleComponents] = useState<Record<VisibleComponent, boolean>>(() => {
+        if (typeof window === 'undefined') {
+            return {
+                fretboard: true,
+                theory: true,
+                circle: true,
+                staff: true,
+            };
+        }
+
+        const saved = window.localStorage.getItem('music-theory-cheatsheet-visible-components');
+        if (!saved) {
+            return {
+                fretboard: true,
+                theory: true,
+                circle: true,
+                staff: true,
+            };
+        }
+
+        try {
+            return {
+                fretboard: true,
+                theory: true,
+                circle: true,
+                staff: true,
+                ...JSON.parse(saved),
+            };
+        } catch {
+            return {
+                fretboard: true,
+                theory: true,
+                circle: true,
+                staff: true,
+            };
+        }
+    });
+
+    useEffect(() => {
+        window.localStorage.setItem(
+            'music-theory-cheatsheet-visible-components',
+            JSON.stringify(visibleComponents)
+        );
+    }, [visibleComponents]);
 
     useEffect(() => {
         if (instrument === 'bass') {
@@ -211,6 +256,20 @@ const InteractiveFretboardDisplay = () => {
       return scaleDegree !== -1 ? scaleDegree + 1 : note;
     };
 
+    const toggleComponent = (component: VisibleComponent) => {
+        setVisibleComponents((current) => ({
+            ...current,
+            [component]: !current[component],
+        }));
+    };
+
+    const componentToggleClass = (isActive: boolean) =>
+        `px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+            isActive
+                ? 'bg-indigo-500 text-white'
+                : 'bg-indigo-950/50 text-indigo-200 hover:bg-indigo-900/70'
+        }`;
+
     return (
         <div className="min-h-screen theme-bg p-4 md:p-8 relative">
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -219,62 +278,102 @@ const InteractiveFretboardDisplay = () => {
                 <div className="moving-part bg-indigo-300 opacity-50"></div>
             </div>
             <div className="max-w-7xl mx-auto relative z-10">
-                {/* Header */}
-                <div className="mb-8 text-center md:text-left">
-                    <h1 className="text-2xl md:text-3xl font-bold theme-text mb-2">
-                        {instrument === 'bass' ? 'Bass' : 'Guitar'} Fretboard Navigator
-                    </h1>
-                    <p className="theme-secondary-text">
-                        Explore modes, scales, arpeggios, and chords on the {instrument}
-                    </p>
+                <div className="mb-6 rounded-xl border border-indigo-500/20 bg-indigo-950/40 p-3 shadow-lg">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        <p className="text-sm font-semibold text-indigo-100">Visible Components</p>
+                        <div className="flex flex-wrap gap-2">
+                            <button
+                                className={componentToggleClass(visibleComponents.fretboard)}
+                                onClick={() => toggleComponent('fretboard')}
+                            >
+                                Fretboard
+                            </button>
+                            <button
+                                className={componentToggleClass(visibleComponents.theory)}
+                                onClick={() => toggleComponent('theory')}
+                            >
+                                Theory
+                            </button>
+                            <button
+                                className={componentToggleClass(visibleComponents.circle)}
+                                onClick={() => toggleComponent('circle')}
+                            >
+                                Circle of Fifths
+                            </button>
+                            <button
+                                className={componentToggleClass(visibleComponents.staff)}
+                                onClick={() => toggleComponent('staff')}
+                            >
+                                Staff
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
-                {/* Controls */}
-                <PatternControls
-                    patterns={patterns}
-                    patternType={patternType}
-                    setPatternType={setPatternType}
-                    selectedPattern={selectedPattern} // Corrected: Pass the state value, not the setter
-                    setSelectedPattern={setSelectedPattern}
-                    chromaticScale={chromaticScale}
-                    selectedRoot={selectedRoot} // Pass selectedRoot directly
-                    setSelectedRoot={setSelectedRoot}
-                    numChords={numChords}
-                    setNumChords={setNumChords}
-                    useLandmarkNumbers={useLandmarkNumbers}
-                    setUseLandmarkNumbers={setUseLandmarkNumbers}
-                    instrument={instrument}
-                    setInstrument={setInstrument}
-                    setTuning={setTuning}
-                />
+                {/* Header */}
+                {visibleComponents.fretboard && (
+                    <div className="mb-8 text-center md:text-left">
+                        <h1 className="text-2xl md:text-3xl font-bold theme-text mb-2">
+                            {instrument === 'bass' ? 'Bass' : 'Guitar'} Fretboard Navigator
+                        </h1>
+                        <p className="theme-secondary-text">
+                            Explore modes, scales, arpeggios, and chords on the {instrument}
+                        </p>
+                    </div>
+                )}
 
                 {/* Theory Toggle */}
-                <button
-                    onClick={() => setShowTheory(!showTheory)}
-                    className="mb-4 flex items-center justify-center md:justify-start space-x-2 text-indigo-400 hover:text-indigo-300 transition-colors"
-                >
-                    <Info size={20} />
-                    <span>{showTheory ? 'Hide Theory' : 'Show Theory'}</span>
-                </button>
+                {visibleComponents.theory && (
+                    <button
+                        onClick={() => setShowTheory(!showTheory)}
+                        className="mb-4 flex items-center justify-center md:justify-start space-x-2 text-indigo-400 hover:text-indigo-300 transition-colors"
+                    >
+                        <Info size={20} />
+                        <span>{showTheory ? 'Hide Theory' : 'Show Theory'}</span>
+                    </button>
+                )}
 
                 {/* Fretboard */}
-                <Fretboard
-                    getNoteAtFret={getNoteAtFret}
-                    hoveredNote={hoveredNote}
-                    setHoveredNote={setHoveredNote}
-                    selectedRoot={selectedRoot}
-                    selectedPattern={selectedPattern}
-                    patterns={patterns}
-                    patternType={patternType}
-                    isNoteInPattern={isNoteInPattern}
-                    numChords={numChords}
-                    useLandmarkNumbers={useLandmarkNumbers}
-                    noteToLandmarkNumber={noteToLandmarkNumber}
-                    instrument={instrument}
-                    tuning={tuning}
-                />
+                {visibleComponents.fretboard && (
+                    <div className="mb-8 theme-card rounded-lg p-4 md:p-6 shadow-lg">
+                        <PatternControls
+                            patterns={patterns}
+                            patternType={patternType}
+                            setPatternType={setPatternType}
+                            selectedPattern={selectedPattern}
+                            setSelectedPattern={setSelectedPattern}
+                            chromaticScale={chromaticScale}
+                            selectedRoot={selectedRoot}
+                            setSelectedRoot={setSelectedRoot}
+                            numChords={numChords}
+                            setNumChords={setNumChords}
+                            useLandmarkNumbers={useLandmarkNumbers}
+                            setUseLandmarkNumbers={setUseLandmarkNumbers}
+                            instrument={instrument}
+                            setInstrument={setInstrument}
+                            setTuning={setTuning}
+                        />
+                        <div className="mt-4">
+                            <Fretboard
+                                getNoteAtFret={getNoteAtFret}
+                                hoveredNote={hoveredNote}
+                                setHoveredNote={setHoveredNote}
+                                selectedRoot={selectedRoot}
+                                selectedPattern={selectedPattern}
+                                patterns={patterns}
+                                patternType={patternType}
+                                isNoteInPattern={isNoteInPattern}
+                                numChords={numChords}
+                                useLandmarkNumbers={useLandmarkNumbers}
+                                noteToLandmarkNumber={noteToLandmarkNumber}
+                                instrument={instrument}
+                                tuning={tuning}
+                            />
+                        </div>
+                    </div>
+                )}
 
-                {showTheory && selectedPattern && selectedRoot && (
+                {visibleComponents.theory && showTheory && selectedPattern && selectedRoot && (
                     <div className="mt-8 theme-card rounded-lg p-4 md:p-6 shadow-lg">
                         <h3 className="text-lg md:text-xl font-bold theme-text mb-4">Pattern Details</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -307,91 +406,99 @@ const InteractiveFretboardDisplay = () => {
                 )}
 
                 {/* Pattern Information */}
-                <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="theme-card rounded-lg p-4 shadow-lg">
-                        <h3 className="theme-text font-semibold mb-2">Scale/Mode Characteristics</h3>
-                        <div className="space-y-2 theme-secondary-text text-sm">
-                            <p>Each mode has a unique character based on its intervals:</p>
-                            <ul className="list-disc list-inside space-y-1">
-                                <li>Ionian: Natural major scale (1 2 3 4 5 6 7)</li>
-                                <li>Dorian: Minor with bright 6th (1 2 ♭3 4 5 6 ♭7)</li>
-                                <li>Phrygian: Minor with dark ♭2 (1 ♭2 ♭3 4 5 ♭6 ♭7)</li>
-                                <li>Lydian: Major with bright #4 (1 2 3 #4 5 6 7)</li>
-                                <li>Mixolydian: Major with ♭7 (1 2 3 4 5 6 ♭7)</li>
-                                <li>Aeolian: Natural minor (1 2 ♭3 4 5 ♭6 ♭7)</li>
-                                <li>Locrian: Diminished (1 ♭2 ♭3 4 ♭5 ♭6 ♭7)</li>
-                                <li>Harmonic Minor: Minor with raised 7th (1 2 ♭3 4 5 ♭6 7)</li>
-                                <li>Melodic Minor: Minor with raised 6th and 7th (1 2 ♭3 4 5 6 7)</li>
-                                <li>Pentatonic Major: Five-note major scale (1 2 3 5 6)</li>
-                                <li>Pentatonic Minor: Five-note minor scale (1 ♭3 4 5 ♭7)</li>
-                                <li>Blues Scale: Minor pentatonic with added ♭5 (1 ♭3 4 ♭5 5 ♭7)</li>
-                            </ul>
+                {visibleComponents.theory && (
+                    <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="theme-card rounded-lg p-4 shadow-lg">
+                            <h3 className="theme-text font-semibold mb-2">Scale/Mode Characteristics</h3>
+                            <div className="space-y-2 theme-secondary-text text-sm">
+                                <p>Each mode has a unique character based on its intervals:</p>
+                                <ul className="list-disc list-inside space-y-1">
+                                    <li>Ionian: Natural major scale (1 2 3 4 5 6 7)</li>
+                                    <li>Dorian: Minor with bright 6th (1 2 ♭3 4 5 6 ♭7)</li>
+                                    <li>Phrygian: Minor with dark ♭2 (1 ♭2 ♭3 4 5 ♭6 ♭7)</li>
+                                    <li>Lydian: Major with bright #4 (1 2 3 #4 5 6 7)</li>
+                                    <li>Mixolydian: Major with ♭7 (1 2 3 4 5 6 ♭7)</li>
+                                    <li>Aeolian: Natural minor (1 2 ♭3 4 5 ♭6 ♭7)</li>
+                                    <li>Locrian: Diminished (1 ♭2 ♭3 4 ♭5 ♭6 ♭7)</li>
+                                    <li>Harmonic Minor: Minor with raised 7th (1 2 ♭3 4 5 ♭6 7)</li>
+                                    <li>Melodic Minor: Minor with raised 6th and 7th (1 2 ♭3 4 5 6 7)</li>
+                                    <li>Pentatonic Major: Five-note major scale (1 2 3 5 6)</li>
+                                    <li>Pentatonic Minor: Five-note minor scale (1 ♭3 4 5 ♭7)</li>
+                                    <li>Blues Scale: Minor pentatonic with added ♭5 (1 ♭3 4 ♭5 5 ♭7)</li>
+                                </ul>
+                            </div>
+                        </div>
+                    
+                        <div className="theme-card rounded-lg p-4 shadow-lg">
+                            <h3 className="theme-text font-semibold mb-2">Arpeggio Construction</h3>
+                            <div className="space-y-2 theme-secondary-text text-sm">
+                                <p>Common arpeggio formulas:</p>
+                                <ul className="list-disc list-inside space-y-1">
+                                    <li>Major 7th: Root, Major 3rd, Perfect 5th, Major 7th</li>
+                                    <li>Minor 7th: Root, Minor 3rd, Perfect 5th, Minor 7th</li>
+                                    <li>Dominant 7th: Root, Major 3rd, Perfect 5th, Minor 7th</li>
+                                    <li>Minor 7th ♭5: Root, Minor 3rd, Diminished 5th, Minor 7th</li>
+                                    <li>Diminished 7th: Root, Minor 3rd, Diminished 5th, Diminished 7th</li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
-                
-                    <div className="theme-card rounded-lg p-4 shadow-lg">
-                        <h3 className="theme-text font-semibold mb-2">Arpeggio Construction</h3>
-                        <div className="space-y-2 theme-secondary-text text-sm">
-                            <p>Common arpeggio formulas:</p>
-                            <ul className="list-disc list-inside space-y-1">
-                                <li>Major 7th: Root, Major 3rd, Perfect 5th, Major 7th</li>
-                                <li>Minor 7th: Root, Minor 3rd, Perfect 5th, Minor 7th</li>
-                                <li>Dominant 7th: Root, Major 3rd, Perfect 5th, Minor 7th</li>
-                                <li>Minor 7th ♭5: Root, Minor 3rd, Diminished 5th, Minor 7th</li>
-                                <li>Diminished 7th: Root, Minor 3rd, Diminished 5th, Diminished 7th</li>
-                            </ul>
-                        </div>
+                )}
+                {visibleComponents.theory && (
+                    <div className="mt-8 theme-card rounded-lg p-4 md:p-6 shadow-lg">
+                        <h3 className="text-lg md:text-xl font-bold theme-text mb-4">Nashville Number System</h3>
+                        <p className="theme-secondary-text mb-4">
+                            The Nashville Number System is a method of musical notation that represents the relationship between chords using numbers instead of traditional chord names. 
+                            Each number represents a scale degree relative to the key you&apos;re in.  </p>
+                        <p className="theme-secondary-text mb-4">
+                            All major scales follow the same pattern of whole steps (W) and half steps (H): W-W-H-W-W-W-H. 
+                            The only difference between keys is the starting note. For example:
+                        </p>
+                        <ul className="list-disc list-inside theme-secondary-text mb-4">
+                            <li>C major: C D E F G A B (no sharps or flats)</li>
+                            <li>G major: G A B C D E F♯ (one sharp)</li>
+                            <li>F major: F G A B♭ C D E (one flat)</li>
+                        </ul>
+                        <p className="theme-secondary-text mb-4">
+                            In the number system, regardless of the key, the scale degrees are always:
+                        </p>
+                        <ul className="list-disc list-inside theme-secondary-text mb-4">
+                            <li>1 - Root/Tonic</li>
+                            <li>2 - Second</li>
+                            <li>3 - Third</li>
+                            <li>4 - Fourth</li>
+                            <li>5 - Fifth</li>
+                            <li>6 - Sixth</li>
+                            <li>7 - Seventh</li>
+                        </ul>
+                        <p className="theme-secondary-text mb-4">
+                            By using numbers instead of chord names, musicians can easily:
+                        </p>
+                        <ul className="list-disc list-inside theme-secondary-text mb-4">
+                            <li>Transpose songs to any key without rewriting</li>
+                            <li>Recognize chord relationships regardless of key</li>
+                            <li>Communicate chord progressions efficiently</li>
+                        </ul>
+                        <p className="theme-secondary-text">
+                            For example, a I-IV-V progression in C would be C-F-G, but in G it would be G-C-D. 
+                            The relationship between the chords remains the same, just starting from a different root note.
+                        </p>
                     </div>
-                </div>
-                <div className="mt-8 theme-card rounded-lg p-4 md:p-6 shadow-lg">
-                    <h3 className="text-lg md:text-xl font-bold theme-text mb-4">Nashville Number System</h3>
-                    <p className="theme-secondary-text mb-4">
-                        The Nashville Number System is a method of musical notation that represents the relationship between chords using numbers instead of traditional chord names. 
-                        Each number represents a scale degree relative to the key you&apos;re in.  </p>
-                    <p className="theme-secondary-text mb-4">
-                        All major scales follow the same pattern of whole steps (W) and half steps (H): W-W-H-W-W-W-H. 
-                        The only difference between keys is the starting note. For example:
-                    </p>
-                    <ul className="list-disc list-inside theme-secondary-text mb-4">
-                        <li>C major: C D E F G A B (no sharps or flats)</li>
-                        <li>G major: G A B C D E F♯ (one sharp)</li>
-                        <li>F major: F G A B♭ C D E (one flat)</li>
-                    </ul>
-                    <p className="theme-secondary-text mb-4">
-                        In the number system, regardless of the key, the scale degrees are always:
-                    </p>
-                    <ul className="list-disc list-inside theme-secondary-text mb-4">
-                        <li>1 - Root/Tonic</li>
-                        <li>2 - Second</li>
-                        <li>3 - Third</li>
-                        <li>4 - Fourth</li>
-                        <li>5 - Fifth</li>
-                        <li>6 - Sixth</li>
-                        <li>7 - Seventh</li>
-                    </ul>
-                    <p className="theme-secondary-text mb-4">
-                        By using numbers instead of chord names, musicians can easily:
-                    </p>
-                    <ul className="list-disc list-inside theme-secondary-text mb-4">
-                        <li>Transpose songs to any key without rewriting</li>
-                        <li>Recognize chord relationships regardless of key</li>
-                        <li>Communicate chord progressions efficiently</li>
-                    </ul>
-                    <p className="theme-secondary-text">
-                        For example, a I-IV-V progression in C would be C-F-G, but in G it would be G-C-D. 
-                        The relationship between the chords remains the same, just starting from a different root note.
-                    </p>
-                </div>
+                )}
                 
-                <div className="mt-8">
-                    <CircleOfFifths initialSelectedRoot={selectedRoot || 'C'} mode={instrument} />
-                </div>
+                {visibleComponents.circle && (
+                    <div className="mt-8">
+                        <CircleOfFifths initialSelectedRoot={selectedRoot || 'C'} mode={instrument} />
+                    </div>
+                )}
 
-                <StaffSection
-                    chromaticScale={chromaticScale}
-                    selectedRoot={selectedRoot || 'C'}
-                    setSelectedRoot={setSelectedRoot}
-                />
+                {visibleComponents.staff && (
+                    <StaffSection
+                        chromaticScale={chromaticScale}
+                        selectedRoot={selectedRoot || 'C'}
+                        setSelectedRoot={setSelectedRoot}
+                    />
+                )}
               
             </div>
         </div>

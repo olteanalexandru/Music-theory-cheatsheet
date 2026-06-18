@@ -158,16 +158,6 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
           </label>
           <div className="flex flex-wrap gap-2">
             <button
-              onClick={() => setDisplayMode('letters')}
-              className={`px-4 py-2 rounded-lg transition-colors ${
-                displayMode === 'letters'
-                  ? 'bg-indigo-500 text-white'
-                  : 'bg-indigo-900/30 text-indigo-300 hover:bg-indigo-900/50'
-              }`}
-            >
-              Letter Names
-            </button>
-            <button
               onClick={() => setDisplayMode('fixed-do')}
               className={`px-4 py-2 rounded-lg transition-colors ${
                 displayMode === 'fixed-do'
