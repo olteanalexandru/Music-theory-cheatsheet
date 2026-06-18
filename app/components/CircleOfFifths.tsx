@@ -94,7 +94,7 @@ export const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ initialSelectedR
                     <h3 className="text-lg md:text-xl font-bold theme-text">Circle of Fifths</h3>
                     <button
                         onClick={() => setShowChords(!showChords)}
-                        className="px-4 py-2 theme-btn rounded hover:opacity-90 z-20" // Added z-20
+                        className="px-4 py-2 theme-btn rounded-sm hover:opacity-90 z-20" // Added z-20
                     >
                         {showChords ? 'Hide Chords' : 'Show Chords'}
                     </button>
@@ -120,7 +120,7 @@ export const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ initialSelectedR
                             <h4 className="font-semibold mb-2">Primary Chords:</h4>
                             <div className="grid grid-cols-3 gap-4">
                                 {Object.entries(getPrimaryChords(selectedRoot)).map(([roman, chord]) => (
-                                    <div key={roman} className="theme-secondary-bg p-2 rounded text-center">
+                                    <div key={roman} className="theme-secondary-bg p-2 rounded-sm text-center">
                                         <div className="text-sm theme-secondary-text">{roman}</div>
                                         <div className="font-bold theme-text">{chord}</div>
                                     </div>
@@ -130,7 +130,7 @@ export const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ initialSelectedR
                             <h4 className="font-semibold mt-4 mb-2">Derived Chords</h4>
                             <div className="grid grid-cols-4 gap-4">
                                 {Object.entries(getDerivedChords(selectedRoot)).map(([roman, chord]) => (
-                                    <div key={roman} className="theme-secondary-bg p-2 rounded text-center">
+                                    <div key={roman} className="theme-secondary-bg p-2 rounded-sm text-center">
                                         <div className="text-sm theme-secondary-text">{roman}</div>
                                         <div className="font-bold theme-text">{chord}</div>
                                     </div>
