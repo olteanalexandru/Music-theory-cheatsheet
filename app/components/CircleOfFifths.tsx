@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { circleOfFifths } from '@/app/utils/musicTheory';
 
 interface CircleOfFifthsProps {
@@ -9,12 +9,17 @@ interface CircleOfFifthsProps {
 }
 
 export const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ initialSelectedRoot, mode }) => {
-    const [selectedRoot, setSelectedRoot] = useState<string>('');
+    const [prevInitialRoot, setPrevInitialRoot] = useState(initialSelectedRoot);
+    const [selectedRoot, setSelectedRoot] = useState(initialSelectedRoot);
     const [showChords, setShowChords] = useState<boolean>(false);
 
-    useEffect(() => {
+    // Reset the selection when the parent supplies a new root, while still
+    // letting the user pick a different note locally (React's documented
+    // pattern for adjusting state during render instead of in an effect).
+    if (initialSelectedRoot !== prevInitialRoot) {
+        setPrevInitialRoot(initialSelectedRoot);
         setSelectedRoot(initialSelectedRoot);
-    }, [initialSelectedRoot]);
+    }
 
     type Note = keyof typeof circleOfFifths.scaleDegrees;
 

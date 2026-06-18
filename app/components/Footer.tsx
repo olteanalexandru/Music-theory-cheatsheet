@@ -1,13 +1,30 @@
-"use client"; // Add this directive to mark as client component
+"use client";
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from "react";
 
-const Footer = ({ isLightMode, toggleLightMode }) => {
-  const [starElements, setStarElements] = useState([]);
+interface StarElement {
+  id: number;
+  width: number;
+  height: number;
+  opacity: number;
+  top: number;
+  left: number;
+  duration: number;
+  delay: number;
+}
 
-  // Generate stars only on client-side after component mounts
+interface FooterProps {
+  isLightMode: boolean;
+  toggleLightMode: () => void;
+}
+
+const Footer = ({ isLightMode, toggleLightMode }: FooterProps) => {
+  const [starElements, setStarElements] = useState<StarElement[]>([]);
+
+  // Stars use Math.random(), so they must be generated client-side only,
+  // after mount, to avoid a hydration mismatch against the static export.
   useEffect(() => {
-    const stars = [...Array(50)].map((_, i) => ({
+    const stars: StarElement[] = [...Array(50)].map((_, i) => ({
       id: i,
       width: Math.random() * 3 + 1,
       height: Math.random() * 3 + 1,
@@ -17,11 +34,12 @@ const Footer = ({ isLightMode, toggleLightMode }) => {
       duration: Math.random() * 50 + 20,
       delay: Math.random() * -50,
     }));
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setStarElements(stars);
   }, [isLightMode]); // Re-generate when light mode changes
 
   return (
-    <footer className={`py-4 relative overflow-hidden`} style={{ backgroundColor: 'var(--card-background)', color: 'var(--foreground)' }}>
+    <footer className="py-4 relative overflow-hidden" style={{ backgroundColor: 'var(--card-background)', color: 'var(--foreground)' }}>
       <div className="container mx-auto flex justify-between items-center relative z-10">
         <div className="flex flex-wrap gap-x-4 gap-y-2">
           <a href="https://www.musictheory.net/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--link-color)' }}>MusicTheory.net</a>
@@ -43,8 +61,8 @@ const Footer = ({ isLightMode, toggleLightMode }) => {
             style={{
               width: `${star.width}px`,
               height: `${star.height}px`,
-              backgroundColor: isLightMode 
-                ? `rgba(0, 0, 0, ${star.opacity})` 
+              backgroundColor: isLightMode
+                ? `rgba(0, 0, 0, ${star.opacity})`
                 : `rgba(255, 255, 255, ${star.opacity})`,
               top: `${star.top}%`,
               left: `${star.left}%`,

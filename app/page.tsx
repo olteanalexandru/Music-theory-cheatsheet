@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Info } from 'lucide-react';
 import { CircleOfFifths } from '@/app/components/CircleOfFifths';
 import PatternControls from '@/app/components/PatternControls';
@@ -39,7 +39,7 @@ const InteractiveFretboardDisplay = () => {
     const [numChords, setNumChords] = useState<number>(4); // Default to 4 chords
     const [useLandmarkNumbers, setUseLandmarkNumbers] = useState(false);
     const [instrument, setInstrument] = useState<'bass' | 'guitar'>('bass');
-    const [tuning, setTuning] = useState<string[]>(['G', 'D', 'A', 'E']); // Default bass tuning
+    const [selectedTuningName, setSelectedTuningName] = useState<string>(defaultGuitarTuningName);
     const [visibleComponents, setVisibleComponents] = useState<Record<VisibleComponent, boolean>>(() => {
         if (typeof window === 'undefined') {
             return {
@@ -85,20 +85,18 @@ const InteractiveFretboardDisplay = () => {
         );
     }, [visibleComponents]);
 
-    useEffect(() => {
+    const tuning = useMemo<string[]>(() => {
         if (instrument === 'bass') {
             const bassStringsMap: Record<number, string[]> = {
                 4: ['G', 'D', 'A', 'E'],
                 5: ['G', 'D', 'A', 'E', 'B'],
                 6: ['C', 'G', 'D', 'A', 'E', 'B']
             };
-            const fallbackBassStrings = bassStringsMap[4];
-            setTuning(bassStringsMap[numChords] || fallbackBassStrings);
-        } else { // instrument === 'guitar'
-            // For guitar, always use the 6-string tuning regardless of numChords setting
-            setTuning(guitarTunings[defaultGuitarTuningName]);
+            return bassStringsMap[numChords] || bassStringsMap[4];
         }
-    }, [instrument, numChords]);
+        // instrument === 'guitar'
+        return guitarTunings[selectedTuningName] || guitarTunings[defaultGuitarTuningName];
+    }, [instrument, numChords, selectedTuningName]);
 
     // Chromatic scale with enharmonic spellings
     const chromaticScale = [
@@ -351,7 +349,8 @@ const InteractiveFretboardDisplay = () => {
                             setUseLandmarkNumbers={setUseLandmarkNumbers}
                             instrument={instrument}
                             setInstrument={setInstrument}
-                            setTuning={setTuning}
+                            selectedTuningName={selectedTuningName}
+                            setSelectedTuningName={setSelectedTuningName}
                         />
                         <div className="mt-4">
                             <Fretboard
