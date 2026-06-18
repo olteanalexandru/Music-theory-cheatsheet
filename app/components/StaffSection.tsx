@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 interface StaffSectionProps {
   chromaticScale: string[][];
@@ -13,8 +13,33 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
   const [displayMode, setDisplayMode] = useState<DisplayMode>('letters');
   const [selectedNote, setSelectedNote] = useState<string | null>(null);
   const [hoveredNote, setHoveredNote] = useState<string | null>(null);
+  const [isLightMode, setIsLightMode] = useState(false);
   const effectiveRoot = selectedRoot || 'C';
   const rootOptions = chromaticScale.map((notes) => notes[0]);
+
+  useEffect(() => {
+    const updateTheme = () => {
+      setIsLightMode(document.body.classList.contains('light-mode'));
+    };
+
+    updateTheme();
+
+    const observer = new MutationObserver(() => updateTheme());
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
+  const staffStroke = isLightMode ? 'rgba(67, 56, 202, 0.6)' : 'rgba(129, 140, 248, 0.5)';
+  const staffTextColor = isLightMode ? 'rgba(15, 23, 42, 0.82)' : 'rgba(129, 140, 248, 0.7)';
+  const noteFill = isLightMode ? 'rgba(79, 70, 229, 0.9)' : 'rgba(129, 140, 248, 0.8)';
+  const noteAccent = isLightMode ? 'rgba(79, 70, 229, 0.45)' : 'rgba(99, 102, 241, 0.4)';
+  const noteStroke = isLightMode ? 'rgba(67, 56, 202, 0.9)' : 'rgba(129, 140, 248, 1)';
+  const ledgerStroke = isLightMode ? 'rgba(79, 70, 229, 0.35)' : 'rgba(129, 140, 248, 0.3)';
+  const labelColor = isLightMode ? 'rgba(15, 23, 42, 0.68)' : 'rgba(129, 140, 248, 0.4)';
 
   const majorScaleSpelling: Record<string, string[]> = {
     'C': ['C', 'D', 'E', 'F', 'G', 'A', 'B'],
@@ -207,7 +232,13 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
       </div>
 
       {/* Staff Display */}
-      <div className="bg-indigo-950/50 rounded-lg p-8 overflow-x-auto">
+      <div
+        className={`rounded-lg p-8 overflow-x-auto border ${
+          isLightMode
+            ? 'bg-slate-50 border-indigo-200'
+            : 'bg-indigo-950/50 border-indigo-500/20'
+        }`}
+      >
         <svg viewBox="0 0 1200 400" className="w-full min-w-[800px]" style={{ height: 'auto' }}>
           {/* Treble Clef Staff */}
           <g>
@@ -219,7 +250,7 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
                 y1={100 + (line - 1) * 30}
                 x2="1100"
                 y2={100 + (line - 1) * 30}
-                stroke="rgba(129, 140, 248, 0.5)"
+                stroke={staffStroke}
                 strokeWidth="2"
               />
             ))}
@@ -229,7 +260,7 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
               x="100"
               y="160"
               fontSize="80"
-              fill="rgba(129, 140, 248, 0.7)"
+              fill={staffTextColor}
               fontFamily="serif"
             >
               𝄞
@@ -261,7 +292,7 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
                       y1={yPosition}
                       x2={noteX + 20}
                       y2={yPosition}
-                      stroke="rgba(129, 140, 248, 0.3)"
+                      stroke={ledgerStroke}
                       strokeWidth="1"
                     />
                   )}
@@ -271,8 +302,8 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
                     cx={noteX}
                     cy={yPosition}
                     r="20"
-                    fill={isSelected ? 'rgba(99, 102, 241, 0.4)' : 'rgba(99, 102, 241, 0.1)'}
-                    stroke={isSelected || isHovered ? 'rgba(129, 140, 248, 1)' : 'rgba(129, 140, 248, 0.3)'}
+                    fill={isSelected ? noteAccent : isLightMode ? 'rgba(99, 102, 241, 0.08)' : 'rgba(99, 102, 241, 0.1)'}
+                    stroke={isSelected || isHovered ? noteStroke : ledgerStroke}
                     strokeWidth="2"
                     style={{
                       transition: 'all 0.2s ease'
@@ -284,7 +315,7 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
                     cx={noteX}
                     cy={yPosition}
                     r="12"
-                    fill="rgba(129, 140, 248, 0.8)"
+                    fill={noteFill}
                   />
 
                   {/* Display text below the staff */}
@@ -292,7 +323,7 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
                     x={noteX}
                     y={yPosition + 60}
                     fontSize="14"
-                    fill="rgba(129, 140, 248, 0.7)"
+                    fill={staffTextColor}
                     fontFamily="sans-serif"
                     textAnchor="middle"
                     opacity={isVisible ? 1 : 0}
@@ -306,7 +337,7 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
                     x={noteX}
                     y={yPosition - 40}
                     fontSize="12"
-                    fill="rgba(129, 140, 248, 0.4)"
+                    fill={labelColor}
                     fontFamily="sans-serif"
                     textAnchor="middle"
                     opacity={isVisible ? 1 : 0}

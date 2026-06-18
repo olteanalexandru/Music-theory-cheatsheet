@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Music Theory Cheatsheet icon">
+  <rect width="64" height="64" rx="16" fill="#0f172a"/>
+  <circle cx="22" cy="44" r="9" fill="#8b5cf6"/>
+  <circle cx="45" cy="38" r="9" fill="#22c55e"/>
+  <path d="M28 11.5v28.3c0 1.1-.9 2-2 2s-2-.9-2-2V14.2c0-1.1.9-2 2-2h1.2c.8 0 1.5.7 1.5 1.5z" fill="#e2e8f0"/>
+  <path d="M51 6v28.3c0 1.1-.9 2-2 2s-2-.9-2-2V8.7c0-1.1.9-2 2-2h1.2c.8 0 1.5.7 1.5 1.5z" fill="#e2e8f0"/>
+</svg>
