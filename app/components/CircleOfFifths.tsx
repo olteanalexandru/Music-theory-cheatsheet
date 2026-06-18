@@ -1,14 +1,15 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { circleOfFifths } from '@/app/utils/musicTheory';
+import { useEffect, useState } from "react";
+import { circleOfFifths } from "@/app/utils/musicTheory";
+import type { Instrument } from "@/app/types/music";
 
 interface CircleOfFifthsProps {
-    initialSelectedRoot: string;
-    mode: 'bass' | 'guitar';
+  initialSelectedRoot: string;
+  mode: Instrument;
 }
 
-export const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ initialSelectedRoot, mode }) => {
+export function CircleOfFifths({ initialSelectedRoot, mode }: CircleOfFifthsProps) {
     const [selectedRoot, setSelectedRoot] = useState<string>('');
     const [showChords, setShowChords] = useState<boolean>(false);
 
@@ -172,9 +173,9 @@ export const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ initialSelectedR
                         </li>
                     </ul>
                 </div>
-            </div> {/* Close relative z-10 container */}
+            </div>
         </div>
     );
-};
+}
 
 export default CircleOfFifths;

@@ -25,18 +25,3 @@ export const circleOfFifths = {
         'F#': 'D#m', 'C#': 'A#m', 'G#': 'Fm', 'D#': 'Cm', 'A#': 'Gm', 'F': 'Dm'
     }
 };
-
-export const guitarTheory = {
-    strings: ['E', 'A', 'D', 'G', 'B', 'E'],
-    standardTuning: ['E', 'A', 'D', 'G', 'B', 'E'],
-    dropD: ['D', 'A', 'D', 'G', 'B', 'E'],
-    openG: ['D', 'G', 'D', 'G', 'B', 'D'],
-    openD: ['D', 'A', 'D', 'F#', 'A', 'D'],
-    openE: ['E', 'B', 'E', 'G#', 'B', 'E'],
-    openA: ['E', 'A', 'E', 'A', 'C#', 'E'],
-    openC: ['C', 'G', 'C', 'G', 'C', 'E'],
-    dadgad: ['D', 'A', 'D', 'G', 'A', 'D'],
-    doubleDropD: ['D', 'A', 'D', 'G', 'B', 'D'],
-    halfStepDown: ['Eb', 'Ab', 'Db', 'Gb', 'Bb', 'Eb'],
-    fullStepDown: ['D', 'G', 'C', 'F', 'A', 'D']
-};

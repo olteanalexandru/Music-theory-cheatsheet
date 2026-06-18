@@ -1,14 +1,15 @@
-'use client';
-import React, { useState } from 'react';
+"use client";
+
+import { useState } from "react";
 
 interface StaffSectionProps {
-  chromaticScale: string[][];
+  chromaticScale: readonly string[][];
   selectedRoot?: string;
 }
 
-type DisplayMode = 'letters' | 'movable-do' | 'fixed-do';
+type DisplayMode = "letters" | "movable-do" | "fixed-do";
 
-const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoot = 'C' }) => {
+export default function StaffSection({ chromaticScale, selectedRoot = "C" }: StaffSectionProps) {
   const [displayMode, setDisplayMode] = useState<DisplayMode>('letters');
   const [selectedNote, setSelectedNote] = useState<string | null>(null);
 
@@ -277,7 +278,7 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
             <strong>Letter Names:</strong> Display traditional musical note names (C, D, E, etc.)
           </li>
           <li>
-            <strong>Fixed Do:</strong> Solfège syllables where C is always DO
+            <strong>Fixed Do:</strong> Solfège syllables where C is always "Do"
           </li>
           <li>
             <strong>Movable Do:</strong> Solfège syllables relative to the selected root note
@@ -286,6 +287,4 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
       </div>
     </div>
   );
-};
-
-export default StaffSection;
+}

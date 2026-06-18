@@ -1,35 +1,13 @@
-export type StringNote = string;
-export type GuitarTuning = {
-  name: string;
-  notes: StringNote[];
+export const guitarTunings: Record<string, string[]> = {
+  standard: ["E", "A", "D", "G", "B", "E"],
+  dropD: ["D", "A", "D", "G", "B", "E"],
+  doubleDropD: ["D", "A", "D", "G", "B", "D"],
+  openG: ["D", "G", "D", "G", "B", "D"],
+  openD: ["D", "A", "D", "F#", "A", "D"],
+  openE: ["E", "B", "E", "G#", "B", "E"],
+  openA: ["E", "A", "E", "A", "C#", "E"],
+  openC: ["C", "G", "C", "G", "C", "E"],
+  dadgad: ["D", "A", "D", "G", "A", "D"],
 };
 
-// 6-string guitar tunings
-export const sixStringTunings: Record<string, GuitarTuning> = {
-  standard: {
-    name: "Standard (E A D G B E)",
-    notes: ["E2", "A2", "D3", "G3", "B3", "E4"]
-  },
-  dropD: {
-    name: "Drop D (D A D G B E)",
-    notes: ["D2", "A2", "D3", "G3", "B3", "E4"]
-  },
-  // Add more 6-string tunings as needed
-};
-
-// 7-string guitar tunings
-export const sevenStringTunings: Record<string, GuitarTuning> = {
-  standard: {
-    name: "Standard (B E A D G B E)",
-    notes: ["B1", "E2", "A2", "D3", "G3", "B3", "E4"]
-  },
-  dropA: {
-    name: "Drop A (A E A D G B E)",
-    notes: ["A1", "E2", "A2", "D3", "G3", "B3", "E4"]
-  },
-  // Add more 7-string tunings as needed
-};
-
-export const getGuitarTunings = (stringCount: 6 | 7) => {
-  return stringCount === 6 ? sixStringTunings : sevenStringTunings;
-};
+export const defaultGuitarTuningName = "standard";
