@@ -18,7 +18,13 @@ export const circleOfFifths = {
         'G#': ['G#', 'A#', 'B#', 'C#', 'D#', 'E#', 'F##'],
         'D#': ['D#', 'E#', 'F##', 'G#', 'A#', 'B#', 'C##'],
         'A#': ['A#', 'B#', 'C##', 'D#', 'E#', 'F##', 'G##'],
-        'F': ['F', 'G', 'A', 'Bb', 'C', 'D', 'E']
+        'F': ['F', 'G', 'A', 'Bb', 'C', 'D', 'E'],
+        'B♭': ['Bb', 'C', 'D', 'Eb', 'F', 'G', 'A'],
+        'E♭': ['Eb', 'F', 'G', 'Ab', 'Bb', 'C', 'D'],
+        'A♭': ['Ab', 'Bb', 'C', 'Db', 'Eb', 'F', 'G'],
+        'D♭': ['Db', 'Eb', 'F', 'Gb', 'Ab', 'Bb', 'C'],
+        'G♭': ['Gb', 'Ab', 'Bb', 'Cb', 'Db', 'Eb', 'F'],
+        'C♭': ['Cb', 'Db', 'Eb', 'Fb', 'Gb', 'Ab', 'Bb']
     },
     relatives: {
         'C': 'Am', 'G': 'Em', 'D': 'Bm', 'A': 'F#m', 'E': 'C#m', 'B': 'G#m',

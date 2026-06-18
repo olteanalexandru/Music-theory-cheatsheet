@@ -16,15 +16,19 @@ export const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ initialSelectedR
         setSelectedRoot(initialSelectedRoot);
     }, [initialSelectedRoot]);
 
-    type Note = keyof typeof circleOfFifths.numberOfSharps;
+    type Note = keyof typeof circleOfFifths.scaleDegrees;
 
     const getKeySignature = (note: Note): string => {
-        const count = circleOfFifths.numberOfSharps[note];
-        if (note === 'C') return 'No sharps or flats';
-        if (['G', 'D', 'A', 'E', 'B', 'F#'].includes(note)) {
-            return `${count} sharp${count > 1 ? 's' : ''}: ${circleOfFifths.sharpsOrder.slice(0, count).join(', ')}`;
-        }
-        return `${count} flat${count > 1 ? 's' : ''}: ${circleOfFifths.flatsOrder.slice(0, count).join(', ')}`;
+        const scale = circleOfFifths.scaleDegrees[note];
+        if (!scale) return 'Unknown key signature';
+        const accidentals = Array.from(new Set(scale.filter((n) => /[#b]/.test(n))));
+        if (accidentals.length === 0) return 'No sharps or flats';
+        const type = accidentals.every((n) => n.includes('#'))
+            ? 'sharp'
+            : accidentals.every((n) => n.includes('b'))
+            ? 'flat'
+            : 'accidental';
+        return `${accidentals.length} ${type}${accidentals.length > 1 ? 's' : ''}: ${accidentals.join(', ')}`;
     };
 
     const getPrimaryChords = (root: string) => {

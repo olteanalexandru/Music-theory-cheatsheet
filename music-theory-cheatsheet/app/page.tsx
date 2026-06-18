@@ -274,13 +274,6 @@ const InteractiveFretboardDisplay = () => {
                     tuning={tuning}
                 />
 
-                {/* Staff Section */}
-                <StaffSection
-                    chromaticScale={chromaticScale}
-                    selectedRoot={selectedRoot || 'C'}
-                />
-
-                {/* Theory Information */}
                 {showTheory && selectedPattern && selectedRoot && (
                     <div className="mt-8 theme-card rounded-lg p-4 md:p-6 shadow-lg">
                         <h3 className="text-lg md:text-xl font-bold theme-text mb-4">Pattern Details</h3>
@@ -393,6 +386,12 @@ const InteractiveFretboardDisplay = () => {
                 <div className="mt-8">
                     <CircleOfFifths initialSelectedRoot={selectedRoot || 'C'} mode={instrument} />
                 </div>
+
+                <StaffSection
+                    chromaticScale={chromaticScale}
+                    selectedRoot={selectedRoot || 'C'}
+                    setSelectedRoot={setSelectedRoot}
+                />
               
             </div>
         </div>

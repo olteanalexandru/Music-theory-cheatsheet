@@ -1,17 +1,64 @@
-'use client';
+"use client";
 import React, { useState } from 'react';
 
 interface StaffSectionProps {
   chromaticScale: string[][];
   selectedRoot?: string;
+  setSelectedRoot?: (root: string) => void;
 }
 
 type DisplayMode = 'letters' | 'movable-do' | 'fixed-do';
 
-const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoot = 'C' }) => {
+const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoot = 'C', setSelectedRoot }) => {
   const [displayMode, setDisplayMode] = useState<DisplayMode>('letters');
   const [selectedNote, setSelectedNote] = useState<string | null>(null);
+  const [hoveredNote, setHoveredNote] = useState<string | null>(null);
+  const effectiveRoot = selectedRoot || 'C';
+  const rootOptions = chromaticScale.map((notes) => notes[0]);
 
+  const majorScaleSpelling: Record<string, string[]> = {
+    'C': ['C', 'D', 'E', 'F', 'G', 'A', 'B'],
+    'C♯': ['C#', 'D#', 'E#', 'F#', 'G#', 'A#', 'B#'],
+    'D♭': ['Db', 'Eb', 'F', 'Gb', 'Ab', 'Bb', 'C'],
+    'D': ['D', 'E', 'F#', 'G', 'A', 'B', 'C#'],
+    'D♯': ['D#', 'E#', 'F##', 'G#', 'A#', 'B#', 'C##'],
+    'E♭': ['Eb', 'F', 'G', 'Ab', 'Bb', 'C', 'D'],
+    'E': ['E', 'F#', 'G#', 'A', 'B', 'C#', 'D#'],
+    'F': ['F', 'G', 'A', 'Bb', 'C', 'D', 'E'],
+    'F♯': ['F#', 'G#', 'A#', 'B', 'C#', 'D#', 'E#'],
+    'G♭': ['Gb', 'Ab', 'Bb', 'Cb', 'Db', 'Eb', 'F'],
+    'G': ['G', 'A', 'B', 'C', 'D', 'E', 'F#'],
+    'G♯': ['G#', 'A#', 'B#', 'C#', 'D#', 'E#', 'F##'],
+    'A♭': ['Ab', 'Bb', 'C', 'Db', 'Eb', 'F', 'G'],
+    'A': ['A', 'B', 'C#', 'D', 'E', 'F#', 'G#'],
+    'A♯': ['A#', 'B#', 'C##', 'D#', 'E#', 'F##', 'G##'],
+    'B♭': ['Bb', 'C', 'D', 'Eb', 'F', 'G', 'A'],
+    'B': ['B', 'C#', 'D#', 'E', 'F#', 'G#', 'A#']
+  };
+
+  const activeScale = majorScaleSpelling[effectiveRoot] || majorScaleSpelling.C;
+
+  const getKeySignatureSymbols = () => {
+    const accidentals = activeScale.filter((note) => note.includes('#') || note.includes('b'));
+    const uniqueAccidentals = Array.from(new Set(accidentals));
+    if (uniqueAccidentals.length === 0) return 'No sharps or flats';
+    const type = uniqueAccidentals.every((note) => note.includes('#')) ? 'sharp' : 'flat';
+    return `${uniqueAccidentals.length} ${type}${uniqueAccidentals.length > 1 ? 's' : ''}: ${uniqueAccidentals.join(', ')}`;
+  };
+
+  const applyKeySignatureToNoteLetter = (note: string) => {
+    const letter = note.replace(/[♯♭]/g, '');
+    const mapping: Record<string, string> = {
+      C: activeScale[0],
+      D: activeScale[1],
+      E: activeScale[2],
+      F: activeScale[3],
+      G: activeScale[4],
+      A: activeScale[5],
+      B: activeScale[6]
+    };
+    return mapping[letter] || note;
+  };
   // Notes on a treble clef staff from bottom to top
   // Lines: E, G, B, D, F (bottom to top)
   // Spaces: F, A, C, E (bottom to top)
@@ -32,19 +79,7 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
     { note: 'A', position: 12, isSpace: false, isLedger: true }, // Above staff
   ];
 
-  // Convert note to solfège syllable
-  const noteToFixedDo = (note: string): string => {
-    const fixedDoMap: Record<string, string> = {
-      'C': 'Do',
-      'D': 'Re',
-      'E': 'Mi',
-      'F': 'Fa',
-      'G': 'Sol',
-      'A': 'La',
-      'B': 'Si'
-    };
-    return fixedDoMap[note] || note;
-  };
+  // (fixed-do syllable mapping intentionally removed — fixed-do now shows absolute pitches)
 
   // Convert note to movable solfège based on selected root
   const noteToMovableDo = (note: string, root: string): string => {
@@ -75,17 +110,18 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
   };
 
   const getDisplayText = (note: string): string => {
-    const baseNote = note.replace(/[♯♭]/g, '').toUpperCase();
-    
+    const keyedNote = applyKeySignatureToNoteLetter(note);
+
     switch (displayMode) {
       case 'letters':
-        return note;
+        return keyedNote;
       case 'fixed-do':
-        return noteToFixedDo(baseNote);
+        // Fixed Do: show absolute pitch names (C, D, E, etc.) adjusted by key signature
+        return applyKeySignatureToNoteLetter(note);
       case 'movable-do':
-        return noteToMovableDo(note, selectedRoot);
+        return noteToMovableDo(keyedNote, effectiveRoot);
       default:
-        return note;
+        return keyedNote;
     }
   };
 
@@ -128,9 +164,34 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
                   : 'bg-indigo-900/30 text-indigo-300 hover:bg-indigo-900/50'
               }`}
             >
-              Movable Do (Root: {selectedRoot})
+              Movable Do (Root: {effectiveRoot})
             </button>
           </div>
+        </div>
+        <div>
+          <p className="theme-secondary-text mb-2">Key Signature</p>
+          <div className="px-4 py-2 rounded-lg bg-indigo-900/30 text-indigo-100 border border-indigo-700">
+            {getKeySignatureSymbols()}
+          </div>
+        </div>
+        <div>
+          <label className="theme-secondary-text block mb-2">Select Key</label>
+          <select
+            value={effectiveRoot}
+            onChange={(event) => {
+              const newRoot = event.target.value;
+              if (setSelectedRoot) {
+                setSelectedRoot(newRoot);
+              }
+            }}
+            className="px-4 py-2 rounded-lg bg-indigo-950/70 text-indigo-100 border border-indigo-700"
+          >
+            {rootOptions.map((root) => (
+              <option key={root} value={root}>
+                {root}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -170,10 +231,18 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
               const spacing = 60;
               const noteX = xStart + pos.position * spacing;
               const isSelected = selectedNote === pos.note;
+              const isHovered = hoveredNote === pos.note;
+              const isVisible = isSelected || isHovered;
               const displayText = getDisplayText(pos.note);
 
               return (
-                <g key={`note-${pos.position}`}>
+                <g
+                  key={`note-${pos.position}`}
+                  onMouseEnter={() => setHoveredNote(pos.note)}
+                  onMouseLeave={() => setHoveredNote((current) => (current === pos.note ? null : current))}
+                  onClick={() => setSelectedNote(pos.note)}
+                  style={{ cursor: 'pointer' }}
+                >
                   {/* Ledger line for notes outside staff */}
                   {pos.isLedger && (
                     <line
@@ -186,32 +255,26 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
                     />
                   )}
 
-                  {/* Clickable note position */}
-                  <g
-                    onClick={() => setSelectedNote(pos.note)}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    {/* Highlight circle on hover/select */}
-                    <circle
-                      cx={noteX}
-                      cy={yPosition}
-                      r="20"
-                      fill={isSelected ? 'rgba(99, 102, 241, 0.4)' : 'rgba(99, 102, 241, 0.1)'}
-                      stroke={isSelected ? 'rgba(129, 140, 248, 1)' : 'rgba(129, 140, 248, 0.3)'}
-                      strokeWidth="2"
-                      style={{
-                        transition: 'all 0.2s ease'
-                      }}
-                    />
+                  {/* Highlight circle on hover/select */}
+                  <circle
+                    cx={noteX}
+                    cy={yPosition}
+                    r="20"
+                    fill={isSelected ? 'rgba(99, 102, 241, 0.4)' : 'rgba(99, 102, 241, 0.1)'}
+                    stroke={isSelected || isHovered ? 'rgba(129, 140, 248, 1)' : 'rgba(129, 140, 248, 0.3)'}
+                    strokeWidth="2"
+                    style={{
+                      transition: 'all 0.2s ease'
+                    }}
+                  />
 
-                    {/* Note head (filled circle) */}
-                    <circle
-                      cx={noteX}
-                      cy={yPosition}
-                      r="12"
-                      fill="rgba(129, 140, 248, 0.8)"
-                    />
-                  </g>
+                  {/* Note head (filled circle) */}
+                  <circle
+                    cx={noteX}
+                    cy={yPosition}
+                    r="12"
+                    fill="rgba(129, 140, 248, 0.8)"
+                  />
 
                   {/* Display text below the staff */}
                   <text
@@ -221,6 +284,8 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
                     fill="rgba(129, 140, 248, 0.7)"
                     fontFamily="sans-serif"
                     textAnchor="middle"
+                    opacity={isVisible ? 1 : 0}
+                    style={{ transition: 'opacity 0.2s ease' }}
                   >
                     {displayText}
                   </text>
@@ -233,8 +298,10 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
                     fill="rgba(129, 140, 248, 0.4)"
                     fontFamily="sans-serif"
                     textAnchor="middle"
+                    opacity={isVisible ? 1 : 0}
+                    style={{ transition: 'opacity 0.2s ease' }}
                   >
-                    {pos.note}
+                    {applyKeySignatureToNoteLetter(pos.note)}
                   </text>
                 </g>
               );
@@ -246,22 +313,22 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
       {/* Selected Note Display */}
       {selectedNote && (
         <div className="mt-6 p-4 bg-indigo-900/30 rounded-lg border border-indigo-500/50">
-          <h3 className="theme-text font-semibold mb-2">Selected Note: {selectedNote}</h3>
+          <h3 className="theme-text font-semibold mb-2">Selected Note: {selectedNote ? applyKeySignatureToNoteLetter(selectedNote) : ''}</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <p className="theme-secondary-text text-sm">Letter Name</p>
-              <p className="text-indigo-300 font-semibold text-lg">{selectedNote}</p>
+              <p className="text-indigo-300 font-semibold text-lg">{applyKeySignatureToNoteLetter(selectedNote)}</p>
             </div>
             <div>
-              <p className="theme-secondary-text text-sm">Fixed Do (Solfège)</p>
+              <p className="theme-secondary-text text-sm">Fixed Do (Absolute Pitch)</p>
               <p className="text-indigo-300 font-semibold text-lg">
-                {noteToFixedDo(selectedNote.replace(/[♯♭]/g, ''))}
+                {selectedNote ? applyKeySignatureToNoteLetter(selectedNote) : ''}
               </p>
             </div>
             <div>
-              <p className="theme-secondary-text text-sm">Movable Do (Root: {selectedRoot})</p>
+              <p className="theme-secondary-text text-sm">Movable Do (Root: {effectiveRoot})</p>
               <p className="text-indigo-300 font-semibold text-lg">
-                {noteToMovableDo(selectedNote, selectedRoot)}
+                {noteToMovableDo(selectedNote, effectiveRoot)}
               </p>
             </div>
           </div>
@@ -277,7 +344,7 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
             <strong>Letter Names:</strong> Display traditional musical note names (C, D, E, etc.)
           </li>
           <li>
-            <strong>Fixed Do:</strong> Solfège syllables where C is always "Do"
+            <strong>Fixed Do:</strong> Solfège syllables where C is always &quot;Do&quot;
           </li>
           <li>
             <strong>Movable Do:</strong> Solfège syllables relative to the selected root note
