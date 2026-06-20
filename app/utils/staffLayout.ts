@@ -1,4 +1,5 @@
 import { accidentalShift, KEY_NAMES, spellLetterInKey } from '@/app/utils/keySignatures';
+import type { EarTrainingDifficulty } from '@/app/utils/earTrainingData';
 
 export type ClefId = 'treble' | 'bass';
 export type RangePreset = 'staff' | 'extended' | 'wide';
@@ -20,6 +21,16 @@ export const RANGE_EXTENSIONS: Record<RangePreset, number> = {
     staff: 0,
     extended: 4,
     wide: 8,
+};
+
+// Difficulty presets for the Notes on Staff trainer: easy stays inside the staff in
+// the key of C, medium adds ledger lines and a handful of common keys, hard opens
+// up the full ledger-line range and every key signature (including ones with
+// several flats/sharps).
+export const NOTES_DIFFICULTY_PRESETS: Record<EarTrainingDifficulty, { range: RangePreset; keys: string[] }> = {
+    easy: { range: 'staff', keys: ['C'] },
+    medium: { range: 'extended', keys: ['C', 'G', 'F', 'D', 'B♭'] },
+    hard: { range: 'wide', keys: KEY_NAMES },
 };
 
 const LETTER_ORDER = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];

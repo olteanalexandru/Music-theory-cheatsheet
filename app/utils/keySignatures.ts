@@ -6,22 +6,23 @@ export interface SpelledNote {
 // Major-key scale spellings, one entry per diatonic degree starting at the tonic.
 // Each letter A-G appears exactly once per key, which is what makes it possible to
 // look up "how is this staff-line letter spelled in this key" below.
+//
+// One key per chromatic pitch (12 total, not 17): for each black key we use the
+// flat spelling (D♭, E♭, G♭, A♭, B♭) rather than its sharp-side enharmonic
+// equivalent, since that's the more common convention and keeps every key's
+// accidentals within a single sharp or flat (no double-sharp/double-flat keys
+// like D♯ or A♯ major).
 export const KEY_SIGNATURES: Record<string, string[]> = {
     'C': ['C', 'D', 'E', 'F', 'G', 'A', 'B'],
-    'C♯': ['C♯', 'D♯', 'E♯', 'F♯', 'G♯', 'A♯', 'B♯'],
     'D♭': ['D♭', 'E♭', 'F', 'G♭', 'A♭', 'B♭', 'C'],
     'D': ['D', 'E', 'F♯', 'G', 'A', 'B', 'C♯'],
-    'D♯': ['D♯', 'E♯', 'F♯♯', 'G♯', 'A♯', 'B♯', 'C♯♯'],
     'E♭': ['E♭', 'F', 'G', 'A♭', 'B♭', 'C', 'D'],
     'E': ['E', 'F♯', 'G♯', 'A', 'B', 'C♯', 'D♯'],
     'F': ['F', 'G', 'A', 'B♭', 'C', 'D', 'E'],
-    'F♯': ['F♯', 'G♯', 'A♯', 'B', 'C♯', 'D♯', 'E♯'],
     'G♭': ['G♭', 'A♭', 'B♭', 'C♭', 'D♭', 'E♭', 'F'],
     'G': ['G', 'A', 'B', 'C', 'D', 'E', 'F♯'],
-    'G♯': ['G♯', 'A♯', 'B♯', 'C♯', 'D♯', 'E♯', 'F♯♯'],
     'A♭': ['A♭', 'B♭', 'C', 'D♭', 'E♭', 'F', 'G'],
     'A': ['A', 'B', 'C♯', 'D', 'E', 'F♯', 'G♯'],
-    'A♯': ['A♯', 'B♯', 'C♯♯', 'D♯', 'E♯', 'F♯♯', 'G♯♯'],
     'B♭': ['B♭', 'C', 'D', 'E♭', 'F', 'G', 'A'],
     'B': ['B', 'C♯', 'D♯', 'E', 'F♯', 'G♯', 'A♯'],
 };

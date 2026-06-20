@@ -2,12 +2,20 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { playNotesInSequence, playNotesTogether } from '@/app/utils/audioSynth';
-import { EAR_TRAINING_DATA, EarTrainingCategory, EarTrainingItem } from '@/app/utils/earTrainingData';
+import {
+    DIFFICULTY_LEVELS,
+    EAR_TRAINING_DATA,
+    EarTrainingCategory,
+    EarTrainingDifficulty,
+    EarTrainingItem,
+    poolForDifficulty,
+} from '@/app/utils/earTrainingData';
 import { noteNameFromMidi } from '@/app/utils/notes';
 import { KEY_NAMES } from '@/app/utils/keySignatures';
 import {
     CLEFS,
     generateNoteQuestion,
+    NOTES_DIFFICULTY_PRESETS,
     type ClefId,
     type NoteQuestion,
     type RangePreset,
@@ -47,6 +55,14 @@ const CATEGORY_LABELS: Record<Category, string> = {
 
 const CATEGORIES: Category[] = [...(Object.keys(EAR_TRAINING_DATA) as EarTrainingCategory[]), 'notes'];
 
+const DIFFICULTY_LABELS: Record<EarTrainingDifficulty, string> = {
+    easy: 'Easy',
+    medium: 'Medium',
+    hard: 'Hard',
+};
+
+const DEFAULT_DIFFICULTY: EarTrainingDifficulty = 'easy';
+
 const NOTE_LETTERS = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
 
 const RANGE_OPTIONS: { value: RangePreset; label: string }[] = [
@@ -68,8 +84,8 @@ function pickRandom<T>(items: T[]): T {
     return items[Math.floor(Math.random() * items.length)];
 }
 
-function buildStandardQuestion(category: EarTrainingCategory): StandardQuestion {
-    const pool = EAR_TRAINING_DATA[category];
+function buildStandardQuestion(category: EarTrainingCategory, difficulty: EarTrainingDifficulty): StandardQuestion {
+    const pool = poolForDifficulty(category, difficulty);
     const item = pickRandom(pool);
     const root = 57 + Math.floor(Math.random() * 12); // A3..G#4
     const notes = item.intervals.map((interval) => root + interval);
@@ -99,7 +115,8 @@ function notesMatchExpected(playedMidiNotes: Set<number>, expectedIntervals: num
 
 const EarTraining: React.FC<EarTrainingProps> = ({ midi }) => {
     const [category, setCategory] = useState<Category>('intervals');
-    const [question, setQuestion] = useState<Question>(() => buildStandardQuestion('intervals'));
+    const [difficulty, setDifficulty] = useState<EarTrainingDifficulty>(DEFAULT_DIFFICULTY);
+    const [question, setQuestion] = useState<Question>(() => buildStandardQuestion('intervals', DEFAULT_DIFFICULTY));
     const [answerMode, setAnswerMode] = useState<AnswerMode>('choices');
     const [status, setStatus] = useState<AnswerStatus>('idle');
     const [score, setScore] = useState({ correct: 0, total: 0 });
@@ -119,8 +136,8 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi }) => {
         attemptNotesRef.current = new Set();
     };
 
-    const newStandardQuestion = (nextCategory: EarTrainingCategory) => {
-        setQuestion(buildStandardQuestion(nextCategory));
+    const newStandardQuestion = (nextCategory: EarTrainingCategory, nextDifficulty: EarTrainingDifficulty) => {
+        setQuestion(buildStandardQuestion(nextCategory, nextDifficulty));
         resetAnswerState();
     };
 
@@ -134,7 +151,7 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi }) => {
         if (nextCategory === 'notes') {
             newNotesQuestion(clef, selectedKeys, range);
         } else {
-            newStandardQuestion(nextCategory);
+            newStandardQuestion(nextCategory, difficulty);
         }
     };
 
@@ -142,7 +159,19 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi }) => {
         if (category === 'notes') {
             newNotesQuestion(clef, selectedKeys, range);
         } else {
-            newStandardQuestion(category);
+            newStandardQuestion(category, difficulty);
+        }
+    };
+
+    const handleDifficultyChange = (nextDifficulty: EarTrainingDifficulty) => {
+        setDifficulty(nextDifficulty);
+        if (category === 'notes') {
+            const preset = NOTES_DIFFICULTY_PRESETS[nextDifficulty];
+            setRange(preset.range);
+            setSelectedKeys(preset.keys);
+            newNotesQuestion(clef, preset.keys, preset.range);
+        } else {
+            newStandardQuestion(category, nextDifficulty);
         }
     };
 
@@ -218,6 +247,20 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi }) => {
                                 : 'theme-muted-bg theme-secondary-text hover:opacity-90'}`}
                     >
                         {CATEGORY_LABELS[cat]}
+                    </button>
+                ))}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 mb-4">
+                <span className="theme-secondary-text text-sm">Difficulty:</span>
+                {DIFFICULTY_LEVELS.map((level) => (
+                    <button
+                        key={level}
+                        onClick={() => handleDifficultyChange(level)}
+                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors
+                            ${difficulty === level ? 'theme-accent-bg' : 'theme-muted-bg theme-secondary-text hover:opacity-90'}`}
+                    >
+                        {DIFFICULTY_LABELS[level]}
                     </button>
                 ))}
             </div>

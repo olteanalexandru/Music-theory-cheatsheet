@@ -15,7 +15,10 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
   const [hoveredNote, setHoveredNote] = useState<string | null>(null);
   const [isLightMode, setIsLightMode] = useState(false);
   const effectiveRoot = selectedRoot || 'C';
-  const rootOptions = chromaticScale.map((notes) => notes[0]);
+  // Prefer the flat spelling for black keys (D♭, E♭, G♭, A♭, B♭) since that's the
+  // more common convention and keeps the key's accidentals mostly flats rather
+  // than defaulting to far less idiomatic sharp keys like D♯ or A♯ major.
+  const rootOptions = chromaticScale.map((notes) => notes[notes.length - 1]);
 
   useEffect(() => {
     const updateTheme = () => {
