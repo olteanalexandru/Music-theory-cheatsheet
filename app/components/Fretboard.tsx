@@ -14,7 +14,8 @@ type FretboardProps = {
     useLandmarkNumbers: boolean,
     noteToLandmarkNumber: (note: string) => number | string,
     instrument: 'bass' | 'guitar',
-    tuning: string[]
+    tuning: string[],
+    midiActiveNoteNames?: Set<string>
 };
 
 type PatternName = string;
@@ -32,7 +33,8 @@ const Fretboard: React.FC<FretboardProps> = ({
     useLandmarkNumbers,
     noteToLandmarkNumber,
     instrument,
-    tuning
+    tuning,
+    midiActiveNoteNames
 }) => {
     // Function to get the appropriate strings based on instrument and tuning/numChords
     const getStringsForDisplay = () => {
@@ -97,6 +99,7 @@ const Fretboard: React.FC<FretboardProps> = ({
                             const isInPattern = selectedPattern && selectedRoot &&
                                 isNoteInPattern(note, selectedRoot, patterns[patternType][selectedPattern as PatternName].intervals);
                             const isRoot = note === selectedRoot;
+                            const isMidiActive = midiActiveNoteNames?.has(note) ?? false;
 
                             return (
                                 <div
@@ -112,6 +115,7 @@ const Fretboard: React.FC<FretboardProps> = ({
                                                 isInPattern ? 'bg-indigo-400/75 theme-text' :
                                                 isHovered ? 'theme-secondary-bg theme-text' :
                                                 'theme-muted-bg theme-secondary-text hover:opacity-90'}
+                                            ${isMidiActive ? 'ring-2 ring-green-400' : ''}
                                             cursor-pointer transform hover:scale-105
                                         `}
                                         onMouseEnter={() => setHoveredNote(note)}

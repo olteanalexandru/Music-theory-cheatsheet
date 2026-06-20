@@ -5,7 +5,10 @@ import { CircleOfFifths } from '@/app/components/CircleOfFifths';
 import PatternControls from '@/app/components/PatternControls';
 import Fretboard from '@/app/components/Fretboard';
 import StaffSection from '@/app/components/StaffSection';
+import EarTraining from '@/app/components/EarTraining';
 import { guitarTunings,  defaultGuitarTuningName } from '@/app/utils/guitarTunings';
+import { useMidiInput } from '@/app/utils/useMidiInput';
+import { noteNameFromMidi } from '@/app/utils/notes';
 
 // Note types
 type NoteName = string;  // e.g., 'C', 'C♯', 'D♭', etc.
@@ -13,7 +16,7 @@ type NoteName = string;  // e.g., 'C', 'C♯', 'D♭', etc.
 // Pattern-related types
 type PatternType = 'scales' | 'arpeggios' | 'chords';
 type PatternName = string;  // e.g., 'Ionian (Major)', 'Dorian', etc.
-type VisibleComponent = 'fretboard' | 'theory' | 'circle' | 'staff';
+type VisibleComponent = 'fretboard' | 'theory' | 'circle' | 'staff' | 'earTraining';
 
 interface Pattern {
   intervals: number[];
@@ -47,6 +50,7 @@ const InteractiveFretboardDisplay = () => {
                 theory: true,
                 circle: true,
                 staff: true,
+                earTraining: true,
             };
         }
 
@@ -57,6 +61,7 @@ const InteractiveFretboardDisplay = () => {
                 theory: true,
                 circle: true,
                 staff: true,
+                earTraining: true,
             };
         }
 
@@ -66,6 +71,7 @@ const InteractiveFretboardDisplay = () => {
                 theory: true,
                 circle: true,
                 staff: true,
+                earTraining: true,
                 ...JSON.parse(saved),
             };
         } catch {
@@ -74,9 +80,16 @@ const InteractiveFretboardDisplay = () => {
                 theory: true,
                 circle: true,
                 staff: true,
+                earTraining: true,
             };
         }
     });
+
+    const midi = useMidiInput();
+    const midiActiveNoteNames = useMemo(
+        () => new Set(Array.from(midi.activeNotes, noteNameFromMidi)),
+        [midi.activeNotes]
+    );
 
     useEffect(() => {
         window.localStorage.setItem(
@@ -304,6 +317,12 @@ const InteractiveFretboardDisplay = () => {
                             >
                                 Staff
                             </button>
+                            <button
+                                className={componentToggleClass(visibleComponents.earTraining)}
+                                onClick={() => toggleComponent('earTraining')}
+                            >
+                                Ear Training
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -367,6 +386,7 @@ const InteractiveFretboardDisplay = () => {
                                 noteToLandmarkNumber={noteToLandmarkNumber}
                                 instrument={instrument}
                                 tuning={tuning}
+                                midiActiveNoteNames={midiActiveNoteNames}
                             />
                         </div>
                     </div>
@@ -498,7 +518,13 @@ const InteractiveFretboardDisplay = () => {
                         setSelectedRoot={setSelectedRoot}
                     />
                 )}
-              
+
+                {visibleComponents.earTraining && (
+                    <div className="mt-8">
+                        <EarTraining midi={midi} />
+                    </div>
+                )}
+
             </div>
         </div>
     );
