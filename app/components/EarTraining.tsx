@@ -1,29 +1,59 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { playNotesInSequence, playNotesTogether } from '@/app/utils/audioSynth';
 import { EAR_TRAINING_DATA, EarTrainingCategory, EarTrainingItem } from '@/app/utils/earTrainingData';
 import { noteNameFromMidi } from '@/app/utils/notes';
+import { KEY_NAMES } from '@/app/utils/keySignatures';
+import {
+    CLEFS,
+    generateNoteQuestion,
+    type ClefId,
+    type NoteQuestion,
+    type RangePreset,
+} from '@/app/utils/staffLayout';
+import NoteStaffPrompt from '@/app/components/NoteStaffPrompt';
 import type { MidiInputController } from '@/app/utils/useMidiInput';
 
 interface EarTrainingProps {
     midi: MidiInputController;
 }
 
+type Category = EarTrainingCategory | 'notes';
 type AnswerMode = 'choices' | 'midi';
 type AnswerStatus = 'idle' | 'correct' | 'incorrect';
 
-interface Question {
+interface StandardQuestion {
+    kind: 'standard';
     item: EarTrainingItem;
     notes: number[];
     choices: string[];
 }
 
-const CATEGORY_LABELS: Record<EarTrainingCategory, string> = {
+interface StaffNoteQuestion {
+    kind: 'notes';
+    note: NoteQuestion;
+    choices: string[];
+}
+
+type Question = StandardQuestion | StaffNoteQuestion;
+
+const CATEGORY_LABELS: Record<Category, string> = {
     intervals: 'Intervals',
     chords: 'Chords',
     scales: 'Scales',
+    notes: 'Notes on Staff',
 };
+
+const CATEGORIES: Category[] = [...(Object.keys(EAR_TRAINING_DATA) as EarTrainingCategory[]), 'notes'];
+
+const NOTE_LETTERS = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+
+const RANGE_OPTIONS: { value: RangePreset; label: string }[] = [
+    { value: 'staff', label: 'Staff Only' },
+    { value: 'extended', label: '+ Ledger Lines' },
+    { value: 'wide', label: 'Wide Range' },
+];
 
 function shuffle<T>(items: T[]): T[] {
     const result = [...items];
@@ -38,7 +68,7 @@ function pickRandom<T>(items: T[]): T {
     return items[Math.floor(Math.random() * items.length)];
 }
 
-function buildQuestion(category: EarTrainingCategory): Question {
+function buildStandardQuestion(category: EarTrainingCategory): StandardQuestion {
     const pool = EAR_TRAINING_DATA[category];
     const item = pickRandom(pool);
     const root = 57 + Math.floor(Math.random() * 12); // A3..G#4
@@ -46,7 +76,12 @@ function buildQuestion(category: EarTrainingCategory): Question {
     const maxChoices = Math.min(6, pool.length);
     const distractors = shuffle(pool.filter((entry) => entry.name !== item.name)).slice(0, maxChoices - 1);
     const choices = shuffle([item.name, ...distractors.map((entry) => entry.name)]);
-    return { item, notes, choices };
+    return { kind: 'standard', item, notes, choices };
+}
+
+function buildNotesQuestion(clef: ClefId, selectedKeys: string[], range: RangePreset): StaffNoteQuestion {
+    const note = generateNoteQuestion(clef, selectedKeys, range);
+    return { kind: 'notes', note, choices: shuffle(NOTE_LETTERS) };
 }
 
 function notesMatchExpected(playedMidiNotes: Set<number>, expectedIntervals: number[]): boolean {
@@ -63,11 +98,14 @@ function notesMatchExpected(playedMidiNotes: Set<number>, expectedIntervals: num
 }
 
 const EarTraining: React.FC<EarTrainingProps> = ({ midi }) => {
-    const [category, setCategory] = useState<EarTrainingCategory>('intervals');
-    const [question, setQuestion] = useState<Question>(() => buildQuestion('intervals'));
+    const [category, setCategory] = useState<Category>('intervals');
+    const [question, setQuestion] = useState<Question>(() => buildStandardQuestion('intervals'));
     const [answerMode, setAnswerMode] = useState<AnswerMode>('choices');
     const [status, setStatus] = useState<AnswerStatus>('idle');
     const [score, setScore] = useState({ correct: 0, total: 0 });
+    const [clef, setClef] = useState<ClefId>('treble');
+    const [selectedKeys, setSelectedKeys] = useState<string[]>(['C']);
+    const [range, setRange] = useState<RangePreset>('staff');
     const attemptNotesRef = useRef<Set<number>>(new Set());
 
     // Track every note pressed during the current attempt, even after it's
@@ -76,28 +114,71 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi }) => {
         midi.activeNotes.forEach((note) => attemptNotesRef.current.add(note));
     }, [midi.activeNotes]);
 
-    const newQuestion = useCallback((nextCategory: EarTrainingCategory) => {
-        setQuestion(buildQuestion(nextCategory));
+    const resetAnswerState = () => {
         setStatus('idle');
         attemptNotesRef.current = new Set();
-    }, []);
-
-    const handleCategoryChange = (nextCategory: EarTrainingCategory) => {
-        setCategory(nextCategory);
-        newQuestion(nextCategory);
     };
 
-    const handlePlay = () => {
-        if (category === 'chords') {
-            playNotesTogether(question.notes);
+    const newStandardQuestion = (nextCategory: EarTrainingCategory) => {
+        setQuestion(buildStandardQuestion(nextCategory));
+        resetAnswerState();
+    };
+
+    const newNotesQuestion = (nextClef: ClefId, nextKeys: string[], nextRange: RangePreset) => {
+        setQuestion(buildNotesQuestion(nextClef, nextKeys, nextRange));
+        resetAnswerState();
+    };
+
+    const handleCategoryChange = (nextCategory: Category) => {
+        setCategory(nextCategory);
+        if (nextCategory === 'notes') {
+            newNotesQuestion(clef, selectedKeys, range);
         } else {
-            playNotesInSequence(question.notes);
+            newStandardQuestion(nextCategory);
         }
     };
 
+    const handleNewQuestion = () => {
+        if (category === 'notes') {
+            newNotesQuestion(clef, selectedKeys, range);
+        } else {
+            newStandardQuestion(category);
+        }
+    };
+
+    const handleClefChange = (nextClef: ClefId) => {
+        setClef(nextClef);
+        newNotesQuestion(nextClef, selectedKeys, range);
+    };
+
+    const handleRangeChange = (nextRange: RangePreset) => {
+        setRange(nextRange);
+        newNotesQuestion(clef, selectedKeys, nextRange);
+    };
+
+    const handleToggleKey = (key: string) => {
+        const isSelected = selectedKeys.includes(key);
+        const next = isSelected ? selectedKeys.filter((k) => k !== key) : [...selectedKeys, key];
+        const effective = next.length > 0 ? next : selectedKeys; // always keep at least one key selected
+        setSelectedKeys(effective);
+        newNotesQuestion(clef, effective, range);
+    };
+
+    const handlePlay = () => {
+        const notes = question.kind === 'notes' ? [question.note.midi] : question.notes;
+        if (question.kind === 'standard' && category === 'chords') {
+            playNotesTogether(notes);
+        } else {
+            playNotesInSequence(notes);
+        }
+    };
+
+    const correctAnswerLabel = question.kind === 'standard' ? question.item.name : question.note.letter;
+    const correctAnswerDisplayName = question.kind === 'standard' ? question.item.name : question.note.displayName;
+
     const handleChoice = (name: string) => {
         if (status !== 'idle') return;
-        const correct = name === question.item.name;
+        const correct = name === correctAnswerLabel;
         setStatus(correct ? 'correct' : 'incorrect');
         setScore((current) => ({
             correct: current.correct + (correct ? 1 : 0),
@@ -107,7 +188,9 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi }) => {
 
     const handleCheckMidiAnswer = () => {
         if (status !== 'idle') return;
-        const correct = notesMatchExpected(attemptNotesRef.current, question.item.intervals);
+        const correct = question.kind === 'standard'
+            ? notesMatchExpected(attemptNotesRef.current, question.item.intervals)
+            : attemptNotesRef.current.has(question.note.midi);
         setStatus(correct ? 'correct' : 'incorrect');
         setScore((current) => ({
             correct: current.correct + (correct ? 1 : 0),
@@ -125,7 +208,7 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi }) => {
             <h3 className="text-lg md:text-xl font-bold theme-text mb-4">Ear Training</h3>
 
             <div className="flex flex-wrap gap-2 mb-4">
-                {(Object.keys(EAR_TRAINING_DATA) as EarTrainingCategory[]).map((cat) => (
+                {CATEGORIES.map((cat) => (
                     <button
                         key={cat}
                         onClick={() => handleCategoryChange(cat)}
@@ -156,6 +239,52 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi }) => {
                     MIDI Keyboard
                 </button>
             </div>
+
+            {category === 'notes' && (
+                <div className="mb-6 p-4 rounded-lg theme-secondary-bg space-y-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <span className="theme-secondary-text text-sm">Clef:</span>
+                        {(Object.keys(CLEFS) as ClefId[]).map((clefId) => (
+                            <button
+                                key={clefId}
+                                onClick={() => handleClefChange(clefId)}
+                                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors
+                                    ${clef === clefId ? 'theme-accent-bg' : 'theme-muted-bg theme-secondary-text hover:opacity-90'}`}
+                            >
+                                {CLEFS[clefId].label}
+                            </button>
+                        ))}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <span className="theme-secondary-text text-sm">Range:</span>
+                        {RANGE_OPTIONS.map((option) => (
+                            <button
+                                key={option.value}
+                                onClick={() => handleRangeChange(option.value)}
+                                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors
+                                    ${range === option.value ? 'theme-accent-bg' : 'theme-muted-bg theme-secondary-text hover:opacity-90'}`}
+                            >
+                                {option.label}
+                            </button>
+                        ))}
+                    </div>
+                    <div>
+                        <span className="theme-secondary-text text-sm block mb-2">Key signatures (select one or more):</span>
+                        <div className="flex flex-wrap gap-2">
+                            {KEY_NAMES.map((key) => (
+                                <button
+                                    key={key}
+                                    onClick={() => handleToggleKey(key)}
+                                    className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors
+                                        ${selectedKeys.includes(key) ? 'theme-accent-bg' : 'theme-muted-bg theme-secondary-text hover:opacity-90'}`}
+                                >
+                                    {key}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {answerMode === 'midi' && (
                 <div className="mb-6 p-4 rounded-lg theme-secondary-bg space-y-3">
@@ -214,7 +343,7 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi }) => {
                     ▶ Play
                 </button>
                 <button
-                    onClick={() => newQuestion(category)}
+                    onClick={handleNewQuestion}
                     className="px-4 py-2 theme-muted-bg theme-secondary-text rounded-lg hover:opacity-90"
                 >
                     New Question
@@ -224,11 +353,20 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi }) => {
                 </span>
             </div>
 
+            {question.kind === 'notes' && (
+                <div className="mb-6">
+                    <p className="theme-secondary-text text-sm mb-2 text-center">
+                        Key: {question.note.keyName} major
+                    </p>
+                    <NoteStaffPrompt clef={question.note.clef} step={question.note.step} ledgerSteps={question.note.ledgerSteps} />
+                </div>
+            )}
+
             {answerMode === 'choices' ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {question.choices.map((name) => {
-                        const isCorrectChoice = status !== 'idle' && name === question.item.name;
-                        const isOtherChoice = status === 'incorrect' && name !== question.item.name;
+                        const isCorrectChoice = status !== 'idle' && name === correctAnswerLabel;
+                        const isOtherChoice = status === 'incorrect' && name !== correctAnswerLabel;
                         return (
                             <button
                                 key={name}
@@ -256,14 +394,14 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi }) => {
                         Check My Answer
                     </button>
                     {status !== 'idle' && (
-                        <span className="theme-secondary-text text-sm">Answer: {question.item.name}</span>
+                        <span className="theme-secondary-text text-sm">Answer: {correctAnswerDisplayName}</span>
                     )}
                 </div>
             )}
 
             {status !== 'idle' && (
                 <p className={`mt-4 font-semibold ${status === 'correct' ? 'text-green-400' : 'text-red-400'}`}>
-                    {status === 'correct' ? 'Correct!' : `Not quite — it was ${question.item.name}.`}
+                    {status === 'correct' ? 'Correct!' : `Not quite — it was ${correctAnswerDisplayName}.`}
                 </p>
             )}
         </div>
