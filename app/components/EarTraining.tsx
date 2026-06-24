@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { playNotesInSequence, playNotesTogether } from '@/app/utils/audioSynth';
+import type { SynthController } from '@/app/utils/useSynth';
 import {
     DIFFICULTY_LEVELS,
     EAR_TRAINING_DATA,
@@ -28,6 +28,7 @@ import type { MidiInputController } from '@/app/utils/useMidiInput';
 
 interface EarTrainingProps {
     midi: MidiInputController;
+    synth: SynthController;
 }
 
 type Category = EarTrainingCategory | 'notes' | 'keysig' | 'guitar';
@@ -158,7 +159,7 @@ function notesMatchExpected(playedMidiNotes: Set<number>, expectedIntervals: num
     return true;
 }
 
-const EarTraining: React.FC<EarTrainingProps> = ({ midi }) => {
+const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
     const [category, setCategory] = useState<Category>('intervals');
     const [difficulty, setDifficulty] = useState<EarTrainingDifficulty>(DEFAULT_DIFFICULTY);
     const [question, setQuestion] = useState<Question>(() => buildStandardQuestion('intervals', DEFAULT_DIFFICULTY));
@@ -181,6 +182,7 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi }) => {
         setStatus('idle');
         attemptNotesRef.current = new Set();
         setHeldClickNotes(new Set());
+        synth.stopAll();
     };
 
     // The on-screen keyboard can't write into the MIDI hook's activeNotes (that's
@@ -189,6 +191,7 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi }) => {
     const handleKeyboardNoteOn = (note: number) => {
         attemptNotesRef.current.add(note);
         setHeldClickNotes((current) => new Set(current).add(note));
+        synth.noteOn(note);
     };
 
     const handleKeyboardNoteOff = (note: number) => {
@@ -197,6 +200,7 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi }) => {
             next.delete(note);
             return next;
         });
+        synth.noteOff(note);
     };
 
     const newStandardQuestion = (nextCategory: EarTrainingCategory, nextDifficulty: EarTrainingDifficulty) => {
@@ -289,9 +293,9 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi }) => {
             ? [question.fret.midi]
             : question.notes;
         if (question.kind === 'standard' && category === 'chords') {
-            playNotesTogether(notes);
+            synth.playChord(notes);
         } else {
-            playNotesInSequence(notes);
+            synth.playSequence(notes);
         }
     };
 

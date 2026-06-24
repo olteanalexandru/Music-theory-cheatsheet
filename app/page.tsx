@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Info } from 'lucide-react';
 import { CircleOfFifths } from '@/app/components/CircleOfFifths';
 import PatternControls from '@/app/components/PatternControls';
@@ -8,7 +8,11 @@ import StaffSection from '@/app/components/StaffSection';
 import EarTraining from '@/app/components/EarTraining';
 import { guitarTunings,  defaultGuitarTuningName } from '@/app/utils/guitarTunings';
 import { useMidiInput } from '@/app/utils/useMidiInput';
+import { useSynth } from '@/app/utils/useSynth';
 import { noteNameFromMidi } from '@/app/utils/notes';
+import type { Waveform } from '@/app/utils/audioSynth';
+
+const WAVEFORMS: Waveform[] = ['sine', 'triangle', 'sawtooth', 'square'];
 
 // Note types
 type NoteName = string;  // e.g., 'C', 'C♯', 'D♭', etc.
@@ -86,10 +90,26 @@ const InteractiveFretboardDisplay = () => {
     });
 
     const midi = useMidiInput();
+    const synth = useSynth();
     const midiActiveNoteNames = useMemo(
         () => new Set(Array.from(midi.activeNotes, noteNameFromMidi)),
         [midi.activeNotes]
     );
+
+    // Most MIDI controllers have no onboard sound module, so make incoming notes
+    // audible by diffing the cumulative activeNotes set across renders and firing
+    // noteOn/noteOff for whatever actually changed.
+    const prevMidiNotesRef = useRef<Set<number>>(new Set());
+    useEffect(() => {
+        const prev = prevMidiNotesRef.current;
+        midi.activeNotes.forEach((note) => {
+            if (!prev.has(note)) synth.noteOn(note);
+        });
+        prev.forEach((note) => {
+            if (!midi.activeNotes.has(note)) synth.noteOff(note);
+        });
+        prevMidiNotesRef.current = midi.activeNotes;
+    }, [midi.activeNotes, synth]);
 
     useEffect(() => {
         window.localStorage.setItem(
@@ -325,6 +345,32 @@ const InteractiveFretboardDisplay = () => {
                             </button>
                         </div>
                     </div>
+                    <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-indigo-500/20 pt-3">
+                        <p className="text-sm font-semibold text-indigo-100">Synth</p>
+                        <div className="flex flex-wrap gap-2">
+                            {WAVEFORMS.map((wave) => (
+                                <button
+                                    key={wave}
+                                    className={componentToggleClass(synth.waveform === wave)}
+                                    onClick={() => synth.setWaveform(wave)}
+                                >
+                                    {wave.charAt(0).toUpperCase() + wave.slice(1)}
+                                </button>
+                            ))}
+                        </div>
+                        <label className="flex items-center gap-2 text-sm text-indigo-200">
+                            Volume
+                            <input
+                                type="range"
+                                min={0}
+                                max={0.6}
+                                step={0.02}
+                                value={synth.volume}
+                                onChange={(e) => synth.setVolume(Number(e.target.value))}
+                                className="w-32"
+                            />
+                        </label>
+                    </div>
                 </div>
 
                 {/* Header */}
@@ -507,7 +553,7 @@ const InteractiveFretboardDisplay = () => {
                 
                 {visibleComponents.circle && (
                     <div className="mt-8">
-                        <CircleOfFifths initialSelectedRoot={selectedRoot || 'C'} mode={instrument} />
+                        <CircleOfFifths initialSelectedRoot={selectedRoot || 'C'} mode={instrument} synth={synth} />
                     </div>
                 )}
 
@@ -521,7 +567,7 @@ const InteractiveFretboardDisplay = () => {
 
                 {visibleComponents.earTraining && (
                     <div className="mt-8">
-                        <EarTraining midi={midi} />
+                        <EarTraining midi={midi} synth={synth} />
                     </div>
                 )}
 
