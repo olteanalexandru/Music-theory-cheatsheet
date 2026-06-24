@@ -1,3 +1,5 @@
+import { DIFFICULTY_LEVELS, type EarTrainingDifficulty } from '@/app/utils/earTrainingData';
+
 export interface SpelledNote {
     letter: string;
     accidental: string;
@@ -48,4 +50,46 @@ export function spellLetterInKey(letter: string, keyName: string): SpelledNote {
     const scale = KEY_SIGNATURES[keyName] || KEY_SIGNATURES.C;
     const spelled = scale.find((entry) => entry[0] === letter) || letter;
     return parseSpelledNote(spelled);
+}
+
+export interface KeySignatureInfo {
+    keyName: string;
+    type: 'sharp' | 'flat' | 'none';
+    count: number;
+    accidentals: string[];
+}
+
+// How many sharps/flats a key's signature has, e.g. getKeySignatureInfo('D') ->
+// { type: 'sharp', count: 2, accidentals: ['F♯', 'C♯'] }.
+export function getKeySignatureInfo(keyName: string): KeySignatureInfo {
+    const scale = KEY_SIGNATURES[keyName] || KEY_SIGNATURES.C;
+    const accidentals = scale.filter((note) => note.length > 1);
+    if (accidentals.length === 0) {
+        return { keyName, type: 'none', count: 0, accidentals: [] };
+    }
+    const type = accidentals[0].includes('♯') ? 'sharp' : 'flat';
+    return { keyName, type, count: accidentals.length, accidentals };
+}
+
+// Difficulty tag per key, ordered by accidental count (the circle of fifths) so the
+// Key Signatures drill can start with the simplest keys and work outward.
+export const KEY_DIFFICULTY: Record<string, EarTrainingDifficulty> = {
+    'C': 'easy',
+    'G': 'easy',
+    'F': 'easy',
+    'D': 'medium',
+    'B♭': 'medium',
+    'A': 'medium',
+    'E♭': 'medium',
+    'E': 'hard',
+    'A♭': 'hard',
+    'B': 'hard',
+    'D♭': 'hard',
+    'G♭': 'hard',
+};
+
+// Cumulative pool of keys for a difficulty: 'medium' includes every 'easy' and 'medium' key.
+export function keysForDifficulty(difficulty: EarTrainingDifficulty): string[] {
+    const maxLevel = DIFFICULTY_LEVELS.indexOf(difficulty);
+    return KEY_NAMES.filter((key) => DIFFICULTY_LEVELS.indexOf(KEY_DIFFICULTY[key]) <= maxLevel);
 }

@@ -11,7 +11,7 @@ import {
     poolForDifficulty,
 } from '@/app/utils/earTrainingData';
 import { noteNameFromMidi } from '@/app/utils/notes';
-import { KEY_NAMES } from '@/app/utils/keySignatures';
+import { getKeySignatureInfo, KEY_NAMES, keysForDifficulty, type KeySignatureInfo } from '@/app/utils/keySignatures';
 import {
     CLEFS,
     generateNoteQuestion,
@@ -27,7 +27,7 @@ interface EarTrainingProps {
     midi: MidiInputController;
 }
 
-type Category = EarTrainingCategory | 'notes';
+type Category = EarTrainingCategory | 'notes' | 'keysig';
 type AnswerMode = 'choices' | 'midi';
 type AnswerStatus = 'idle' | 'correct' | 'incorrect';
 
@@ -44,16 +44,24 @@ interface StaffNoteQuestion {
     choices: string[];
 }
 
-type Question = StandardQuestion | StaffNoteQuestion;
+interface KeySigQuestion {
+    kind: 'keysig';
+    keyName: string;
+    info: KeySignatureInfo;
+    choices: string[];
+}
+
+type Question = StandardQuestion | StaffNoteQuestion | KeySigQuestion;
 
 const CATEGORY_LABELS: Record<Category, string> = {
     intervals: 'Intervals',
     chords: 'Chords',
     scales: 'Scales',
     notes: 'Notes on Staff',
+    keysig: 'Key Signatures',
 };
 
-const CATEGORIES: Category[] = [...(Object.keys(EAR_TRAINING_DATA) as EarTrainingCategory[]), 'notes'];
+const CATEGORIES: Category[] = [...(Object.keys(EAR_TRAINING_DATA) as EarTrainingCategory[]), 'notes', 'keysig'];
 
 const DIFFICULTY_LABELS: Record<EarTrainingDifficulty, string> = {
     easy: 'Easy',
@@ -98,6 +106,25 @@ function buildStandardQuestion(category: EarTrainingCategory, difficulty: EarTra
 function buildNotesQuestion(clef: ClefId, selectedKeys: string[], range: RangePreset): StaffNoteQuestion {
     const note = generateNoteQuestion(clef, selectedKeys, range);
     return { kind: 'notes', note, choices: shuffle(NOTE_LETTERS) };
+}
+
+function formatKeySignature(info: KeySignatureInfo): string {
+    if (info.count === 0) return 'No sharps or flats';
+    const noun = info.type === 'sharp' ? 'sharp' : 'flat';
+    return `${info.count} ${noun}${info.count > 1 ? 's' : ''} (${info.accidentals.join(', ')})`;
+}
+
+function buildKeySigQuestion(difficulty: EarTrainingDifficulty): KeySigQuestion {
+    const pool = keysForDifficulty(difficulty);
+    const keyName = pickRandom(pool);
+    const info = getKeySignatureInfo(keyName);
+    const maxChoices = Math.min(6, pool.length);
+    const distractorKeys = shuffle(pool.filter((key) => key !== keyName)).slice(0, maxChoices - 1);
+    const choices = shuffle([
+        formatKeySignature(info),
+        ...distractorKeys.map((key) => formatKeySignature(getKeySignatureInfo(key))),
+    ]);
+    return { kind: 'keysig', keyName, info, choices };
 }
 
 function notesMatchExpected(playedMidiNotes: Set<number>, expectedIntervals: number[]): boolean {
@@ -146,10 +173,20 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi }) => {
         resetAnswerState();
     };
 
+    const newKeySigQuestion = (nextDifficulty: EarTrainingDifficulty) => {
+        setQuestion(buildKeySigQuestion(nextDifficulty));
+        resetAnswerState();
+    };
+
     const handleCategoryChange = (nextCategory: Category) => {
         setCategory(nextCategory);
+        if (nextCategory === 'keysig' && answerMode === 'midi') {
+            setAnswerMode('choices');
+        }
         if (nextCategory === 'notes') {
             newNotesQuestion(clef, selectedKeys, range);
+        } else if (nextCategory === 'keysig') {
+            newKeySigQuestion(difficulty);
         } else {
             newStandardQuestion(nextCategory, difficulty);
         }
@@ -158,6 +195,8 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi }) => {
     const handleNewQuestion = () => {
         if (category === 'notes') {
             newNotesQuestion(clef, selectedKeys, range);
+        } else if (category === 'keysig') {
+            newKeySigQuestion(difficulty);
         } else {
             newStandardQuestion(category, difficulty);
         }
@@ -170,6 +209,8 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi }) => {
             setRange(preset.range);
             setSelectedKeys(preset.keys);
             newNotesQuestion(clef, preset.keys, preset.range);
+        } else if (category === 'keysig') {
+            newKeySigQuestion(nextDifficulty);
         } else {
             newStandardQuestion(category, nextDifficulty);
         }
@@ -194,6 +235,7 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi }) => {
     };
 
     const handlePlay = () => {
+        if (question.kind === 'keysig') return;
         const notes = question.kind === 'notes' ? [question.note.midi] : question.notes;
         if (question.kind === 'standard' && category === 'chords') {
             playNotesTogether(notes);
@@ -202,8 +244,16 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi }) => {
         }
     };
 
-    const correctAnswerLabel = question.kind === 'standard' ? question.item.name : question.note.letter;
-    const correctAnswerDisplayName = question.kind === 'standard' ? question.item.name : question.note.displayName;
+    const correctAnswerLabel = question.kind === 'standard'
+        ? question.item.name
+        : question.kind === 'notes'
+        ? question.note.letter
+        : formatKeySignature(question.info);
+    const correctAnswerDisplayName = question.kind === 'standard'
+        ? question.item.name
+        : question.kind === 'notes'
+        ? question.note.displayName
+        : formatKeySignature(question.info);
 
     const handleChoice = (name: string) => {
         if (status !== 'idle') return;
@@ -219,7 +269,9 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi }) => {
         if (status !== 'idle') return;
         const correct = question.kind === 'standard'
             ? notesMatchExpected(attemptNotesRef.current, question.item.intervals)
-            : attemptNotesRef.current.has(question.note.midi);
+            : question.kind === 'notes'
+            ? attemptNotesRef.current.has(question.note.midi)
+            : false;
         setStatus(correct ? 'correct' : 'incorrect');
         setScore((current) => ({
             correct: current.correct + (correct ? 1 : 0),
@@ -265,23 +317,25 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi }) => {
                 ))}
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 mb-6">
-                <span className="theme-secondary-text text-sm">Answer with:</span>
-                <button
-                    onClick={() => setAnswerMode('choices')}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors
-                        ${answerMode === 'choices' ? 'theme-accent-bg' : 'theme-muted-bg theme-secondary-text hover:opacity-90'}`}
-                >
-                    Multiple Choice
-                </button>
-                <button
-                    onClick={() => setAnswerMode('midi')}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors
-                        ${answerMode === 'midi' ? 'theme-accent-bg' : 'theme-muted-bg theme-secondary-text hover:opacity-90'}`}
-                >
-                    MIDI Keyboard
-                </button>
-            </div>
+            {category !== 'keysig' && (
+                <div className="flex flex-wrap items-center gap-2 mb-6">
+                    <span className="theme-secondary-text text-sm">Answer with:</span>
+                    <button
+                        onClick={() => setAnswerMode('choices')}
+                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors
+                            ${answerMode === 'choices' ? 'theme-accent-bg' : 'theme-muted-bg theme-secondary-text hover:opacity-90'}`}
+                    >
+                        Multiple Choice
+                    </button>
+                    <button
+                        onClick={() => setAnswerMode('midi')}
+                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors
+                            ${answerMode === 'midi' ? 'theme-accent-bg' : 'theme-muted-bg theme-secondary-text hover:opacity-90'}`}
+                    >
+                        MIDI Keyboard
+                    </button>
+                </div>
+            )}
 
             {category === 'notes' && (
                 <div className="mb-6 p-4 rounded-lg theme-secondary-bg space-y-3">
@@ -382,9 +436,11 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi }) => {
             )}
 
             <div className="flex flex-wrap items-center gap-3 mb-6">
-                <button onClick={handlePlay} className="px-4 py-2 theme-btn rounded-lg hover:opacity-90">
-                    ▶ Play
-                </button>
+                {category !== 'keysig' && (
+                    <button onClick={handlePlay} className="px-4 py-2 theme-btn rounded-lg hover:opacity-90">
+                        ▶ Play
+                    </button>
+                )}
                 <button
                     onClick={handleNewQuestion}
                     className="px-4 py-2 theme-muted-bg theme-secondary-text rounded-lg hover:opacity-90"
@@ -402,6 +458,15 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi }) => {
                         Key: {question.note.keyName} major
                     </p>
                     <NoteStaffPrompt clef={question.note.clef} step={question.note.step} ledgerSteps={question.note.ledgerSteps} />
+                </div>
+            )}
+
+            {question.kind === 'keysig' && (
+                <div className="mb-6 text-center">
+                    <p className="theme-text text-2xl font-bold">{question.keyName} major</p>
+                    <p className="theme-secondary-text text-sm mt-2">
+                        How many sharps or flats does this key signature have?
+                    </p>
                 </div>
             )}
 

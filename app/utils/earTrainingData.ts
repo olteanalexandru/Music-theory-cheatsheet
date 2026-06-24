@@ -23,6 +23,10 @@ export const EAR_TRAINING_INTERVALS: EarTrainingItem[] = [
     { name: 'Tritone', intervals: [0, 6], difficulty: 'hard' },
     { name: 'Minor 7th', intervals: [0, 10], difficulty: 'hard' },
     { name: 'Major 7th', intervals: [0, 11], difficulty: 'hard' },
+    { name: 'Minor 9th', intervals: [0, 13], difficulty: 'hard' },
+    { name: 'Major 9th', intervals: [0, 14], difficulty: 'hard' },
+    { name: 'Perfect 11th', intervals: [0, 17], difficulty: 'hard' },
+    { name: 'Perfect 13th', intervals: [0, 21], difficulty: 'hard' },
 ];
 
 export const EAR_TRAINING_CHORDS: EarTrainingItem[] = [
@@ -30,10 +34,15 @@ export const EAR_TRAINING_CHORDS: EarTrainingItem[] = [
     { name: 'Minor', intervals: [0, 3, 7], difficulty: 'easy' },
     { name: 'Diminished', intervals: [0, 3, 6], difficulty: 'medium' },
     { name: 'Augmented', intervals: [0, 4, 8], difficulty: 'medium' },
+    { name: 'Suspended 2nd', intervals: [0, 2, 7], difficulty: 'medium' },
+    { name: 'Suspended 4th', intervals: [0, 5, 7], difficulty: 'medium' },
     { name: 'Major 7th', intervals: [0, 4, 7, 11], difficulty: 'hard' },
     { name: 'Minor 7th', intervals: [0, 3, 7, 10], difficulty: 'hard' },
     { name: 'Dominant 7th', intervals: [0, 4, 7, 10], difficulty: 'hard' },
     { name: 'Minor 7th ♭5', intervals: [0, 3, 6, 10], difficulty: 'hard' },
+    { name: 'Diminished 7th', intervals: [0, 3, 6, 9], difficulty: 'hard' },
+    { name: 'Major 6th', intervals: [0, 4, 7, 9], difficulty: 'hard' },
+    { name: 'Minor 6th', intervals: [0, 3, 7, 9], difficulty: 'hard' },
 ];
 
 export const EAR_TRAINING_SCALES: EarTrainingItem[] = [
@@ -43,9 +52,13 @@ export const EAR_TRAINING_SCALES: EarTrainingItem[] = [
     { name: 'Pentatonic Minor', intervals: [0, 3, 5, 7, 10], difficulty: 'easy' },
     { name: 'Dorian', intervals: [0, 2, 3, 5, 7, 9, 10], difficulty: 'medium' },
     { name: 'Mixolydian', intervals: [0, 2, 4, 5, 7, 9, 10], difficulty: 'medium' },
+    { name: 'Harmonic Minor', intervals: [0, 2, 3, 5, 7, 8, 11], difficulty: 'medium' },
+    { name: 'Melodic Minor', intervals: [0, 2, 3, 5, 7, 9, 11], difficulty: 'medium' },
     { name: 'Phrygian', intervals: [0, 1, 3, 5, 7, 8, 10], difficulty: 'hard' },
     { name: 'Lydian', intervals: [0, 2, 4, 6, 7, 9, 11], difficulty: 'hard' },
     { name: 'Locrian', intervals: [0, 1, 3, 5, 6, 8, 10], difficulty: 'hard' },
+    { name: 'Blues Scale', intervals: [0, 3, 5, 6, 7, 10], difficulty: 'hard' },
+    { name: 'Whole Tone', intervals: [0, 2, 4, 6, 8, 10], difficulty: 'hard' },
 ];
 
 export const EAR_TRAINING_DATA: Record<EarTrainingCategory, EarTrainingItem[]> = {
