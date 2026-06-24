@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { CLEFS, type ClefId } from '@/app/utils/staffLayout';
+import ClefGlyph from '@/app/components/ClefGlyph';
+import { type ClefId } from '@/app/utils/staffLayout';
 
 interface NoteStaffPromptProps {
     clef: ClefId;
@@ -14,11 +15,6 @@ const STAFF_RIGHT = 300;
 const TOP_LINE_Y = 90;
 const LINE_GAP = 22;
 const NOTE_X = 220;
-
-const CLEF_SYMBOL_STYLE: Record<ClefId, { x: number; y: number; fontSize: number }> = {
-    treble: { x: 78, y: 159, fontSize: 70 },
-    bass: { x: 73, y: 132, fontSize: 52 },
-};
 
 function yForStep(step: number): number {
     return TOP_LINE_Y + 4 * LINE_GAP - step * (LINE_GAP / 2);
@@ -40,7 +36,6 @@ const NoteStaffPrompt: React.FC<NoteStaffPromptProps> = ({ clef, step, ledgerSte
     const noteFill = isLightMode ? 'rgba(79, 70, 229, 0.9)' : 'rgba(129, 140, 248, 0.8)';
     const ledgerStroke = isLightMode ? 'rgba(79, 70, 229, 0.35)' : 'rgba(129, 140, 248, 0.3)';
 
-    const clefStyle = CLEF_SYMBOL_STYLE[clef];
     const noteY = yForStep(step);
 
     return (
@@ -57,9 +52,7 @@ const NoteStaffPrompt: React.FC<NoteStaffPromptProps> = ({ clef, step, ledgerSte
                 />
             ))}
 
-            <text x={clefStyle.x} y={clefStyle.y} fontSize={clefStyle.fontSize} fill={staffTextColor} fontFamily="serif">
-                {CLEFS[clef].symbol}
-            </text>
+            <ClefGlyph clef={clef} x={STAFF_LEFT} topLineY={TOP_LINE_Y} lineGap={LINE_GAP} color={staffTextColor} />
 
             {ledgerSteps.map((ledgerStep) => (
                 <line

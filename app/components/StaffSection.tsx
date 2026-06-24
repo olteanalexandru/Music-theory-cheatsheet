@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from 'react';
+import ClefGlyph from '@/app/components/ClefGlyph';
 
 interface StaffSectionProps {
   chromaticScale: string[][];
@@ -259,15 +260,7 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
             ))}
 
             {/* Treble Clef Symbol */}
-            <text
-              x="100"
-              y="160"
-              fontSize="80"
-              fill={staffTextColor}
-              fontFamily="serif"
-            >
-              𝄞
-            </text>
+            <ClefGlyph clef="treble" x={80} topLineY={100} lineGap={30} color={staffTextColor} />
 
             {/* Staff positions for notes */}
             {staffPositions.map((pos) => {

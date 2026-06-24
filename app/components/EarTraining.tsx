@@ -10,7 +10,7 @@ import {
     EarTrainingItem,
     poolForDifficulty,
 } from '@/app/utils/earTrainingData';
-import { noteNameFromMidi } from '@/app/utils/notes';
+import { CHROMATIC_NOTES, noteNameFromMidi } from '@/app/utils/notes';
 import { getKeySignatureInfo, KEY_NAMES, keysForDifficulty, type KeySignatureInfo } from '@/app/utils/keySignatures';
 import {
     CLEFS,
@@ -20,14 +20,17 @@ import {
     type NoteQuestion,
     type RangePreset,
 } from '@/app/utils/staffLayout';
+import { generateFretQuestion, type FretQuestion } from '@/app/utils/guitarLayout';
 import NoteStaffPrompt from '@/app/components/NoteStaffPrompt';
+import GuitarFretPrompt from '@/app/components/GuitarFretPrompt';
+import PianoKeyboard from '@/app/components/PianoKeyboard';
 import type { MidiInputController } from '@/app/utils/useMidiInput';
 
 interface EarTrainingProps {
     midi: MidiInputController;
 }
 
-type Category = EarTrainingCategory | 'notes' | 'keysig';
+type Category = EarTrainingCategory | 'notes' | 'keysig' | 'guitar';
 type AnswerMode = 'choices' | 'midi';
 type AnswerStatus = 'idle' | 'correct' | 'incorrect';
 
@@ -51,7 +54,13 @@ interface KeySigQuestion {
     choices: string[];
 }
 
-type Question = StandardQuestion | StaffNoteQuestion | KeySigQuestion;
+interface GuitarQuestion {
+    kind: 'guitar';
+    fret: FretQuestion;
+    choices: string[];
+}
+
+type Question = StandardQuestion | StaffNoteQuestion | KeySigQuestion | GuitarQuestion;
 
 const CATEGORY_LABELS: Record<Category, string> = {
     intervals: 'Intervals',
@@ -59,9 +68,10 @@ const CATEGORY_LABELS: Record<Category, string> = {
     scales: 'Scales',
     notes: 'Notes on Staff',
     keysig: 'Key Signatures',
+    guitar: 'Guitar Fretboard',
 };
 
-const CATEGORIES: Category[] = [...(Object.keys(EAR_TRAINING_DATA) as EarTrainingCategory[]), 'notes', 'keysig'];
+const CATEGORIES: Category[] = [...(Object.keys(EAR_TRAINING_DATA) as EarTrainingCategory[]), 'notes', 'keysig', 'guitar'];
 
 const DIFFICULTY_LABELS: Record<EarTrainingDifficulty, string> = {
     easy: 'Easy',
@@ -127,6 +137,14 @@ function buildKeySigQuestion(difficulty: EarTrainingDifficulty): KeySigQuestion 
     return { kind: 'keysig', keyName, info, choices };
 }
 
+function buildGuitarQuestion(difficulty: EarTrainingDifficulty): GuitarQuestion {
+    const fret = generateFretQuestion(difficulty);
+    const maxChoices = Math.min(6, CHROMATIC_NOTES.length);
+    const distractors = shuffle(CHROMATIC_NOTES.filter((name) => name !== fret.noteName)).slice(0, maxChoices - 1);
+    const choices = shuffle([fret.noteName, ...distractors]);
+    return { kind: 'guitar', fret, choices };
+}
+
 function notesMatchExpected(playedMidiNotes: Set<number>, expectedIntervals: number[]): boolean {
     if (playedMidiNotes.size === 0) return false;
     const sorted = Array.from(playedMidiNotes).sort((a, b) => a - b);
@@ -150,6 +168,7 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi }) => {
     const [clef, setClef] = useState<ClefId>('treble');
     const [selectedKeys, setSelectedKeys] = useState<string[]>(['C']);
     const [range, setRange] = useState<RangePreset>('staff');
+    const [heldClickNotes, setHeldClickNotes] = useState<Set<number>>(new Set());
     const attemptNotesRef = useRef<Set<number>>(new Set());
 
     // Track every note pressed during the current attempt, even after it's
@@ -161,6 +180,23 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi }) => {
     const resetAnswerState = () => {
         setStatus('idle');
         attemptNotesRef.current = new Set();
+        setHeldClickNotes(new Set());
+    };
+
+    // The on-screen keyboard can't write into the MIDI hook's activeNotes (that's
+    // only ever mutated by real onmidimessage events), so clicks are tracked here
+    // and merged with real MIDI input for both display and answer-checking.
+    const handleKeyboardNoteOn = (note: number) => {
+        attemptNotesRef.current.add(note);
+        setHeldClickNotes((current) => new Set(current).add(note));
+    };
+
+    const handleKeyboardNoteOff = (note: number) => {
+        setHeldClickNotes((current) => {
+            const next = new Set(current);
+            next.delete(note);
+            return next;
+        });
     };
 
     const newStandardQuestion = (nextCategory: EarTrainingCategory, nextDifficulty: EarTrainingDifficulty) => {
@@ -178,6 +214,11 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi }) => {
         resetAnswerState();
     };
 
+    const newGuitarQuestion = (nextDifficulty: EarTrainingDifficulty) => {
+        setQuestion(buildGuitarQuestion(nextDifficulty));
+        resetAnswerState();
+    };
+
     const handleCategoryChange = (nextCategory: Category) => {
         setCategory(nextCategory);
         if (nextCategory === 'keysig' && answerMode === 'midi') {
@@ -187,6 +228,8 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi }) => {
             newNotesQuestion(clef, selectedKeys, range);
         } else if (nextCategory === 'keysig') {
             newKeySigQuestion(difficulty);
+        } else if (nextCategory === 'guitar') {
+            newGuitarQuestion(difficulty);
         } else {
             newStandardQuestion(nextCategory, difficulty);
         }
@@ -197,6 +240,8 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi }) => {
             newNotesQuestion(clef, selectedKeys, range);
         } else if (category === 'keysig') {
             newKeySigQuestion(difficulty);
+        } else if (category === 'guitar') {
+            newGuitarQuestion(difficulty);
         } else {
             newStandardQuestion(category, difficulty);
         }
@@ -211,6 +256,8 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi }) => {
             newNotesQuestion(clef, preset.keys, preset.range);
         } else if (category === 'keysig') {
             newKeySigQuestion(nextDifficulty);
+        } else if (category === 'guitar') {
+            newGuitarQuestion(nextDifficulty);
         } else {
             newStandardQuestion(category, nextDifficulty);
         }
@@ -236,7 +283,11 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi }) => {
 
     const handlePlay = () => {
         if (question.kind === 'keysig') return;
-        const notes = question.kind === 'notes' ? [question.note.midi] : question.notes;
+        const notes = question.kind === 'notes'
+            ? [question.note.midi]
+            : question.kind === 'guitar'
+            ? [question.fret.midi]
+            : question.notes;
         if (question.kind === 'standard' && category === 'chords') {
             playNotesTogether(notes);
         } else {
@@ -248,11 +299,15 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi }) => {
         ? question.item.name
         : question.kind === 'notes'
         ? question.note.letter
+        : question.kind === 'guitar'
+        ? question.fret.noteName
         : formatKeySignature(question.info);
     const correctAnswerDisplayName = question.kind === 'standard'
         ? question.item.name
         : question.kind === 'notes'
         ? question.note.displayName
+        : question.kind === 'guitar'
+        ? question.fret.noteName
         : formatKeySignature(question.info);
 
     const handleChoice = (name: string) => {
@@ -271,6 +326,8 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi }) => {
             ? notesMatchExpected(attemptNotesRef.current, question.item.intervals)
             : question.kind === 'notes'
             ? attemptNotesRef.current.has(question.note.midi)
+            : question.kind === 'guitar'
+            ? attemptNotesRef.current.has(question.fret.midi)
             : false;
         setStatus(correct ? 'correct' : 'incorrect');
         setScore((current) => ({
@@ -279,9 +336,14 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi }) => {
         }));
     };
 
+    const displayActiveNotes = useMemo(
+        () => new Set<number>([...midi.activeNotes, ...heldClickNotes]),
+        [midi.activeNotes, heldClickNotes]
+    );
+
     const heldNoteNames = useMemo(
-        () => Array.from(midi.activeNotes).sort((a, b) => a - b).map(noteNameFromMidi),
-        [midi.activeNotes]
+        () => Array.from(displayActiveNotes).sort((a, b) => a - b).map(noteNameFromMidi),
+        [displayActiveNotes]
     );
 
     return (
@@ -406,6 +468,7 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi }) => {
                                     {midi.error || 'MIDI access was denied.'}
                                 </span>
                             )}
+                            <span className="theme-secondary-text text-sm">Or just click the keys below.</span>
                         </div>
                     ) : (
                         <>
@@ -432,6 +495,11 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi }) => {
                             </p>
                         </>
                     )}
+                    <PianoKeyboard
+                        activeNotes={displayActiveNotes}
+                        onNoteOn={handleKeyboardNoteOn}
+                        onNoteOff={handleKeyboardNoteOff}
+                    />
                 </div>
             )}
 
@@ -458,6 +526,13 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi }) => {
                         Key: {question.note.keyName} major
                     </p>
                     <NoteStaffPrompt clef={question.note.clef} step={question.note.step} ledgerSteps={question.note.ledgerSteps} />
+                </div>
+            )}
+
+            {question.kind === 'guitar' && (
+                <div className="mb-6">
+                    <p className="theme-secondary-text text-sm mb-2 text-center">Standard tuning</p>
+                    <GuitarFretPrompt stringIndex={question.fret.stringIndex} fret={question.fret.fret} />
                 </div>
             )}
 
@@ -496,7 +571,7 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi }) => {
                 <div className="flex flex-wrap items-center gap-3">
                     <button
                         onClick={handleCheckMidiAnswer}
-                        disabled={midi.permission !== 'granted' || status !== 'idle'}
+                        disabled={status !== 'idle'}
                         className="px-4 py-2 theme-accent-bg rounded-lg hover:opacity-90 disabled:opacity-50"
                     >
                         Check My Answer
