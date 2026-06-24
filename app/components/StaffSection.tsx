@@ -1,17 +1,22 @@
 "use client";
 import React, { useEffect, useState } from 'react';
 import ClefGlyph from '@/app/components/ClefGlyph';
+import { accidentalShift } from '@/app/utils/keySignatures';
+import { CLEFS, getStaffPositions, noteMidi, type ClefId } from '@/app/utils/staffLayout';
+import type { SynthController } from '@/app/utils/useSynth';
 
 interface StaffSectionProps {
   chromaticScale: string[][];
   selectedRoot?: string;
   setSelectedRoot?: (root: string) => void;
+  synth: SynthController;
 }
 
 type DisplayMode = 'letters' | 'movable-do' | 'fixed-do';
 
-const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoot = 'C', setSelectedRoot }) => {
+const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoot = 'C', setSelectedRoot, synth }) => {
   const [displayMode, setDisplayMode] = useState<DisplayMode>('letters');
+  const [clef, setClef] = useState<ClefId>('treble');
   const [selectedNote, setSelectedNote] = useState<string | null>(null);
   const [hoveredNote, setHoveredNote] = useState<string | null>(null);
   const [isLightMode, setIsLightMode] = useState(false);
@@ -88,27 +93,15 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
 
     return normalizeNote(spelledNote || note);
   };
-  // Notes on a treble clef staff from bottom to top
-  // Lines: E, G, B, D, F (bottom to top)
-  // Spaces: F, A, C, E (bottom to top)
-  // Extended: ledger lines for low notes
-  const staffPositions = [
-    { note: 'C', position: 0, isSpace: false, isLedger: true }, // Below staff
-    { note: 'D', position: 1, isSpace: true, isLedger: false },
-    { note: 'E', position: 2, isSpace: false, isLedger: false }, // Line
-    { note: 'F', position: 3, isSpace: true, isLedger: false },
-    { note: 'G', position: 4, isSpace: false, isLedger: false }, // Line
-    { note: 'A', position: 5, isSpace: true, isLedger: false },
-    { note: 'B', position: 6, isSpace: false, isLedger: false }, // Line
-    { note: 'C', position: 7, isSpace: true, isLedger: false },
-    { note: 'D', position: 8, isSpace: false, isLedger: false }, // Line
-    { note: 'E', position: 9, isSpace: true, isLedger: false },
-    { note: 'F', position: 10, isSpace: false, isLedger: false }, // Line
-    { note: 'G', position: 11, isSpace: true, isLedger: false },
-    { note: 'A', position: 12, isSpace: false, isLedger: true }, // Above staff
-  ];
+  // The 13 line/space positions for the current clef, bottom to top, including
+  // one ledger line below and one above the 5-line staff.
+  const staffPositions = getStaffPositions(clef);
 
-  
+  const getPositionMidi = (letter: string, octave: number): number => {
+    const spelled = applyKeySignatureToNoteLetter(letter);
+    return noteMidi(letter, octave, accidentalShift(spelled.slice(1)));
+  };
+
   // (fixed-do syllable mapping intentionally removed — fixed-do now shows absolute pitches)
 
   // Convert note to movable solfège based on selected root
@@ -215,6 +208,24 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
           </div>
         </div>
         <div>
+          <label className="theme-secondary-text block mb-2">Clef</label>
+          <div className="flex flex-wrap gap-2">
+            {(Object.keys(CLEFS) as ClefId[]).map((id) => (
+              <button
+                key={id}
+                onClick={() => setClef(id)}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  clef === id
+                    ? 'bg-indigo-500 text-white'
+                    : 'bg-indigo-900/30 text-indigo-300 hover:bg-indigo-900/50'
+                }`}
+              >
+                {CLEFS[id].label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
           <label className="theme-secondary-text block mb-2">Select Key</label>
           <select
             value={effectiveRoot}
@@ -244,7 +255,7 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
         }`}
       >
         <svg viewBox="0 0 1200 400" className="w-full min-w-[800px]" style={{ height: 'auto' }}>
-          {/* Treble Clef Staff */}
+          {/* Staff */}
           <g>
             {/* Staff lines (5 lines) */}
             {[1, 2, 3, 4, 5].map((line) => (
@@ -259,8 +270,8 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
               />
             ))}
 
-            {/* Treble Clef Symbol */}
-            <ClefGlyph clef="treble" x={80} topLineY={100} lineGap={30} color={staffTextColor} />
+            {/* Clef Symbol */}
+            <ClefGlyph clef={clef} x={80} topLineY={100} lineGap={30} color={staffTextColor} />
 
             {/* Staff positions for notes */}
             {staffPositions.map((pos) => {
@@ -268,17 +279,20 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
               const xStart = 280;
               const spacing = 60;
               const noteX = xStart + pos.position * spacing;
-              const isSelected = selectedNote === pos.note;
-              const isHovered = hoveredNote === pos.note;
+              const isSelected = selectedNote === pos.letter;
+              const isHovered = hoveredNote === pos.letter;
               const isVisible = isSelected || isHovered;
-              const displayText = getDisplayText(pos.note);
+              const displayText = getDisplayText(pos.letter);
 
               return (
                 <g
                   key={`note-${pos.position}`}
-                  onMouseEnter={() => setHoveredNote(pos.note)}
-                  onMouseLeave={() => setHoveredNote((current) => (current === pos.note ? null : current))}
-                  onClick={() => setSelectedNote(pos.note)}
+                  onMouseEnter={() => setHoveredNote(pos.letter)}
+                  onMouseLeave={() => setHoveredNote((current) => (current === pos.letter ? null : current))}
+                  onClick={() => {
+                    setSelectedNote(pos.letter);
+                    synth.playSequence([getPositionMidi(pos.letter, pos.octave)]);
+                  }}
                   style={{ cursor: 'pointer' }}
                 >
                   {/* Ledger line for notes outside staff */}
@@ -339,7 +353,7 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
                     opacity={isVisible ? 1 : 0}
                     style={{ transition: 'opacity 0.2s ease' }}
                   >
-                    {applyKeySignatureToNoteLetter(pos.note)}
+                    {applyKeySignatureToNoteLetter(pos.letter)}
                   </text>
                 </g>
               );

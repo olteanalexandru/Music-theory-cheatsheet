@@ -49,6 +49,37 @@ export function stepFromBottomLine(clef: ClefId, letter: string, octave: number)
     return diatonicIndex(letter, octave) - diatonicIndex(config.bottomLetter, config.bottomOctave);
 }
 
+export interface StaffPosition {
+    letter: string;
+    octave: number;
+    position: number;
+    isSpace: boolean;
+    isLedger: boolean;
+}
+
+// The 13 line/space positions a basic staff diagram draws: one ledger line below,
+// the 5-line/4-space staff itself, and one ledger line above. Derived purely from
+// the clef's bottom line (position 2, step 0) so it works for any clef in CLEFS.
+export function getStaffPositions(clef: ClefId): StaffPosition[] {
+    const config = CLEFS[clef];
+    const bottomIdx = diatonicIndex(config.bottomLetter, config.bottomOctave);
+    const positions: StaffPosition[] = [];
+    for (let position = 0; position <= 12; position++) {
+        const step = position - 2;
+        const idx = bottomIdx + step;
+        const octave = Math.floor(idx / 7);
+        const letter = LETTER_ORDER[((idx % 7) + 7) % 7];
+        positions.push({
+            letter,
+            octave,
+            position,
+            isSpace: step % 2 !== 0,
+            isLedger: step <= -2 || step >= 10,
+        });
+    }
+    return positions;
+}
+
 // Every line-type staff/ledger position strictly between the staff and the given
 // step (inclusive of the step itself, when it lands on a line).
 export function getLedgerLineSteps(step: number): number[] {

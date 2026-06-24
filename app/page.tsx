@@ -241,12 +241,15 @@ const InteractiveFretboardDisplay = () => {
         }
     };
 
-    // Helper function to get note index in chromatic scale
+    // Helper function to get note index in chromatic scale. Normalizes ASCII
+    // accidentals (some guitarTunings/bassTunings entries use '#'/'b') to the
+    // Unicode ♯/♭ chromaticScale uses, so lookups don't silently miss.
     const getNoteIndex = (
         note: string
     ) => {
-        return chromaticScale.findIndex(notes => 
-            notes.some(n => n === note)
+        const normalized = note.replace(/#/g, '♯').replace(/b/g, '♭');
+        return chromaticScale.findIndex(notes =>
+            notes.some(n => n === normalized)
         );
     };
 
@@ -370,6 +373,51 @@ const InteractiveFretboardDisplay = () => {
                                 className="w-32"
                             />
                         </label>
+                    </div>
+                    <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-indigo-500/20 pt-3">
+                        <p className="text-sm font-semibold text-indigo-100">MIDI</p>
+                        {midi.permission !== 'granted' ? (
+                            <div className="flex flex-wrap items-center gap-3">
+                                <button
+                                    onClick={midi.connect}
+                                    className="px-3 py-1.5 theme-btn rounded-lg text-sm hover:opacity-90"
+                                >
+                                    Connect MIDI Device
+                                </button>
+                                {midi.permission === 'pending' && (
+                                    <span className="text-sm text-indigo-200">Requesting access…</span>
+                                )}
+                                {midi.permission === 'unsupported' && (
+                                    <span className="text-sm text-yellow-400">
+                                        Web MIDI isn&apos;t supported in this browser. Try Chrome or Edge.
+                                    </span>
+                                )}
+                                {midi.permission === 'denied' && (
+                                    <span className="text-sm text-yellow-400">
+                                        {midi.error || 'MIDI access was denied.'}
+                                    </span>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="flex flex-wrap items-center gap-2">
+                                <label className="text-sm text-indigo-200">Device:</label>
+                                <select
+                                    value={midi.selectedDeviceId ?? ''}
+                                    onChange={(e) => midi.selectDevice(e.target.value || null)}
+                                    className="theme-muted-bg theme-secondary-text px-3 py-1.5 rounded-lg text-sm"
+                                >
+                                    <option value="">All devices</option>
+                                    {midi.devices.map((device) => (
+                                        <option key={device.id} value={device.id}>
+                                            {device.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                {midi.devices.length === 0 && (
+                                    <span className="text-sm text-yellow-400">No MIDI devices detected.</span>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -562,6 +610,7 @@ const InteractiveFretboardDisplay = () => {
                         chromaticScale={chromaticScale}
                         selectedRoot={selectedRoot || 'C'}
                         setSelectedRoot={setSelectedRoot}
+                        synth={synth}
                     />
                 )}
 
