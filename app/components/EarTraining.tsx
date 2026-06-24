@@ -32,10 +32,18 @@ import {
     type RhythmEvent,
     type TimeSignatureName,
 } from '@/app/utils/rhythmData';
+import {
+    chordsForProgression,
+    formatProgression,
+    progressionsForDifficulty,
+    type ProgressionDef,
+} from '@/app/utils/progressionData';
+import { loadProgress, saveProgress, type ProgressStore } from '@/app/utils/progressStore';
 import NoteStaffPrompt from '@/app/components/NoteStaffPrompt';
 import GuitarFretPrompt from '@/app/components/GuitarFretPrompt';
 import PianoKeyboard from '@/app/components/PianoKeyboard';
 import RhythmNotation from '@/app/components/RhythmNotation';
+import ProgressPanel from '@/app/components/ProgressPanel';
 import type { MidiInputController } from '@/app/utils/useMidiInput';
 
 interface EarTrainingProps {
@@ -43,7 +51,7 @@ interface EarTrainingProps {
     synth: SynthController;
 }
 
-type Category = EarTrainingCategory | 'notes' | 'keysig' | 'guitar' | 'rhythm';
+type Category = EarTrainingCategory | 'notes' | 'keysig' | 'guitar' | 'rhythm' | 'progressions';
 type AnswerMode = 'choices' | 'midi';
 type AnswerStatus = 'idle' | 'correct' | 'incorrect';
 
@@ -82,7 +90,15 @@ interface RhythmQuestion {
     patternsByKey: Record<string, RhythmEvent[]>;
 }
 
-type Question = StandardQuestion | StaffNoteQuestion | KeySigQuestion | GuitarQuestion | RhythmQuestion;
+interface ProgressionQuestion {
+    kind: 'progression';
+    def: ProgressionDef;
+    chords: number[][];
+    keyName: string;
+    choices: string[];
+}
+
+type Question = StandardQuestion | StaffNoteQuestion | KeySigQuestion | GuitarQuestion | RhythmQuestion | ProgressionQuestion;
 
 const CATEGORY_LABELS: Record<Category, string> = {
     intervals: 'Intervals',
@@ -92,9 +108,10 @@ const CATEGORY_LABELS: Record<Category, string> = {
     keysig: 'Key Signatures',
     guitar: 'Guitar Fretboard',
     rhythm: 'Rhythm',
+    progressions: 'Chord Progressions',
 };
 
-const CATEGORIES: Category[] = [...(Object.keys(EAR_TRAINING_DATA) as EarTrainingCategory[]), 'notes', 'keysig', 'guitar', 'rhythm'];
+const CATEGORIES: Category[] = [...(Object.keys(EAR_TRAINING_DATA) as EarTrainingCategory[]), 'notes', 'keysig', 'guitar', 'rhythm', 'progressions'];
 
 const DIFFICULTY_LABELS: Record<EarTrainingDifficulty, string> = {
     easy: 'Easy',
@@ -187,6 +204,18 @@ function buildRhythmQuestion(difficulty: EarTrainingDifficulty): RhythmQuestion 
     };
 }
 
+function buildProgressionQuestion(difficulty: EarTrainingDifficulty): ProgressionQuestion {
+    const pool = progressionsForDifficulty(difficulty);
+    const def = pickRandom(pool);
+    const rootMidi = 57 + Math.floor(Math.random() * 12); // A3..G#4
+    const chords = chordsForProgression(def.degrees, rootMidi);
+    const keyName = CHROMATIC_NOTES[((rootMidi % 12) + 12) % 12];
+    const maxChoices = Math.min(6, pool.length);
+    const distractors = shuffle(pool.filter((entry) => entry !== def)).slice(0, maxChoices - 1);
+    const choices = shuffle([def, ...distractors].map((entry) => formatProgression(entry.degrees)));
+    return { kind: 'progression', def, chords, keyName, choices };
+}
+
 function notesMatchExpected(playedMidiNotes: Set<number>, expectedIntervals: number[]): boolean {
     if (playedMidiNotes.size === 0) return false;
     const sorted = Array.from(playedMidiNotes).sort((a, b) => a - b);
@@ -207,6 +236,7 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
     const [answerMode, setAnswerMode] = useState<AnswerMode>('choices');
     const [status, setStatus] = useState<AnswerStatus>('idle');
     const [score, setScore] = useState({ correct: 0, total: 0 });
+    const [progress, setProgress] = useState<ProgressStore>(() => loadProgress());
     const [clef, setClef] = useState<ClefId>('treble');
     const [selectedKeys, setSelectedKeys] = useState<string[]>(['C']);
     const [range, setRange] = useState<RangePreset>('staff');
@@ -218,6 +248,12 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
     useEffect(() => {
         midi.activeNotes.forEach((note) => attemptNotesRef.current.add(note));
     }, [midi.activeNotes]);
+
+    // Persist per-category accuracy across sessions, mirroring page.tsx's
+    // localStorage pattern for visibleComponents.
+    useEffect(() => {
+        saveProgress(progress);
+    }, [progress]);
 
     const resetAnswerState = () => {
         setStatus('idle');
@@ -269,9 +305,14 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
         resetAnswerState();
     };
 
+    const newProgressionQuestion = (nextDifficulty: EarTrainingDifficulty) => {
+        setQuestion(buildProgressionQuestion(nextDifficulty));
+        resetAnswerState();
+    };
+
     const handleCategoryChange = (nextCategory: Category) => {
         setCategory(nextCategory);
-        if ((nextCategory === 'keysig' || nextCategory === 'rhythm') && answerMode === 'midi') {
+        if ((nextCategory === 'keysig' || nextCategory === 'rhythm' || nextCategory === 'progressions') && answerMode === 'midi') {
             setAnswerMode('choices');
         }
         if (nextCategory === 'notes') {
@@ -282,6 +323,8 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
             newGuitarQuestion(difficulty);
         } else if (nextCategory === 'rhythm') {
             newRhythmQuestion(difficulty);
+        } else if (nextCategory === 'progressions') {
+            newProgressionQuestion(difficulty);
         } else {
             newStandardQuestion(nextCategory, difficulty);
         }
@@ -296,6 +339,8 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
             newGuitarQuestion(difficulty);
         } else if (category === 'rhythm') {
             newRhythmQuestion(difficulty);
+        } else if (category === 'progressions') {
+            newProgressionQuestion(difficulty);
         } else {
             newStandardQuestion(category, difficulty);
         }
@@ -314,6 +359,8 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
             newGuitarQuestion(nextDifficulty);
         } else if (category === 'rhythm') {
             newRhythmQuestion(nextDifficulty);
+        } else if (category === 'progressions') {
+            newProgressionQuestion(nextDifficulty);
         } else {
             newStandardQuestion(category, nextDifficulty);
         }
@@ -343,6 +390,10 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
             synth.playRhythm(question.pattern, question.bpm);
             return;
         }
+        if (question.kind === 'progression') {
+            synth.playProgression(question.chords);
+            return;
+        }
         const notes = question.kind === 'notes'
             ? [question.note.midi]
             : question.kind === 'guitar'
@@ -363,7 +414,9 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
         ? question.fret.noteName
         : question.kind === 'keysig'
         ? formatKeySignature(question.info)
-        : patternKey(question.pattern);
+        : question.kind === 'rhythm'
+        ? patternKey(question.pattern)
+        : formatProgression(question.def.degrees);
     const correctAnswerDisplayName = question.kind === 'standard'
         ? question.item.name
         : question.kind === 'notes'
@@ -372,16 +425,33 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
         ? question.fret.noteName
         : question.kind === 'keysig'
         ? formatKeySignature(question.info)
-        : describePattern(question.pattern);
+        : question.kind === 'rhythm'
+        ? describePattern(question.pattern)
+        : formatProgression(question.def.degrees);
 
-    const handleChoice = (name: string) => {
-        if (status !== 'idle') return;
-        const correct = name === correctAnswerLabel;
+    const recordResult = (correct: boolean) => {
         setStatus(correct ? 'correct' : 'incorrect');
         setScore((current) => ({
             correct: current.correct + (correct ? 1 : 0),
             total: current.total + 1,
         }));
+        setProgress((current) => {
+            const stats = current[category] ?? { correct: 0, total: 0 };
+            return {
+                ...current,
+                [category]: { correct: stats.correct + (correct ? 1 : 0), total: stats.total + 1 },
+            };
+        });
+    };
+
+    const resetProgress = () => {
+        setProgress({});
+        setScore({ correct: 0, total: 0 });
+    };
+
+    const handleChoice = (name: string) => {
+        if (status !== 'idle') return;
+        recordResult(name === correctAnswerLabel);
     };
 
     const handleCheckMidiAnswer = () => {
@@ -393,11 +463,7 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
             : question.kind === 'guitar'
             ? attemptNotesRef.current.has(question.fret.midi)
             : false;
-        setStatus(correct ? 'correct' : 'incorrect');
-        setScore((current) => ({
-            correct: current.correct + (correct ? 1 : 0),
-            total: current.total + 1,
-        }));
+        recordResult(correct);
     };
 
     const displayActiveNotes = useMemo(
@@ -443,7 +509,7 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
                 ))}
             </div>
 
-            {category !== 'keysig' && category !== 'rhythm' && (
+            {category !== 'keysig' && category !== 'rhythm' && category !== 'progressions' && (
                 <div className="flex flex-wrap items-center gap-2 mb-6">
                     <span className="theme-secondary-text text-sm">Answer with:</span>
                     <button
@@ -584,6 +650,8 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
                 </span>
             </div>
 
+            <ProgressPanel progress={progress} categories={CATEGORIES} labels={CATEGORY_LABELS} onReset={resetProgress} />
+
             {question.kind === 'notes' && (
                 <div className="mb-6">
                     <p className="theme-secondary-text text-sm mb-2 text-center">
@@ -618,8 +686,17 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
                 </div>
             )}
 
+            {question.kind === 'progression' && (
+                <div className="mb-6 text-center">
+                    <p className="theme-secondary-text text-sm mb-2">Key: {question.keyName} major</p>
+                    <p className="theme-secondary-text text-sm">
+                        Listen and identify the chord progression (Roman numeral analysis).
+                    </p>
+                </div>
+            )}
+
             {answerMode === 'choices' ? (
-                <div className={question.kind === 'rhythm' ? 'grid grid-cols-1 sm:grid-cols-2 gap-2' : 'grid grid-cols-2 sm:grid-cols-3 gap-2'}>
+                <div className={question.kind === 'rhythm' || question.kind === 'progression' ? 'grid grid-cols-1 sm:grid-cols-2 gap-2' : 'grid grid-cols-2 sm:grid-cols-3 gap-2'}>
                     {question.choices.map((name) => {
                         const isCorrectChoice = status !== 'idle' && name === correctAnswerLabel;
                         const isOtherChoice = status === 'incorrect' && name !== correctAnswerLabel;

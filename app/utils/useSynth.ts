@@ -20,6 +20,7 @@ export interface SynthController {
     playSequence: (midiNotes: number[]) => void;
     playChord: (midiNotes: number[]) => void;
     playRhythm: (events: RhythmEvent[], bpm: number) => void;
+    playProgression: (chords: number[][]) => void;
 }
 
 export function useSynth(): SynthController {
@@ -52,6 +53,13 @@ export function useSynth(): SynthController {
             ),
         [waveform, volume]
     );
+    const playProgression = useCallback(
+        (chords: number[][]) => synth.playChordProgression(chords, { waveform, volume }),
+        [waveform, volume]
+    );
 
-    return { waveform, setWaveform, volume, setVolume, noteOn, noteOff, stopAll, playSequence, playChord, playRhythm };
+    return {
+        waveform, setWaveform, volume, setVolume, noteOn, noteOff, stopAll,
+        playSequence, playChord, playRhythm, playProgression,
+    };
 }

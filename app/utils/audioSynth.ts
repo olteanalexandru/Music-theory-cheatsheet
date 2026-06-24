@@ -97,6 +97,24 @@ export function playTimedSequence(
     });
 }
 
+// Schedules a sequence of chords back-to-back, each chord's notes sounding
+// together — for chord-progression ear training, unlike playNotesInSequence
+// (one note at a time) or playNotesTogether (a single chord).
+export function playChordProgression(
+    chords: number[][],
+    settings: SynthSettings = DEFAULT_SYNTH_SETTINGS,
+    chordDuration = 0.9,
+    gap = 0.1
+): void {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    let time = ctx.currentTime + 0.05;
+    chords.forEach((chord) => {
+        chord.forEach((note) => scheduleNote(ctx, note, time, chordDuration, settings));
+        time += chordDuration + gap;
+    });
+}
+
 interface LiveVoice {
     oscillator: OscillatorNode;
     gain: GainNode;
