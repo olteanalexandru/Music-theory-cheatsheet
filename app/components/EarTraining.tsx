@@ -100,6 +100,22 @@ interface ProgressionQuestion {
 
 type Question = StandardQuestion | StaffNoteQuestion | KeySigQuestion | GuitarQuestion | RhythmQuestion | ProgressionQuestion;
 
+interface SessionMissedItem {
+    category: Category;
+    correctAnswer: string;
+}
+
+interface PracticeSession {
+    length: number;
+    mixed: boolean;
+    index: number;
+    correctCount: number;
+    missed: SessionMissedItem[];
+    finished: boolean;
+}
+
+const SESSION_LENGTHS = [10, 20, 50];
+
 const CATEGORY_LABELS: Record<Category, string> = {
     intervals: 'Intervals',
     chords: 'Chords',
@@ -241,6 +257,9 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
     const [selectedKeys, setSelectedKeys] = useState<string[]>(['C']);
     const [range, setRange] = useState<RangePreset>('staff');
     const [heldClickNotes, setHeldClickNotes] = useState<Set<number>>(new Set());
+    const [session, setSession] = useState<PracticeSession | null>(null);
+    const [sessionLength, setSessionLength] = useState(SESSION_LENGTHS[0]);
+    const [mixedSession, setMixedSession] = useState(false);
     const attemptNotesRef = useRef<Set<number>>(new Set());
 
     // Track every note pressed during the current attempt, even after it's
@@ -280,9 +299,23 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
         synth.noteOff(note);
     };
 
-    const newStandardQuestion = (nextCategory: EarTrainingCategory, nextDifficulty: EarTrainingDifficulty) => {
-        setQuestion(buildStandardQuestion(nextCategory, nextDifficulty));
-        resetAnswerState();
+    // Single dispatch point for "build a question for this category" — shared by
+    // category/difficulty changes and by Practice Session's mixed-category draws.
+    const buildQuestionForCategory = (cat: Category, diff: EarTrainingDifficulty): Question => {
+        switch (cat) {
+            case 'notes':
+                return buildNotesQuestion(clef, selectedKeys, range);
+            case 'keysig':
+                return buildKeySigQuestion(diff);
+            case 'guitar':
+                return buildGuitarQuestion(diff);
+            case 'rhythm':
+                return buildRhythmQuestion(diff);
+            case 'progressions':
+                return buildProgressionQuestion(diff);
+            default:
+                return buildStandardQuestion(cat, diff);
+        }
     };
 
     const newNotesQuestion = (nextClef: ClefId, nextKeys: string[], nextRange: RangePreset) => {
@@ -290,60 +323,33 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
         resetAnswerState();
     };
 
-    const newKeySigQuestion = (nextDifficulty: EarTrainingDifficulty) => {
-        setQuestion(buildKeySigQuestion(nextDifficulty));
+    const newQuestionForCategory = (cat: Category, diff: EarTrainingDifficulty) => {
+        setQuestion(buildQuestionForCategory(cat, diff));
         resetAnswerState();
     };
 
-    const newGuitarQuestion = (nextDifficulty: EarTrainingDifficulty) => {
-        setQuestion(buildGuitarQuestion(nextDifficulty));
-        resetAnswerState();
-    };
-
-    const newRhythmQuestion = (nextDifficulty: EarTrainingDifficulty) => {
-        setQuestion(buildRhythmQuestion(nextDifficulty));
-        resetAnswerState();
-    };
-
-    const newProgressionQuestion = (nextDifficulty: EarTrainingDifficulty) => {
-        setQuestion(buildProgressionQuestion(nextDifficulty));
-        resetAnswerState();
-    };
-
-    const handleCategoryChange = (nextCategory: Category) => {
+    // Keeps MIDI answer mode from staying selected when landing on a category
+    // that can't be graded that way (no natural single-note answer mapping).
+    const applyCategory = (nextCategory: Category) => {
         setCategory(nextCategory);
         if ((nextCategory === 'keysig' || nextCategory === 'rhythm' || nextCategory === 'progressions') && answerMode === 'midi') {
             setAnswerMode('choices');
         }
-        if (nextCategory === 'notes') {
-            newNotesQuestion(clef, selectedKeys, range);
-        } else if (nextCategory === 'keysig') {
-            newKeySigQuestion(difficulty);
-        } else if (nextCategory === 'guitar') {
-            newGuitarQuestion(difficulty);
-        } else if (nextCategory === 'rhythm') {
-            newRhythmQuestion(difficulty);
-        } else if (nextCategory === 'progressions') {
-            newProgressionQuestion(difficulty);
-        } else {
-            newStandardQuestion(nextCategory, difficulty);
-        }
+    };
+
+    const handleCategoryChange = (nextCategory: Category) => {
+        applyCategory(nextCategory);
+        newQuestionForCategory(nextCategory, difficulty);
     };
 
     const handleNewQuestion = () => {
-        if (category === 'notes') {
-            newNotesQuestion(clef, selectedKeys, range);
-        } else if (category === 'keysig') {
-            newKeySigQuestion(difficulty);
-        } else if (category === 'guitar') {
-            newGuitarQuestion(difficulty);
-        } else if (category === 'rhythm') {
-            newRhythmQuestion(difficulty);
-        } else if (category === 'progressions') {
-            newProgressionQuestion(difficulty);
-        } else {
-            newStandardQuestion(category, difficulty);
+        if (session && !session.finished) {
+            const nextCategory = session.mixed ? pickRandom(CATEGORIES) : category;
+            applyCategory(nextCategory);
+            newQuestionForCategory(nextCategory, difficulty);
+            return;
         }
+        newQuestionForCategory(category, difficulty);
     };
 
     const handleDifficultyChange = (nextDifficulty: EarTrainingDifficulty) => {
@@ -353,16 +359,8 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
             setRange(preset.range);
             setSelectedKeys(preset.keys);
             newNotesQuestion(clef, preset.keys, preset.range);
-        } else if (category === 'keysig') {
-            newKeySigQuestion(nextDifficulty);
-        } else if (category === 'guitar') {
-            newGuitarQuestion(nextDifficulty);
-        } else if (category === 'rhythm') {
-            newRhythmQuestion(nextDifficulty);
-        } else if (category === 'progressions') {
-            newProgressionQuestion(nextDifficulty);
         } else {
-            newStandardQuestion(category, nextDifficulty);
+            newQuestionForCategory(category, nextDifficulty);
         }
     };
 
@@ -429,6 +427,12 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
         ? describePattern(question.pattern)
         : formatProgression(question.def.degrees);
 
+    const questionDescription = question.kind === 'standard'
+        ? question.item.description
+        : question.kind === 'progression'
+        ? question.def.description
+        : null;
+
     const recordResult = (correct: boolean) => {
         setStatus(correct ? 'correct' : 'incorrect');
         setScore((current) => ({
@@ -436,10 +440,29 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
             total: current.total + 1,
         }));
         setProgress((current) => {
-            const stats = current[category] ?? { correct: 0, total: 0 };
+            const stats = current[category] ?? { correct: 0, total: 0, currentStreak: 0, bestStreak: 0, lastPracticed: null };
+            const nextStreak = correct ? stats.currentStreak + 1 : 0;
             return {
                 ...current,
-                [category]: { correct: stats.correct + (correct ? 1 : 0), total: stats.total + 1 },
+                [category]: {
+                    correct: stats.correct + (correct ? 1 : 0),
+                    total: stats.total + 1,
+                    currentStreak: nextStreak,
+                    bestStreak: Math.max(stats.bestStreak, nextStreak),
+                    lastPracticed: Date.now(),
+                },
+            };
+        });
+        setSession((current) => {
+            if (!current || current.finished) return current;
+            const missed = correct ? current.missed : [...current.missed, { category, correctAnswer: correctAnswerDisplayName }];
+            const nextIndex = current.index + 1;
+            return {
+                ...current,
+                index: nextIndex,
+                correctCount: current.correctCount + (correct ? 1 : 0),
+                missed,
+                finished: nextIndex >= current.length,
             };
         });
     };
@@ -447,6 +470,19 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
     const resetProgress = () => {
         setProgress({});
         setScore({ correct: 0, total: 0 });
+    };
+
+    const startSession = () => {
+        setAnswerMode('choices');
+        const firstCategory = mixedSession ? pickRandom(CATEGORIES) : category;
+        applyCategory(firstCategory);
+        setQuestion(buildQuestionForCategory(firstCategory, difficulty));
+        resetAnswerState();
+        setSession({ length: sessionLength, mixed: mixedSession, index: 0, correctCount: 0, missed: [], finished: false });
+    };
+
+    const endSession = () => {
+        setSession(null);
     };
 
     const handleChoice = (name: string) => {
@@ -476,6 +512,10 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
         [displayActiveNotes]
     );
 
+    // Category/difficulty are locked while a fixed-length session is running so
+    // its category pool and level stay consistent question-to-question.
+    const sessionActive = session !== null && !session.finished;
+
     return (
         <div className="theme-card rounded-lg p-4 md:p-6 shadow-lg">
             <h3 className="text-lg md:text-xl font-bold theme-text mb-4">Ear Training</h3>
@@ -485,7 +525,8 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
                     <button
                         key={cat}
                         onClick={() => handleCategoryChange(cat)}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors
+                        disabled={sessionActive}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed
                             ${category === cat
                                 ? 'theme-accent-bg'
                                 : 'theme-muted-bg theme-secondary-text hover:opacity-90'}`}
@@ -501,12 +542,89 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
                     <button
                         key={level}
                         onClick={() => handleDifficultyChange(level)}
-                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors
+                        disabled={sessionActive}
+                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed
                             ${difficulty === level ? 'theme-accent-bg' : 'theme-muted-bg theme-secondary-text hover:opacity-90'}`}
                     >
                         {DIFFICULTY_LABELS[level]}
                     </button>
                 ))}
+            </div>
+
+            <div className="mb-6 p-4 rounded-lg theme-secondary-bg">
+                <p className="theme-text font-semibold mb-3">Practice Session</p>
+                {!session ? (
+                    <div className="space-y-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <span className="theme-secondary-text text-sm">Length:</span>
+                            {SESSION_LENGTHS.map((len) => (
+                                <button
+                                    key={len}
+                                    onClick={() => setSessionLength(len)}
+                                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors
+                                        ${sessionLength === len ? 'theme-accent-bg' : 'theme-muted-bg theme-secondary-text hover:opacity-90'}`}
+                                >
+                                    {len}
+                                </button>
+                            ))}
+                        </div>
+                        <label className="flex items-center gap-2 text-sm theme-secondary-text">
+                            <input
+                                type="checkbox"
+                                checked={mixedSession}
+                                onChange={(e) => setMixedSession(e.target.checked)}
+                            />
+                            Mix all categories
+                        </label>
+                        <button onClick={startSession} className="px-4 py-2 theme-btn rounded-lg hover:opacity-90">
+                            Start Session
+                        </button>
+                    </div>
+                ) : session.finished ? (
+                    <div className="space-y-3">
+                        <p className="theme-text">
+                            Session complete: {session.correctCount} / {session.length} correct (
+                            {Math.round((session.correctCount / session.length) * 100)}%)
+                        </p>
+                        {session.missed.length > 0 ? (
+                            <div>
+                                <p className="theme-secondary-text text-sm mb-1">Missed:</p>
+                                <ul className="text-sm theme-secondary-text list-disc list-inside space-y-0.5">
+                                    {session.missed.map((m, i) => (
+                                        <li key={i}>
+                                            {CATEGORY_LABELS[m.category]}: {m.correctAnswer}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        ) : (
+                            <p className="text-sm text-green-400">Perfect score — no missed questions!</p>
+                        )}
+                        <div className="flex flex-wrap gap-2">
+                            <button onClick={startSession} className="px-4 py-2 theme-btn rounded-lg hover:opacity-90">
+                                Start New Session
+                            </button>
+                            <button
+                                onClick={endSession}
+                                className="px-4 py-2 theme-muted-bg theme-secondary-text rounded-lg hover:opacity-90"
+                            >
+                                Back to Free Practice
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="theme-secondary-text text-sm">
+                            Question {session.index + 1} / {session.length} · {session.correctCount} correct
+                        </span>
+                        <button
+                            onClick={endSession}
+                            className="px-3 py-1.5 theme-muted-bg theme-secondary-text rounded-lg text-sm hover:opacity-90"
+                        >
+                            End Session
+                        </button>
+                    </div>
+                )}
             </div>
 
             {category !== 'keysig' && category !== 'rhythm' && category !== 'progressions' && (
@@ -740,6 +858,13 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
                 <p className={`mt-4 font-semibold ${status === 'correct' ? 'text-green-400' : 'text-red-400'}`}>
                     {status === 'correct' ? 'Correct!' : `Not quite — it was ${correctAnswerDisplayName}.`}
                 </p>
+            )}
+
+            {status !== 'idle' && questionDescription && (
+                <div className="mt-3 p-3 rounded-lg theme-secondary-bg">
+                    <p className="theme-secondary-text text-xs font-semibold uppercase tracking-wide mb-1">Learn</p>
+                    <p className="theme-text text-sm">{questionDescription}</p>
+                </div>
             )}
         </div>
     );

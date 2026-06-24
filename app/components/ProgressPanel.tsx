@@ -15,15 +15,34 @@ function accuracy(stats: { correct: number; total: number } | undefined): number
     return Math.round((stats.correct / stats.total) * 100);
 }
 
+function formatLastPracticed(timestamp: number | null): string {
+    if (!timestamp) return 'Never';
+    const diffMs = Date.now() - timestamp;
+    const minute = 60_000;
+    const hour = 60 * minute;
+    const day = 24 * hour;
+    if (diffMs < minute) return 'Just now';
+    if (diffMs < hour) return `${Math.floor(diffMs / minute)}m ago`;
+    if (diffMs < day) return `${Math.floor(diffMs / hour)}h ago`;
+    if (diffMs < 7 * day) return `${Math.floor(diffMs / day)}d ago`;
+    return new Date(timestamp).toLocaleDateString();
+}
+
 const ProgressPanel: React.FC<ProgressPanelProps> = ({ progress, categories, labels, onReset }) => {
     const [expanded, setExpanded] = useState(false);
 
     const overall = categories.reduce(
         (acc, cat) => {
             const stats = progress[cat];
-            return stats ? { correct: acc.correct + stats.correct, total: acc.total + stats.total } : acc;
+            return stats
+                ? {
+                      correct: acc.correct + stats.correct,
+                      total: acc.total + stats.total,
+                      bestStreak: Math.max(acc.bestStreak, stats.bestStreak),
+                  }
+                : acc;
         },
-        { correct: 0, total: 0 }
+        { correct: 0, total: 0, bestStreak: 0 }
     );
 
     return (
@@ -35,6 +54,7 @@ const ProgressPanel: React.FC<ProgressPanelProps> = ({ progress, categories, lab
                 <span className="theme-text font-semibold">
                     Overall Progress: {overall.total > 0 ? `${accuracy(overall)}% ` : '— '}
                     ({overall.correct} / {overall.total})
+                    {overall.bestStreak > 0 && ` · Best streak: ${overall.bestStreak}`}
                 </span>
                 <span className="theme-secondary-text text-sm whitespace-nowrap">{expanded ? '▲ Hide' : '▼ Details'}</span>
             </button>
@@ -52,6 +72,15 @@ const ProgressPanel: React.FC<ProgressPanelProps> = ({ progress, categories, lab
                                         {stats ? `${stats.correct} / ${stats.total} (${pct}%)` : 'No attempts yet'}
                                     </span>
                                 </div>
+                                {stats && (
+                                    <div className="flex items-center justify-between gap-2 text-xs theme-secondary-text opacity-80 mb-1">
+                                        <span>
+                                            Streak: {stats.currentStreak}
+                                            {stats.bestStreak > 0 ? ` (best ${stats.bestStreak})` : ''}
+                                        </span>
+                                        <span>Last practiced: {formatLastPracticed(stats.lastPracticed)}</span>
+                                    </div>
+                                )}
                                 <div className="h-2 rounded-full theme-muted-bg overflow-hidden">
                                     <div className="h-full theme-accent-bg" style={{ width: `${pct}%` }} />
                                 </div>

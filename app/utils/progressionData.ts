@@ -28,21 +28,22 @@ export const QUALITY_INTERVALS: Record<ChordQuality, number[]> = {
 export interface ProgressionDef {
     degrees: number[]; // indices into MAJOR_KEY_DEGREES
     difficulty: EarTrainingDifficulty;
+    description: string;
 }
 
 export const PROGRESSIONS: ProgressionDef[] = [
-    { degrees: [0, 3, 4, 0], difficulty: 'easy' }, // I-IV-V-I
-    { degrees: [0, 4, 5, 3], difficulty: 'easy' }, // I-V-vi-IV
-    { degrees: [0, 5, 3, 4], difficulty: 'easy' }, // I-vi-IV-V
-    { degrees: [5, 3, 0, 4], difficulty: 'easy' }, // vi-IV-I-V
-    { degrees: [1, 4, 0], difficulty: 'medium' }, // ii-V-I
-    { degrees: [0, 1, 3, 4], difficulty: 'medium' }, // I-ii-IV-V
-    { degrees: [0, 2, 3, 4], difficulty: 'medium' }, // I-iii-IV-V
-    { degrees: [5, 1, 4, 0], difficulty: 'medium' }, // vi-ii-V-I
-    { degrees: [0, 6, 5, 4], difficulty: 'hard' }, // I-vii°-vi-V
-    { degrees: [0, 5, 1, 4], difficulty: 'hard' }, // I-vi-ii-V
-    { degrees: [2, 5, 1, 4, 0], difficulty: 'hard' }, // iii-vi-ii-V-I
-    { degrees: [0, 3, 6, 2, 5, 1, 4, 0], difficulty: 'hard' }, // I-IV-vii°-iii-vi-ii-V-I
+    { degrees: [0, 3, 4, 0], difficulty: 'easy', description: 'The most fundamental progression in Western music: tonic, subdominant, dominant, tonic.' }, // I-IV-V-I
+    { degrees: [0, 4, 5, 3], difficulty: 'easy', description: 'The ubiquitous "four chords" pop progression heard in countless hit songs.' }, // I-V-vi-IV
+    { degrees: [0, 5, 3, 4], difficulty: 'easy', description: 'The "50s progression" behind doo-wop and early rock \'n\' roll standards.' }, // I-vi-IV-V
+    { degrees: [5, 3, 0, 4], difficulty: 'easy', description: 'A minor-feeling rotation of the I-V-vi-IV progression, starting on the relative minor.' }, // vi-IV-I-V
+    { degrees: [1, 4, 0], difficulty: 'medium', description: 'The quintessential jazz cadence: subdominant, dominant, tonic.' }, // ii-V-I
+    { degrees: [0, 1, 3, 4], difficulty: 'medium', description: 'Two subdominant-function chords (ii then IV) building toward the dominant.' }, // I-ii-IV-V
+    { degrees: [0, 2, 3, 4], difficulty: 'medium', description: 'Uses the mediant (iii) as a gentle stepping stone from tonic to subdominant.' }, // I-iii-IV-V
+    { degrees: [5, 1, 4, 0], difficulty: 'medium', description: 'A minor-key-flavored run into a ii-V-I jazz cadence.' }, // vi-ii-V-I
+    { degrees: [0, 6, 5, 4], difficulty: 'hard', description: 'The leading-tone diminished chord (vii°) creates tension resolving down through vi to the dominant.' }, // I-vii°-vi-V
+    { degrees: [0, 5, 1, 4], difficulty: 'hard', description: 'A longer journey through the relative minor and subdominant before the jazz ii-V cadence.' }, // I-vi-ii-V
+    { degrees: [2, 5, 1, 4, 0], difficulty: 'hard', description: 'A descending chain of fifths (iii-vi-ii-V-I) — the "circle progression" in miniature.' }, // iii-vi-ii-V-I
+    { degrees: [0, 3, 6, 2, 5, 1, 4, 0], difficulty: 'hard', description: 'The full circle-of-fifths progression, visiting every diatonic chord on its way back to the tonic.' }, // I-IV-vii°-iii-vi-ii-V-I
 ];
 
 // Cumulative pool for a difficulty: 'medium' includes every 'easy' and 'medium' progression.
