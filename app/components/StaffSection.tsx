@@ -169,7 +169,7 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
   };
 
   return (
-    <div className="mt-8 theme-card rounded-lg p-6 shadow-lg">
+    <div className="mt-8 theme-card rounded-lg p-4 md:p-6 shadow-lg">
       <h2 className="text-2xl font-bold theme-text mb-6">Interactive Staff</h2>
 
       {/* Controls */}
@@ -248,13 +248,13 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
 
       {/* Staff Display */}
       <div
-        className={`rounded-lg p-8 overflow-x-auto border ${
+        className={`rounded-lg p-3 md:p-8 overflow-x-auto border ${
           isLightMode
             ? 'bg-slate-50 border-indigo-200'
             : 'bg-indigo-950/50 border-indigo-500/20'
         }`}
       >
-        <svg viewBox="0 0 1200 400" className="w-full min-w-[800px]" style={{ height: 'auto' }}>
+        <svg viewBox="0 0 1200 400" className="w-full min-w-[560px] md:min-w-[800px]" style={{ height: 'auto' }}>
           {/* Staff */}
           <g>
             {/* Staff lines (5 lines) */}

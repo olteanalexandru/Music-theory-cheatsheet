@@ -21,9 +21,21 @@ import {
     type RangePreset,
 } from '@/app/utils/staffLayout';
 import { generateFretQuestion, type FretQuestion } from '@/app/utils/guitarLayout';
+import {
+    RHYTHM_BPM_BY_DIFFICULTY,
+    RHYTHM_TIME_SIGNATURES_BY_DIFFICULTY,
+    TIME_SIGNATURES,
+    buildRhythmChoices,
+    describePattern,
+    generateRhythmPattern,
+    patternKey,
+    type RhythmEvent,
+    type TimeSignatureName,
+} from '@/app/utils/rhythmData';
 import NoteStaffPrompt from '@/app/components/NoteStaffPrompt';
 import GuitarFretPrompt from '@/app/components/GuitarFretPrompt';
 import PianoKeyboard from '@/app/components/PianoKeyboard';
+import RhythmNotation from '@/app/components/RhythmNotation';
 import type { MidiInputController } from '@/app/utils/useMidiInput';
 
 interface EarTrainingProps {
@@ -31,7 +43,7 @@ interface EarTrainingProps {
     synth: SynthController;
 }
 
-type Category = EarTrainingCategory | 'notes' | 'keysig' | 'guitar';
+type Category = EarTrainingCategory | 'notes' | 'keysig' | 'guitar' | 'rhythm';
 type AnswerMode = 'choices' | 'midi';
 type AnswerStatus = 'idle' | 'correct' | 'incorrect';
 
@@ -61,7 +73,16 @@ interface GuitarQuestion {
     choices: string[];
 }
 
-type Question = StandardQuestion | StaffNoteQuestion | KeySigQuestion | GuitarQuestion;
+interface RhythmQuestion {
+    kind: 'rhythm';
+    pattern: RhythmEvent[];
+    timeSig: TimeSignatureName;
+    bpm: number;
+    choices: string[];
+    patternsByKey: Record<string, RhythmEvent[]>;
+}
+
+type Question = StandardQuestion | StaffNoteQuestion | KeySigQuestion | GuitarQuestion | RhythmQuestion;
 
 const CATEGORY_LABELS: Record<Category, string> = {
     intervals: 'Intervals',
@@ -70,9 +91,10 @@ const CATEGORY_LABELS: Record<Category, string> = {
     notes: 'Notes on Staff',
     keysig: 'Key Signatures',
     guitar: 'Guitar Fretboard',
+    rhythm: 'Rhythm',
 };
 
-const CATEGORIES: Category[] = [...(Object.keys(EAR_TRAINING_DATA) as EarTrainingCategory[]), 'notes', 'keysig', 'guitar'];
+const CATEGORIES: Category[] = [...(Object.keys(EAR_TRAINING_DATA) as EarTrainingCategory[]), 'notes', 'keysig', 'guitar', 'rhythm'];
 
 const DIFFICULTY_LABELS: Record<EarTrainingDifficulty, string> = {
     easy: 'Easy',
@@ -144,6 +166,25 @@ function buildGuitarQuestion(difficulty: EarTrainingDifficulty): GuitarQuestion 
     const distractors = shuffle(CHROMATIC_NOTES.filter((name) => name !== fret.noteName)).slice(0, maxChoices - 1);
     const choices = shuffle([fret.noteName, ...distractors]);
     return { kind: 'guitar', fret, choices };
+}
+
+function buildRhythmQuestion(difficulty: EarTrainingDifficulty): RhythmQuestion {
+    const timeSig = pickRandom(RHYTHM_TIME_SIGNATURES_BY_DIFFICULTY[difficulty]);
+    const bpm = RHYTHM_BPM_BY_DIFFICULTY[difficulty];
+    const pattern = generateRhythmPattern(timeSig, difficulty);
+    const patternChoices = buildRhythmChoices(pattern, timeSig, difficulty);
+    const patternsByKey: Record<string, RhythmEvent[]> = {};
+    patternChoices.forEach((choice) => {
+        patternsByKey[patternKey(choice)] = choice;
+    });
+    return {
+        kind: 'rhythm',
+        pattern,
+        timeSig,
+        bpm,
+        choices: patternChoices.map(patternKey),
+        patternsByKey,
+    };
 }
 
 function notesMatchExpected(playedMidiNotes: Set<number>, expectedIntervals: number[]): boolean {
@@ -223,9 +264,14 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
         resetAnswerState();
     };
 
+    const newRhythmQuestion = (nextDifficulty: EarTrainingDifficulty) => {
+        setQuestion(buildRhythmQuestion(nextDifficulty));
+        resetAnswerState();
+    };
+
     const handleCategoryChange = (nextCategory: Category) => {
         setCategory(nextCategory);
-        if (nextCategory === 'keysig' && answerMode === 'midi') {
+        if ((nextCategory === 'keysig' || nextCategory === 'rhythm') && answerMode === 'midi') {
             setAnswerMode('choices');
         }
         if (nextCategory === 'notes') {
@@ -234,6 +280,8 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
             newKeySigQuestion(difficulty);
         } else if (nextCategory === 'guitar') {
             newGuitarQuestion(difficulty);
+        } else if (nextCategory === 'rhythm') {
+            newRhythmQuestion(difficulty);
         } else {
             newStandardQuestion(nextCategory, difficulty);
         }
@@ -246,6 +294,8 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
             newKeySigQuestion(difficulty);
         } else if (category === 'guitar') {
             newGuitarQuestion(difficulty);
+        } else if (category === 'rhythm') {
+            newRhythmQuestion(difficulty);
         } else {
             newStandardQuestion(category, difficulty);
         }
@@ -262,6 +312,8 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
             newKeySigQuestion(nextDifficulty);
         } else if (category === 'guitar') {
             newGuitarQuestion(nextDifficulty);
+        } else if (category === 'rhythm') {
+            newRhythmQuestion(nextDifficulty);
         } else {
             newStandardQuestion(category, nextDifficulty);
         }
@@ -287,6 +339,10 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
 
     const handlePlay = () => {
         if (question.kind === 'keysig') return;
+        if (question.kind === 'rhythm') {
+            synth.playRhythm(question.pattern, question.bpm);
+            return;
+        }
         const notes = question.kind === 'notes'
             ? [question.note.midi]
             : question.kind === 'guitar'
@@ -305,14 +361,18 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
         ? question.note.letter
         : question.kind === 'guitar'
         ? question.fret.noteName
-        : formatKeySignature(question.info);
+        : question.kind === 'keysig'
+        ? formatKeySignature(question.info)
+        : patternKey(question.pattern);
     const correctAnswerDisplayName = question.kind === 'standard'
         ? question.item.name
         : question.kind === 'notes'
         ? question.note.displayName
         : question.kind === 'guitar'
         ? question.fret.noteName
-        : formatKeySignature(question.info);
+        : question.kind === 'keysig'
+        ? formatKeySignature(question.info)
+        : describePattern(question.pattern);
 
     const handleChoice = (name: string) => {
         if (status !== 'idle') return;
@@ -383,7 +443,7 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
                 ))}
             </div>
 
-            {category !== 'keysig' && (
+            {category !== 'keysig' && category !== 'rhythm' && (
                 <div className="flex flex-wrap items-center gap-2 mb-6">
                     <span className="theme-secondary-text text-sm">Answer with:</span>
                     <button
@@ -549,8 +609,17 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
                 </div>
             )}
 
+            {question.kind === 'rhythm' && (
+                <div className="mb-6 text-center">
+                    <p className="theme-text text-xl font-bold">{TIME_SIGNATURES[question.timeSig].label} time</p>
+                    <p className="theme-secondary-text text-sm mt-2">
+                        Listen and pick the rhythm pattern you heard.
+                    </p>
+                </div>
+            )}
+
             {answerMode === 'choices' ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <div className={question.kind === 'rhythm' ? 'grid grid-cols-1 sm:grid-cols-2 gap-2' : 'grid grid-cols-2 sm:grid-cols-3 gap-2'}>
                     {question.choices.map((name) => {
                         const isCorrectChoice = status !== 'idle' && name === correctAnswerLabel;
                         const isOtherChoice = status === 'incorrect' && name !== correctAnswerLabel;
@@ -566,7 +635,11 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
                                         ? 'theme-muted-bg theme-secondary-text opacity-50'
                                         : 'theme-muted-bg theme-secondary-text hover:opacity-90'}`}
                             >
-                                {name}
+                                {question.kind === 'rhythm' ? (
+                                    <RhythmNotation events={question.patternsByKey[name]} compact />
+                                ) : (
+                                    name
+                                )}
                             </button>
                         );
                     })}

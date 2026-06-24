@@ -5,6 +5,7 @@ import { CircleOfFifths } from '@/app/components/CircleOfFifths';
 import PatternControls from '@/app/components/PatternControls';
 import Fretboard from '@/app/components/Fretboard';
 import StaffSection from '@/app/components/StaffSection';
+import RhythmSection from '@/app/components/RhythmSection';
 import EarTraining from '@/app/components/EarTraining';
 import { guitarTunings,  defaultGuitarTuningName } from '@/app/utils/guitarTunings';
 import { useMidiInput } from '@/app/utils/useMidiInput';
@@ -20,7 +21,7 @@ type NoteName = string;  // e.g., 'C', 'C♯', 'D♭', etc.
 // Pattern-related types
 type PatternType = 'scales' | 'arpeggios' | 'chords';
 type PatternName = string;  // e.g., 'Ionian (Major)', 'Dorian', etc.
-type VisibleComponent = 'fretboard' | 'theory' | 'circle' | 'staff' | 'earTraining';
+type VisibleComponent = 'fretboard' | 'theory' | 'circle' | 'staff' | 'rhythm' | 'earTraining';
 
 interface Pattern {
   intervals: number[];
@@ -54,6 +55,7 @@ const InteractiveFretboardDisplay = () => {
                 theory: true,
                 circle: true,
                 staff: true,
+                rhythm: true,
                 earTraining: true,
             };
         }
@@ -65,6 +67,7 @@ const InteractiveFretboardDisplay = () => {
                 theory: true,
                 circle: true,
                 staff: true,
+                rhythm: true,
                 earTraining: true,
             };
         }
@@ -75,6 +78,7 @@ const InteractiveFretboardDisplay = () => {
                 theory: true,
                 circle: true,
                 staff: true,
+                rhythm: true,
                 earTraining: true,
                 ...JSON.parse(saved),
             };
@@ -84,6 +88,7 @@ const InteractiveFretboardDisplay = () => {
                 theory: true,
                 circle: true,
                 staff: true,
+                rhythm: true,
                 earTraining: true,
             };
         }
@@ -339,6 +344,12 @@ const InteractiveFretboardDisplay = () => {
                                 onClick={() => toggleComponent('staff')}
                             >
                                 Staff
+                            </button>
+                            <button
+                                className={componentToggleClass(visibleComponents.rhythm)}
+                                onClick={() => toggleComponent('rhythm')}
+                            >
+                                Rhythm
                             </button>
                             <button
                                 className={componentToggleClass(visibleComponents.earTraining)}
@@ -613,6 +624,8 @@ const InteractiveFretboardDisplay = () => {
                         synth={synth}
                     />
                 )}
+
+                {visibleComponents.rhythm && <RhythmSection synth={synth} />}
 
                 {visibleComponents.earTraining && (
                     <div className="mt-8">

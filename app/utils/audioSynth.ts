@@ -72,6 +72,31 @@ export function playNotesTogether(
     midiNotes.forEach((note) => scheduleNote(ctx, note, time, duration, settings));
 }
 
+export interface TimedEvent {
+    midi: number | null; // null marks a rest — the time cursor still advances, nothing sounds
+    beats: number;
+}
+
+// Schedules a sequence of variable-duration events (rhythm dictation, metronome
+// clicks) at the given tempo, unlike playNotesInSequence's fixed per-note duration.
+export function playTimedSequence(
+    events: TimedEvent[],
+    bpm: number,
+    settings: SynthSettings = DEFAULT_SYNTH_SETTINGS
+): void {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const secondsPerBeat = 60 / bpm;
+    let time = ctx.currentTime + 0.05;
+    events.forEach(({ midi, beats }) => {
+        const duration = beats * secondsPerBeat;
+        if (midi !== null) {
+            scheduleNote(ctx, midi, time, Math.min(duration * 0.6, 0.3), settings);
+        }
+        time += duration;
+    });
+}
+
 interface LiveVoice {
     oscillator: OscillatorNode;
     gain: GainNode;
