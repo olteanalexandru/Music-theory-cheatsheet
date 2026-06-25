@@ -6,6 +6,7 @@ import { getSupabaseClient } from '@/app/utils/supabaseClient';
 import { loadProgress, saveProgress, mergeProgress, subscribeToProgressChanges } from '@/app/utils/progressStore';
 import { loadCurriculum, saveCurriculum, mergeCurriculum, subscribeToCurriculumChanges } from '@/app/utils/curriculumStore';
 import { loadReview, saveReview, mergeReview, subscribeToReviewChanges } from '@/app/utils/reviewStore';
+import { loadGamification, saveGamification, mergeGamification, subscribeToGamificationChanges } from '@/app/utils/gamificationStore';
 import { useCloudSync } from '@/app/utils/useCloudSync';
 
 interface AuthResult {
@@ -50,6 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     useCloudSync(supabase, userId, 'progress', loadProgress, saveProgress, mergeProgress, subscribeToProgressChanges);
     useCloudSync(supabase, userId, 'curriculum_progress', loadCurriculum, saveCurriculum, mergeCurriculum, subscribeToCurriculumChanges);
     useCloudSync(supabase, userId, 'review_progress', loadReview, saveReview, mergeReview, subscribeToReviewChanges);
+    useCloudSync(supabase, userId, 'gamification', loadGamification, saveGamification, mergeGamification, subscribeToGamificationChanges);
 
     const signUp = useCallback<AuthContextValue['signUp']>(
         async (email, password) => {

@@ -83,3 +83,22 @@ export function categoryWeaknessScore(stats: CategoryStats | undefined, now: num
     const stalenessWeight = Math.min(daysSincePracticed / 3, 4);
     return 1 + inaccuracyWeight + stalenessWeight;
 }
+
+// Cross-category rollups, used to evaluate gamification achievements.
+export function totalCorrectAnswers(progress: ProgressStore): number {
+    return Object.values(progress).reduce((sum, stats) => sum + stats.correct, 0);
+}
+
+export function bestStreakAcrossCategories(progress: ProgressStore): number {
+    return Object.values(progress).reduce((max, stats) => Math.max(max, stats.bestStreak), 0);
+}
+
+export function bestCategoryAccuracy(progress: ProgressStore): { accuracy: number; attempts: number } | null {
+    let best: { accuracy: number; attempts: number } | null = null;
+    for (const stats of Object.values(progress)) {
+        if (stats.total === 0) continue;
+        const accuracy = stats.correct / stats.total;
+        if (!best || accuracy > best.accuracy) best = { accuracy, attempts: stats.total };
+    }
+    return best;
+}

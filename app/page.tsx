@@ -9,6 +9,7 @@ import RhythmSection from '@/app/components/RhythmSection';
 import EarTraining from '@/app/components/EarTraining';
 import PlayAlong from '@/app/components/PlayAlong';
 import Curriculum from '@/app/components/Curriculum';
+import GamificationPanel from '@/app/components/GamificationPanel';
 import { guitarTunings,  defaultGuitarTuningName } from '@/app/utils/guitarTunings';
 import { useMidiInput } from '@/app/utils/useMidiInput';
 import { useSynth } from '@/app/utils/useSynth';
@@ -469,6 +470,8 @@ const InteractiveFretboardDisplay = () => {
                         </div>
                     )}
                 </div>
+
+                <GamificationPanel />
 
                 {visibleComponents.curriculum && <Curriculum />}
 

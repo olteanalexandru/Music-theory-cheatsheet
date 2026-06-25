@@ -38,8 +38,24 @@ import {
     progressionsForDifficulty,
     type ProgressionDef,
 } from '@/app/utils/progressionData';
-import { loadProgress, saveProgress, categoryWeaknessScore, type ProgressStore } from '@/app/utils/progressStore';
+import {
+    loadProgress,
+    saveProgress,
+    categoryWeaknessScore,
+    totalCorrectAnswers,
+    bestStreakAcrossCategories,
+    bestCategoryAccuracy,
+    type CategoryStats,
+    type ProgressStore,
+} from '@/app/utils/progressStore';
 import { loadReview, saveReview, applyReviewResult, itemWeight, type ReviewStore } from '@/app/utils/reviewStore';
+import {
+    applyXpAndAchievements,
+    XP_CORRECT_ANSWER,
+    XP_SESSION_COMPLETE,
+    XP_SESSION_COMPLETE_MARATHON,
+    XP_WEAK_REVIEW_BONUS,
+} from '@/app/utils/gamificationStore';
 import { subscribeToPracticeFocus } from '@/app/utils/practiceFocusBus';
 import NoteStaffPrompt from '@/app/components/NoteStaffPrompt';
 import GuitarFretPrompt from '@/app/components/GuitarFretPrompt';
@@ -178,6 +194,17 @@ function weightedPickCategory(categories: Category[], progress: ProgressStore): 
     return pickWeighted(categories, weights);
 }
 
+function nextCategoryStats(stats: CategoryStats, correct: boolean): CategoryStats {
+    const nextStreak = correct ? stats.currentStreak + 1 : 0;
+    return {
+        correct: stats.correct + (correct ? 1 : 0),
+        total: stats.total + 1,
+        currentStreak: nextStreak,
+        bestStreak: Math.max(stats.bestStreak, nextStreak),
+        lastPracticed: Date.now(),
+    };
+}
+
 function buildStandardQuestion(category: EarTrainingCategory, difficulty: EarTrainingDifficulty): StandardQuestion {
     const pool = poolForDifficulty(category, difficulty);
     const review = loadReview();
@@ -309,6 +336,22 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
     useEffect(() => {
         saveReview(review);
     }, [review]);
+
+    // Award a session-completion XP bonus exactly once per session, right as
+    // it transitions into its finished state. recordResult's setProgress and
+    // setSession calls land in the same batch, so `progress` here already
+    // reflects the session's final answer by the time this effect runs.
+    useEffect(() => {
+        if (!session || !session.finished) return;
+        const xp = (session.length >= 50 ? XP_SESSION_COMPLETE_MARATHON : XP_SESSION_COMPLETE) + (weakReviewMode ? XP_WEAK_REVIEW_BONUS : 0);
+        applyXpAndAchievements(xp, {
+            totalCorrect: totalCorrectAnswers(progress),
+            bestStreak: bestStreakAcrossCategories(progress),
+            bestCategoryAccuracy: bestCategoryAccuracy(progress),
+            sessionCompleted: { length: session.length, weak: weakReviewMode },
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [session?.finished]);
 
     const resetAnswerState = () => {
         setStatus('idle');
@@ -498,20 +541,16 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
             correct: current.correct + (correct ? 1 : 0),
             total: current.total + 1,
         }));
-        setProgress((current) => {
-            const stats = current[category] ?? { correct: 0, total: 0, currentStreak: 0, bestStreak: 0, lastPracticed: null };
-            const nextStreak = correct ? stats.currentStreak + 1 : 0;
-            return {
-                ...current,
-                [category]: {
-                    correct: stats.correct + (correct ? 1 : 0),
-                    total: stats.total + 1,
-                    currentStreak: nextStreak,
-                    bestStreak: Math.max(stats.bestStreak, nextStreak),
-                    lastPracticed: Date.now(),
-                },
-            };
-        });
+        const stats = progress[category] ?? { correct: 0, total: 0, currentStreak: 0, bestStreak: 0, lastPracticed: null };
+        const nextProgress: ProgressStore = { ...progress, [category]: nextCategoryStats(stats, correct) };
+        setProgress(nextProgress);
+        if (correct) {
+            applyXpAndAchievements(XP_CORRECT_ANSWER, {
+                totalCorrect: totalCorrectAnswers(nextProgress),
+                bestStreak: bestStreakAcrossCategories(nextProgress),
+                bestCategoryAccuracy: bestCategoryAccuracy(nextProgress),
+            });
+        }
         setReview((current) => applyReviewResult(current, category, correctAnswerDisplayName, correct));
         setSession((current) => {
             if (!current || current.finished) return current;

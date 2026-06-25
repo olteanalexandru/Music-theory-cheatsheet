@@ -50,7 +50,7 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 Sign-in, practice progress sync, and saved Play Along files are powered by [Supabase](https://supabase.com). Without it configured, the app works fully as a guest-only, localStorage-only experience — the "Sign in" button stays disabled with an explanatory note. To turn cloud sync on:
 
 1. **Create a Supabase project** at [supabase.com](https://supabase.com) (the free tier is enough).
-2. **Run the schema migration**: open your project's *SQL Editor* and run the contents of [`supabase/schema.sql`](./supabase/schema.sql). This creates the `progress`, `curriculum_progress`, `review_progress`, and `uploaded_files` tables (with row-level security so each user can only see their own data) and a private `play-along-files` storage bucket for saved Guitar Pro / MIDI files.
+2. **Run the schema migration**: open your project's *SQL Editor* and run the contents of [`supabase/schema.sql`](./supabase/schema.sql). This creates the `progress`, `curriculum_progress`, `review_progress`, `gamification`, and `uploaded_files` tables (with row-level security so each user can only see their own data) and a private `play-along-files` storage bucket for saved Guitar Pro / MIDI files.
 3. **Copy your API credentials**: in *Project Settings -> API*, copy the *Project URL* and the *anon public* key.
 4. **Set environment variables**: copy `.env.example` to `.env.local` and fill in:
    ```
