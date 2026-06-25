@@ -7,6 +7,10 @@ export interface NoteTimelineEntry {
     durationMs: number;
     track: number;
     velocity: number;
+    // Fretted-instrument position, only populated for Guitar Pro family files.
+    // string is 1-based, 1 = the lowest-pitched string (alphaTab's convention).
+    string?: number;
+    fret?: number;
 }
 
 // Only populated for Guitar Pro family files (.gp/.gp3/.gp4/.gp5/.gpx) - raw
@@ -24,4 +28,8 @@ export interface ParsedScore {
     notes: NoteTimelineEntry[];
     durationMs: number;
     notation?: NotationSource;
+    // Open-string note names per track, indexed by (string - 1); null for
+    // tracks that aren't a fretted instrument (e.g. piano, drums). Used to
+    // label lanes in the Note Highway view.
+    trackTunings?: (string[] | null)[];
 }

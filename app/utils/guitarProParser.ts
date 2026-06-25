@@ -50,25 +50,56 @@ export async function parseGuitarProFile(buffer: ArrayBuffer, fileName: string):
         addTickShift: () => {},
     };
 
-    new alphaTab.midi.MidiFileGenerator(score, settings, handler).generate();
+    const generator = new alphaTab.midi.MidiFileGenerator(score, settings, handler);
+    generator.generate();
 
     const ticksToMs = buildTickToMsConverter(tempoTicks, tempoBpm);
+
+    // generator.tickLookup maps an absolute (repeat-expanded) midi tick back
+    // to the Beat that produced it - the only way to recover fret/string
+    // position for a flattened note, since IMidiFileHandler.addNote only
+    // carries the final playable pitch. Built headlessly by generate() itself,
+    // so this needs no AlphaTabApi/DOM rendering pass.
+    const fretting = (track: number, tick: number, pitch: number): { string: number; fret: number } | null => {
+        const beat = generator.tickLookup.findBeat(new Set([track]), tick)?.beat;
+        if (!beat) return null;
+        for (const note of beat.notes) {
+            if (note.isStringed && Math.round(note.realValue) === pitch) {
+                return { string: note.string, fret: note.fret };
+            }
+        }
+        return null;
+    };
 
     const notes: NoteTimelineEntry[] = rawNotes
         .map((note) => {
             const startMs = ticksToMs(note.startTick);
             const endMs = ticksToMs(note.startTick + note.lengthTick);
+            const pos = fretting(note.track, note.startTick, note.pitch);
             return {
                 pitch: note.pitch,
                 startMs,
                 durationMs: Math.max(endMs - startMs, 1),
                 track: note.track,
                 velocity: note.velocity,
+                string: pos?.string,
+                fret: pos?.fret,
             };
         })
         .sort((a, b) => a.startMs - b.startMs);
 
     const durationMs = notes.reduce((max, n) => Math.max(max, n.startMs + n.durationMs), 0);
+
+    // Open-string note names per track (e.g. ['E','A','D','G'] for 4-string
+    // bass), indexed by (string - 1). Staff.tuning lists strings top-line-first
+    // (the highest-pitched string), which is the opposite of alphaTab's
+    // Note.string numbering (1 = lowest string), so the array is reversed.
+    const trackTunings = score.tracks.map((track) => {
+        const staff = track.staves[0];
+        if (!staff?.isStringed) return null;
+        const tuning = staff.tuning;
+        return tuning.map((_, i) => alphaTab.model.Tuning.getTextForTuning(tuning[tuning.length - 1 - i], false));
+    });
 
     return {
         title: score.title || fileName.replace(/\.[^/.]+$/, ''),
@@ -76,5 +107,6 @@ export async function parseGuitarProFile(buffer: ArrayBuffer, fileName: string):
         notes,
         durationMs,
         notation: { score, tempoTicks, tempoBpm },
+        trackTunings,
     };
 }

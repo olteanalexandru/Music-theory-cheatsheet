@@ -23,6 +23,18 @@ export interface FollowReport {
 
 export const DEFAULT_HIT_WINDOW_MS = 200;
 
+// Used by "wait mode": the set of still-pending notes sharing the earliest
+// startMs (a chord, or a single note) - playback freezes here until every
+// note in this group has been hit.
+export function earliestPendingChord(notes: GradedNote[]): GradedNote[] {
+    let minStart = Infinity;
+    for (const note of notes) {
+        if (note.judgement === 'pending' && note.startMs < minStart) minStart = note.startMs;
+    }
+    if (minStart === Infinity) return [];
+    return notes.filter((note) => note.judgement === 'pending' && Math.abs(note.startMs - minStart) < 5);
+}
+
 // Drives real-time "follow mode" grading: a moving playhead checked against
 // this via update(), and live note-on events from MIDI/on-screen-keyboard
 // input checked via noteOn(). Both pitch correctness and onset timing
@@ -60,8 +72,11 @@ export class ScoreFollowEngine {
 
     // Call when a new note-on is detected on the live input. Returns the id
     // of the timeline note it was matched against, or null if it couldn't be
-    // matched to anything nearby (an unexpected "extra" note).
-    noteOn(pitch: number, nowMs: number): number | null {
+    // matched to anything nearby (an unexpected "extra" note). In "wait mode"
+    // (exactOnly), a wrong pitch never resolves the pending note - it's
+    // logged as an extra/incorrect attempt but the note keeps waiting for the
+    // right pitch, mirroring Piano Marvel's "wait for the correct note" mode.
+    noteOn(pitch: number, nowMs: number, opts?: { exactOnly?: boolean }): number | null {
         let exactMatch: GradedNote | null = null;
         let exactDelta = 0;
         let nearMatch: GradedNote | null = null;
@@ -88,7 +103,7 @@ export class ScoreFollowEngine {
             exactMatch.timingErrorMs = exactDelta;
             return exactMatch.id;
         }
-        if (nearMatch) {
+        if (nearMatch && !opts?.exactOnly) {
             nearMatch.judgement = 'wrong';
             nearMatch.timingErrorMs = nearDelta;
             nearMatch.playedPitch = pitch;
@@ -105,6 +120,19 @@ export class ScoreFollowEngine {
             note.playedPitch = null;
         }
         this.extraNoteCount = 0;
+    }
+
+    // Flips notes starting within [startMs, endMs) back to 'pending', so a
+    // looped practice section can be replayed and re-graded from scratch on
+    // every repetition.
+    resetRange(startMs: number, endMs: number): void {
+        for (const note of this.notes) {
+            if (note.startMs >= startMs && note.startMs < endMs) {
+                note.judgement = 'pending';
+                note.timingErrorMs = null;
+                note.playedPitch = null;
+            }
+        }
     }
 
     getReport(): FollowReport {
