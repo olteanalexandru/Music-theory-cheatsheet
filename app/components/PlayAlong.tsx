@@ -8,7 +8,15 @@ import { parseMidiFile } from '@/app/utils/midiFileParser';
 import { parseGuitarProFile, UnsupportedScoreFormatError } from '@/app/utils/guitarProParser';
 import type { NoteTimelineEntry, ParsedScore } from '@/app/utils/scoreTypes';
 import { ScoreFollowEngine, earliestPendingChord, type GradedNote, type NoteJudgement } from '@/app/utils/scoreFollow';
-import { noteNameFromMidi } from '@/app/utils/notes';
+import { CHROMATIC_NOTES, noteNameFromMidi, pitchClassFromMidi, midiFromPitchClassAndOctave } from '@/app/utils/notes';
+import {
+    TUNING_PRESETS,
+    STRING_COUNT_OPTIONS,
+    defaultInstrumentFor,
+    closestStringCount,
+    fretForPitch,
+    type Instrument,
+} from '@/app/utils/tunings';
 import PianoKeyboard from '@/app/components/PianoKeyboard';
 import ScoreNotation from '@/app/components/ScoreNotation';
 import NoteHighway from '@/app/components/NoteHighway';
@@ -75,6 +83,9 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
     const [loopEnabled, setLoopEnabled] = useState(false);
     const [loopStartMs, setLoopStartMs] = useState(0);
     const [loopEndMs, setLoopEndMs] = useState(0);
+    const [transposeSemitones, setTransposeSemitones] = useState(0);
+    const [customTunings, setCustomTunings] = useState<Record<number, { instrument: Instrument; notes: number[] } | null>>({});
+    const [showTuningPanel, setShowTuningPanel] = useState(false);
 
     const { user } = useAuth();
     const supabase = useMemo(() => getSupabaseClient(), []);
@@ -115,16 +126,44 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
         return parsed.trackNames.map((_, i) => parsed.notes.filter((n) => n.track === i).length);
     }, [parsed]);
 
+    // The song's original open-string MIDI pitches for the selected track
+    // (null for non-fretted tracks like piano/drums), and any player-chosen
+    // override for it. Re-fretting (below) prefers the override, falling
+    // back to the original tuning only when transposing needs to re-derive
+    // fret positions on the song's own strings.
+    const originalTuningMidi = parsed?.trackTuningMidi?.[selectedTrack] ?? null;
+    const activeTuning = customTunings[selectedTrack] ?? null;
+
+    // Transpose and/or custom-tuning re-fretting, applied as a derivation
+    // over the parsed notes rather than mutating them - pitch shifts what the
+    // player must actually play, and a tuning override changes which
+    // string/fret displays that pitch without altering the pitch itself.
+    const effectiveTrackNotes = useMemo<NoteTimelineEntry[]>(() => {
+        if (transposeSemitones === 0 && !activeTuning) return trackNotes;
+        const tuningMidi = activeTuning?.notes ?? originalTuningMidi;
+        return trackNotes.map((n) => {
+            const pitch = n.pitch + transposeSemitones;
+            if (!tuningMidi) return { ...n, pitch };
+            const pos = fretForPitch(pitch, tuningMidi);
+            return { ...n, pitch, string: pos?.string, fret: pos?.fret };
+        });
+    }, [trackNotes, transposeSemitones, activeTuning, originalTuningMidi]);
+
+    const effectiveTuningNames = useMemo(() => {
+        if (activeTuning) return activeTuning.notes.map((midi) => noteNameFromMidi(midi));
+        return parsed?.trackTunings?.[selectedTrack] ?? null;
+    }, [activeTuning, parsed, selectedTrack]);
+
     const pitchRange = useMemo(() => {
-        if (trackNotes.length === 0) return { min: 48, max: 72 };
+        if (effectiveTrackNotes.length === 0) return { min: 48, max: 72 };
         let min = Infinity;
         let max = -Infinity;
-        trackNotes.forEach((n) => {
+        effectiveTrackNotes.forEach((n) => {
             if (n.pitch < min) min = n.pitch;
             if (n.pitch > max) max = n.pitch;
         });
         return { min: Math.max(0, min - 2), max: Math.min(127, max + 2) };
-    }, [trackNotes]);
+    }, [effectiveTrackNotes]);
 
     const rollHeight = Math.min(
         MAX_ROLL_HEIGHT,
@@ -142,8 +181,8 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
     // change") rather than in an effect, since it's a pure derivation of
     // trackNotes/hitWindowMs and doesn't need to run as a separate commit.
     const engine = useMemo(
-        () => (trackNotes.length > 0 ? new ScoreFollowEngine(trackNotes, hitWindowMs) : null),
-        [trackNotes, hitWindowMs]
+        () => (effectiveTrackNotes.length > 0 ? new ScoreFollowEngine(effectiveTrackNotes, hitWindowMs) : null),
+        [effectiveTrackNotes, hitWindowMs]
     );
     const [prevEngine, setPrevEngine] = useState(engine);
     if (engine !== prevEngine) {
@@ -283,6 +322,9 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
             setLoopEnabled(false);
             setLoopStartMs(0);
             setLoopEndMs(result.durationMs);
+            setTransposeSemitones(0);
+            setCustomTunings({});
+            setShowTuningPanel(false);
 
             if (!options?.skipSave && user && supabase) {
                 setSaveState('saving');
@@ -370,6 +412,33 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
         setReport(engine.getReport());
         setRunState('finished');
     }, []);
+
+    // Lazily creates this track's tuning override (seeded from the file's own
+    // tuning) the first time the player edits a single string, so dragging
+    // one string out of tune doesn't require first picking an instrument/
+    // string-count preset.
+    const updateTuningString = useCallback(
+        (stringNum: number, newMidi: number) => {
+            setCustomTunings((cur) => {
+                const base = cur[selectedTrack]?.notes ?? originalTuningMidi ?? [];
+                const instrument = cur[selectedTrack]?.instrument ?? defaultInstrumentFor(base.length);
+                const notes = base.slice();
+                notes[stringNum - 1] = newMidi;
+                return { ...cur, [selectedTrack]: { instrument, notes } };
+            });
+        },
+        [selectedTrack, originalTuningMidi]
+    );
+
+    const setTuningPreset = useCallback(
+        (instrument: Instrument, stringCount: number) => {
+            setCustomTunings((cur) => ({
+                ...cur,
+                [selectedTrack]: { instrument, notes: TUNING_PRESETS[instrument][stringCount].slice() },
+            }));
+        },
+        [selectedTrack]
+    );
 
     const handleKeyboardNoteOn = useCallback(
         (note: number) => {
@@ -523,6 +592,37 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
                         </label>
 
                         <label className="flex items-center gap-2 text-sm theme-secondary-text">
+                            Transpose:
+                            <button
+                                onClick={() => setTransposeSemitones((t) => Math.max(-12, t - 1))}
+                                disabled={runState === 'running' || runState === 'paused'}
+                                className="theme-muted-bg theme-secondary-text px-2 py-1 rounded-lg text-sm disabled:opacity-50"
+                            >
+                                −
+                            </button>
+                            <span className="tabular-nums w-12 text-center">
+                                {transposeSemitones > 0 ? `+${transposeSemitones}` : transposeSemitones} st
+                            </span>
+                            <button
+                                onClick={() => setTransposeSemitones((t) => Math.min(12, t + 1))}
+                                disabled={runState === 'running' || runState === 'paused'}
+                                className="theme-muted-bg theme-secondary-text px-2 py-1 rounded-lg text-sm disabled:opacity-50"
+                            >
+                                +
+                            </button>
+                        </label>
+
+                        {originalTuningMidi && (
+                            <button
+                                onClick={() => setShowTuningPanel((v) => !v)}
+                                disabled={runState === 'running' || runState === 'paused'}
+                                className="px-3 py-1.5 theme-muted-bg theme-secondary-text rounded-lg text-sm hover:opacity-90 disabled:opacity-50"
+                            >
+                                Tuning{activeTuning ? ' •' : ''}
+                            </button>
+                        )}
+
+                        <label className="flex items-center gap-2 text-sm theme-secondary-text">
                             Speed: {Math.round(speed * 100)}%
                             <input
                                 type="range"
@@ -624,6 +724,110 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
                             </div>
                         )}
                     </div>
+
+                    {showTuningPanel && originalTuningMidi && (() => {
+                        const tuningMidi = activeTuning?.notes ?? originalTuningMidi;
+                        const instrument = activeTuning?.instrument ?? defaultInstrumentFor(originalTuningMidi.length);
+                        const stringNumbers = Array.from({ length: tuningMidi.length }, (_, i) => tuningMidi.length - i);
+                        return (
+                            <div className="flex flex-wrap items-end gap-4 mb-4 p-3 rounded-lg theme-secondary-bg">
+                                <label className="flex items-center gap-2 text-sm theme-secondary-text">
+                                    Instrument:
+                                    <select
+                                        value={instrument}
+                                        onChange={(e) => {
+                                            const next = e.target.value as Instrument;
+                                            setTuningPreset(next, closestStringCount(next, tuningMidi.length));
+                                        }}
+                                        disabled={runState === 'running' || runState === 'paused'}
+                                        className="theme-muted-bg theme-secondary-text px-2 py-1 rounded-lg text-sm"
+                                    >
+                                        <option value="guitar">Guitar</option>
+                                        <option value="bass">Bass</option>
+                                    </select>
+                                </label>
+
+                                <label className="flex items-center gap-2 text-sm theme-secondary-text">
+                                    Strings:
+                                    <select
+                                        value={tuningMidi.length}
+                                        onChange={(e) => setTuningPreset(instrument, Number(e.target.value))}
+                                        disabled={runState === 'running' || runState === 'paused'}
+                                        className="theme-muted-bg theme-secondary-text px-2 py-1 rounded-lg text-sm"
+                                    >
+                                        {STRING_COUNT_OPTIONS[instrument].map((n) => (
+                                            <option key={n} value={n}>
+                                                {n}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+
+                                <div className="flex items-end gap-2">
+                                    {stringNumbers.map((stringNum) => {
+                                        const pitch = tuningMidi[stringNum - 1];
+                                        return (
+                                            <label
+                                                key={stringNum}
+                                                className="flex flex-col items-center gap-1 text-xs theme-secondary-text"
+                                            >
+                                                String {stringNum}
+                                                <div className="flex items-center gap-1">
+                                                    <select
+                                                        value={pitchClassFromMidi(pitch)}
+                                                        onChange={(e) =>
+                                                            updateTuningString(
+                                                                stringNum,
+                                                                midiFromPitchClassAndOctave(Number(e.target.value), Math.floor(pitch / 12) - 1)
+                                                            )
+                                                        }
+                                                        disabled={runState === 'running' || runState === 'paused'}
+                                                        className="theme-muted-bg theme-secondary-text px-1 py-1 rounded text-xs"
+                                                    >
+                                                        {CHROMATIC_NOTES.map((name, pc) => (
+                                                            <option key={pc} value={pc}>
+                                                                {name}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                    <input
+                                                        type="number"
+                                                        value={Math.floor(pitch / 12) - 1}
+                                                        onChange={(e) =>
+                                                            updateTuningString(
+                                                                stringNum,
+                                                                midiFromPitchClassAndOctave(pitchClassFromMidi(pitch), Number(e.target.value))
+                                                            )
+                                                        }
+                                                        disabled={runState === 'running' || runState === 'paused'}
+                                                        className="theme-muted-bg theme-secondary-text w-12 px-1 py-1 rounded text-xs"
+                                                    />
+                                                </div>
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+
+                                {activeTuning && (
+                                    <button
+                                        onClick={() => setCustomTunings((cur) => ({ ...cur, [selectedTrack]: null }))}
+                                        disabled={runState === 'running' || runState === 'paused'}
+                                        className="px-3 py-1.5 theme-muted-bg theme-secondary-text rounded-lg text-sm hover:opacity-90 disabled:opacity-50"
+                                    >
+                                        Reset to file tuning
+                                    </button>
+                                )}
+                            </div>
+                        );
+                    })()}
+
+                    {parsed.notation && (transposeSemitones !== 0 || activeTuning) && (
+                        <p className="text-xs theme-secondary-text mb-3">
+                            Transpose and custom tuning change what you play in the Piano Roll, Note Highway, and
+                            live grading, but the Staff + Tab view still shows the file&apos;s original key and
+                            tuning.
+                        </p>
+                    )}
 
                     {fileKind === 'midi' && (
                         <p className="text-xs theme-secondary-text mb-3">
@@ -749,7 +953,7 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
                                 getSongMs={getSongMs}
                                 running={runState === 'running'}
                                 durationMs={parsed.durationMs}
-                                tuningNames={parsed.trackTunings?.[selectedTrack] ?? null}
+                                tuningNames={effectiveTuningNames}
                             />
                         </div>
                     )}

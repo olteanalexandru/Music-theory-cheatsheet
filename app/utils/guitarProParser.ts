@@ -90,16 +90,18 @@ export async function parseGuitarProFile(buffer: ArrayBuffer, fileName: string):
 
     const durationMs = notes.reduce((max, n) => Math.max(max, n.startMs + n.durationMs), 0);
 
-    // Open-string note names per track (e.g. ['E','A','D','G'] for 4-string
-    // bass), indexed by (string - 1). Staff.tuning lists strings top-line-first
-    // (the highest-pitched string), which is the opposite of alphaTab's
-    // Note.string numbering (1 = lowest string), so the array is reversed.
-    const trackTunings = score.tracks.map((track) => {
+    // Open-string MIDI pitch per track, indexed by (string - 1), i.e.
+    // string 1 = lowest-pitched string first. Staff.tuning lists strings
+    // top-line-first (the highest-pitched string), which is the opposite of
+    // alphaTab's Note.string numbering, so the array is reversed.
+    const trackTuningMidi = score.tracks.map((track) => {
         const staff = track.staves[0];
         if (!staff?.isStringed) return null;
-        const tuning = staff.tuning;
-        return tuning.map((_, i) => alphaTab.model.Tuning.getTextForTuning(tuning[tuning.length - 1 - i], false));
+        return staff.tuning.slice().reverse();
     });
+    const trackTunings = trackTuningMidi.map((tuning) =>
+        tuning ? tuning.map((pitch) => alphaTab.model.Tuning.getTextForTuning(pitch, false)) : null
+    );
 
     return {
         title: score.title || fileName.replace(/\.[^/.]+$/, ''),
@@ -108,5 +110,6 @@ export async function parseGuitarProFile(buffer: ArrayBuffer, fileName: string):
         durationMs,
         notation: { score, tempoTicks, tempoBpm },
         trackTunings,
+        trackTuningMidi,
     };
 }

@@ -32,4 +32,8 @@ export interface ParsedScore {
     // tracks that aren't a fretted instrument (e.g. piano, drums). Used to
     // label lanes in the Note Highway view.
     trackTunings?: (string[] | null)[];
+    // Same indexing as trackTunings, but the raw MIDI pitch of each open
+    // string rather than its display name - needed to re-fret notes when the
+    // player transposes the song or swaps in a custom tuning/string count.
+    trackTuningMidi?: (number[] | null)[];
 }
