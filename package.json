@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@coderline/alphatab": "^1.8.3",
+    "@supabase/supabase-js": "^2.108.2",
     "lucide-react": "^1.21.0",
     "next": "^16.2.9",
     "react": "^19.2.7",

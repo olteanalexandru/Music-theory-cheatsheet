@@ -707,12 +707,12 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
                                 <span className="theme-secondary-text text-sm">Requesting access…</span>
                             )}
                             {midi.permission === 'unsupported' && (
-                                <span className="text-sm text-yellow-400">
+                                <span className="text-sm theme-warning-text">
                                     Web MIDI isn&apos;t supported in this browser. Try Chrome or Edge.
                                 </span>
                             )}
                             {midi.permission === 'denied' && (
-                                <span className="text-sm text-yellow-400">
+                                <span className="text-sm theme-warning-text">
                                     {midi.error || 'MIDI access was denied.'}
                                 </span>
                             )}
@@ -735,7 +735,7 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
                                     ))}
                                 </select>
                                 {midi.devices.length === 0 && (
-                                    <span className="text-sm text-yellow-400">No MIDI devices detected.</span>
+                                    <span className="text-sm theme-warning-text">No MIDI devices detected.</span>
                                 )}
                             </div>
                             <p className="theme-secondary-text text-sm">

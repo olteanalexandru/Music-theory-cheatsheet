@@ -41,7 +41,32 @@ export function loadProgress(): ProgressStore {
     }
 }
 
+type ProgressListener = (progress: ProgressStore) => void;
+const listeners = new Set<ProgressListener>();
+
 export function saveProgress(progress: ProgressStore): void {
     if (typeof window === 'undefined') return;
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+    listeners.forEach((listener) => listener(progress));
+}
+
+// Lets the cloud-sync layer (AuthContext) push local changes to Supabase
+// without progressStore needing to know anything about auth/Supabase itself.
+export function subscribeToProgressChanges(listener: ProgressListener): () => void {
+    listeners.add(listener);
+    return () => listeners.delete(listener);
+}
+
+// Reconciles a freshly-pulled cloud copy with what's already on this device,
+// per category, keeping whichever side was practiced more recently - so
+// switching devices never silently erases progress made on the other one.
+export function mergeProgress(local: ProgressStore, cloud: ProgressStore): ProgressStore {
+    const merged: ProgressStore = { ...local };
+    for (const [category, cloudStats] of Object.entries(cloud)) {
+        const localStats = merged[category];
+        if (!localStats || (cloudStats.lastPracticed ?? 0) > (localStats.lastPracticed ?? 0)) {
+            merged[category] = normalizeStats(cloudStats);
+        }
+    }
+    return merged;
 }

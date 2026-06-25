@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Info } from 'lucide-react';
+import { Info, Settings, ChevronDown, ChevronUp } from 'lucide-react';
 import { CircleOfFifths } from '@/app/components/CircleOfFifths';
 import PatternControls from '@/app/components/PatternControls';
 import Fretboard from '@/app/components/Fretboard';
@@ -49,6 +49,7 @@ const InteractiveFretboardDisplay = () => {
     const [useLandmarkNumbers, setUseLandmarkNumbers] = useState(false);
     const [instrument, setInstrument] = useState<'bass' | 'guitar'>('bass');
     const [selectedTuningName, setSelectedTuningName] = useState<string>(defaultGuitarTuningName);
+    const [showSettings, setShowSettings] = useState(false);
     const [visibleComponents, setVisibleComponents] = useState<Record<VisibleComponent, boolean>>(() => {
         if (typeof window === 'undefined') {
             return {
@@ -310,8 +311,8 @@ const InteractiveFretboardDisplay = () => {
     const componentToggleClass = (isActive: boolean) =>
         `px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
             isActive
-                ? 'bg-indigo-500 text-white'
-                : 'bg-indigo-950/50 text-indigo-200 hover:bg-indigo-900/70'
+                ? 'theme-accent-bg'
+                : 'theme-muted-bg theme-secondary-text hover:opacity-90'
         }`;
 
     return (
@@ -322,125 +323,140 @@ const InteractiveFretboardDisplay = () => {
                 <div className="moving-part bg-indigo-300 opacity-50"></div>
             </div>
             <div className="max-w-7xl mx-auto relative z-10">
-                <div className="mb-6 rounded-xl border border-indigo-500/20 bg-indigo-950/40 p-3 shadow-lg">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                        <p className="text-sm font-semibold text-indigo-100">Visible Components</p>
-                        <div className="flex flex-wrap gap-2">
-                            <button
-                                className={componentToggleClass(visibleComponents.fretboard)}
-                                onClick={() => toggleComponent('fretboard')}
-                            >
-                                Fretboard
-                            </button>
-                            <button
-                                className={componentToggleClass(visibleComponents.theory)}
-                                onClick={() => toggleComponent('theory')}
-                            >
-                                Theory
-                            </button>
-                            <button
-                                className={componentToggleClass(visibleComponents.circle)}
-                                onClick={() => toggleComponent('circle')}
-                            >
-                                Circle of Fifths
-                            </button>
-                            <button
-                                className={componentToggleClass(visibleComponents.staff)}
-                                onClick={() => toggleComponent('staff')}
-                            >
-                                Staff
-                            </button>
-                            <button
-                                className={componentToggleClass(visibleComponents.rhythm)}
-                                onClick={() => toggleComponent('rhythm')}
-                            >
-                                Rhythm
-                            </button>
-                            <button
-                                className={componentToggleClass(visibleComponents.earTraining)}
-                                onClick={() => toggleComponent('earTraining')}
-                            >
-                                Ear Training
-                            </button>
-                            <button
-                                className={componentToggleClass(visibleComponents.playAlong)}
-                                onClick={() => toggleComponent('playAlong')}
-                            >
-                                Play Along
-                            </button>
-                        </div>
-                    </div>
-                    <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-indigo-500/20 pt-3">
-                        <p className="text-sm font-semibold text-indigo-100">Synth</p>
-                        <div className="flex flex-wrap gap-2">
-                            {WAVEFORMS.map((wave) => (
-                                <button
-                                    key={wave}
-                                    className={componentToggleClass(synth.waveform === wave)}
-                                    onClick={() => synth.setWaveform(wave)}
-                                >
-                                    {wave.charAt(0).toUpperCase() + wave.slice(1)}
-                                </button>
-                            ))}
-                        </div>
-                        <label className="flex items-center gap-2 text-sm text-indigo-200">
-                            Volume
-                            <input
-                                type="range"
-                                min={0}
-                                max={0.6}
-                                step={0.02}
-                                value={synth.volume}
-                                onChange={(e) => synth.setVolume(Number(e.target.value))}
-                                className="w-32"
-                            />
-                        </label>
-                    </div>
-                    <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-indigo-500/20 pt-3">
-                        <p className="text-sm font-semibold text-indigo-100">MIDI</p>
-                        {midi.permission !== 'granted' ? (
-                            <div className="flex flex-wrap items-center gap-3">
-                                <button
-                                    onClick={midi.connect}
-                                    className="px-3 py-1.5 theme-btn rounded-lg text-sm hover:opacity-90"
-                                >
-                                    Connect MIDI Device
-                                </button>
-                                {midi.permission === 'pending' && (
-                                    <span className="text-sm text-indigo-200">Requesting access…</span>
-                                )}
-                                {midi.permission === 'unsupported' && (
-                                    <span className="text-sm text-yellow-400">
-                                        Web MIDI isn&apos;t supported in this browser. Try Chrome or Edge.
-                                    </span>
-                                )}
-                                {midi.permission === 'denied' && (
-                                    <span className="text-sm text-yellow-400">
-                                        {midi.error || 'MIDI access was denied.'}
-                                    </span>
-                                )}
+                <div className="mb-6 theme-card rounded-xl shadow-lg overflow-hidden">
+                    <button
+                        onClick={() => setShowSettings((v) => !v)}
+                        className="flex w-full items-center justify-between gap-3 p-3 text-left hover:opacity-90"
+                        aria-expanded={showSettings}
+                    >
+                        <span className="flex items-center gap-2 text-sm font-semibold theme-text">
+                            <Settings size={16} /> Display &amp; Audio Settings
+                        </span>
+                        {showSettings ? <ChevronUp size={18} className="theme-secondary-text" /> : <ChevronDown size={18} className="theme-secondary-text" />}
+                    </button>
+
+                    {showSettings && (
+                        <div className="border-t theme-secondary-bg p-3">
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                <p className="text-sm font-semibold theme-text">Visible Components</p>
+                                <div className="flex flex-wrap gap-2">
+                                    <button
+                                        className={componentToggleClass(visibleComponents.fretboard)}
+                                        onClick={() => toggleComponent('fretboard')}
+                                    >
+                                        Fretboard
+                                    </button>
+                                    <button
+                                        className={componentToggleClass(visibleComponents.theory)}
+                                        onClick={() => toggleComponent('theory')}
+                                    >
+                                        Theory
+                                    </button>
+                                    <button
+                                        className={componentToggleClass(visibleComponents.circle)}
+                                        onClick={() => toggleComponent('circle')}
+                                    >
+                                        Circle of Fifths
+                                    </button>
+                                    <button
+                                        className={componentToggleClass(visibleComponents.staff)}
+                                        onClick={() => toggleComponent('staff')}
+                                    >
+                                        Staff
+                                    </button>
+                                    <button
+                                        className={componentToggleClass(visibleComponents.rhythm)}
+                                        onClick={() => toggleComponent('rhythm')}
+                                    >
+                                        Rhythm
+                                    </button>
+                                    <button
+                                        className={componentToggleClass(visibleComponents.earTraining)}
+                                        onClick={() => toggleComponent('earTraining')}
+                                    >
+                                        Ear Training
+                                    </button>
+                                    <button
+                                        className={componentToggleClass(visibleComponents.playAlong)}
+                                        onClick={() => toggleComponent('playAlong')}
+                                    >
+                                        Play Along
+                                    </button>
+                                </div>
                             </div>
-                        ) : (
-                            <div className="flex flex-wrap items-center gap-2">
-                                <label className="text-sm text-indigo-200">Device:</label>
-                                <select
-                                    value={midi.selectedDeviceId ?? ''}
-                                    onChange={(e) => midi.selectDevice(e.target.value || null)}
-                                    className="theme-muted-bg theme-secondary-text px-3 py-1.5 rounded-lg text-sm"
-                                >
-                                    <option value="">All devices</option>
-                                    {midi.devices.map((device) => (
-                                        <option key={device.id} value={device.id}>
-                                            {device.name}
-                                        </option>
+                            <div className="mt-3 flex flex-wrap items-center gap-3 border-t theme-secondary-bg pt-3">
+                                <p className="text-sm font-semibold theme-text">Synth</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {WAVEFORMS.map((wave) => (
+                                        <button
+                                            key={wave}
+                                            className={componentToggleClass(synth.waveform === wave)}
+                                            onClick={() => synth.setWaveform(wave)}
+                                        >
+                                            {wave.charAt(0).toUpperCase() + wave.slice(1)}
+                                        </button>
                                     ))}
-                                </select>
-                                {midi.devices.length === 0 && (
-                                    <span className="text-sm text-yellow-400">No MIDI devices detected.</span>
+                                </div>
+                                <label className="flex items-center gap-2 text-sm theme-secondary-text">
+                                    Volume
+                                    <input
+                                        type="range"
+                                        min={0}
+                                        max={0.6}
+                                        step={0.02}
+                                        value={synth.volume}
+                                        onChange={(e) => synth.setVolume(Number(e.target.value))}
+                                        className="w-32"
+                                    />
+                                </label>
+                            </div>
+                            <div className="mt-3 flex flex-wrap items-center gap-3 border-t theme-secondary-bg pt-3">
+                                <p className="text-sm font-semibold theme-text">MIDI</p>
+                                {midi.permission !== 'granted' ? (
+                                    <div className="flex flex-wrap items-center gap-3">
+                                        <button
+                                            onClick={midi.connect}
+                                            className="px-3 py-1.5 theme-btn rounded-lg text-sm hover:opacity-90"
+                                        >
+                                            Connect MIDI Device
+                                        </button>
+                                        {midi.permission === 'pending' && (
+                                            <span className="text-sm theme-secondary-text">Requesting access…</span>
+                                        )}
+                                        {midi.permission === 'unsupported' && (
+                                            <span className="text-sm theme-warning-text">
+                                                Web MIDI isn&apos;t supported in this browser. Try Chrome or Edge.
+                                            </span>
+                                        )}
+                                        {midi.permission === 'denied' && (
+                                            <span className="text-sm theme-warning-text">
+                                                {midi.error || 'MIDI access was denied.'}
+                                            </span>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <label className="text-sm theme-secondary-text">Device:</label>
+                                        <select
+                                            value={midi.selectedDeviceId ?? ''}
+                                            onChange={(e) => midi.selectDevice(e.target.value || null)}
+                                            className="theme-muted-bg theme-secondary-text px-3 py-1.5 rounded-lg text-sm"
+                                        >
+                                            <option value="">All devices</option>
+                                            {midi.devices.map((device) => (
+                                                <option key={device.id} value={device.id}>
+                                                    {device.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {midi.devices.length === 0 && (
+                                            <span className="text-sm theme-warning-text">No MIDI devices detected.</span>
+                                        )}
+                                    </div>
                                 )}
                             </div>
-                        )}
-                    </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Header */}

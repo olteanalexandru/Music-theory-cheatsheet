@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { FolderOpen, Trash2 } from 'lucide-react';
 import type { MidiInputController } from '@/app/utils/useMidiInput';
 import type { SynthController } from '@/app/utils/useSynth';
 import { parseMidiFile } from '@/app/utils/midiFileParser';
@@ -10,6 +11,9 @@ import { ScoreFollowEngine, type GradedNote, type NoteJudgement } from '@/app/ut
 import { noteNameFromMidi } from '@/app/utils/notes';
 import PianoKeyboard from '@/app/components/PianoKeyboard';
 import ScoreNotation from '@/app/components/ScoreNotation';
+import { useAuth } from '@/app/utils/AuthContext';
+import { getSupabaseClient } from '@/app/utils/supabaseClient';
+import { listUserFiles, uploadUserFile, downloadUserFile, deleteUserFile, type UserFileRecord } from '@/app/utils/userFiles';
 
 interface PlayAlongProps {
     midi: MidiInputController;
@@ -66,6 +70,21 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
     const [gradedNotes, setGradedNotes] = useState<GradedNote[]>([]);
     const [heldClickNotes, setHeldClickNotes] = useState<Set<number>>(new Set());
     const [viewMode, setViewMode] = useState<ViewMode>('notation');
+
+    const { user } = useAuth();
+    const supabase = useMemo(() => getSupabaseClient(), []);
+    const [myFiles, setMyFiles] = useState<UserFileRecord[]>([]);
+    const [showMyFiles, setShowMyFiles] = useState(false);
+    const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+
+    const refreshMyFiles = useCallback(() => {
+        if (!supabase || !user) return;
+        void listUserFiles(supabase, user.id).then(setMyFiles);
+    }, [supabase, user]);
+
+    useEffect(() => {
+        if (user) refreshMyFiles();
+    }, [user, refreshMyFiles]);
 
     const engineRef = useRef<ScoreFollowEngine | null>(null);
     const elapsedAtPauseRef = useRef(0);
@@ -208,7 +227,7 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
         prevActiveNotesRef.current = combinedActiveNotes;
     }, [combinedActiveNotes, runState, getSongMs]);
 
-    const handleFile = useCallback(async (file: File) => {
+    const handleFile = useCallback(async (file: File, options?: { skipSave?: boolean }) => {
         setIsLoading(true);
         setLoadError(null);
         setRunState('idle');
@@ -233,6 +252,19 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
             setParsed(result);
             setFileKind(kind);
             setSelectedTrack(0);
+
+            if (!options?.skipSave && user && supabase) {
+                setSaveState('saving');
+                try {
+                    await uploadUserFile(supabase, user.id, file, kind);
+                    setSaveState('saved');
+                    refreshMyFiles();
+                } catch {
+                    setSaveState('error');
+                }
+            } else {
+                setSaveState('idle');
+            }
         } catch (err) {
             setParsed(null);
             setFileKind(null);
@@ -244,13 +276,39 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [user, supabase, refreshMyFiles]);
 
     const onFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) void handleFile(file);
         e.target.value = '';
     };
+
+    const openSavedFile = useCallback(
+        async (record: UserFileRecord) => {
+            if (!supabase) return;
+            setShowMyFiles(false);
+            setIsLoading(true);
+            try {
+                const file = await downloadUserFile(supabase, record);
+                await handleFile(file, { skipSave: true });
+            } catch {
+                setLoadError('Could not load this saved file.');
+                setIsLoading(false);
+            }
+        },
+        [supabase, handleFile]
+    );
+
+    const removeSavedFile = useCallback(
+        async (record: UserFileRecord, e: React.MouseEvent) => {
+            e.stopPropagation();
+            if (!supabase) return;
+            await deleteUserFile(supabase, record);
+            refreshMyFiles();
+        },
+        [supabase, refreshMyFiles]
+    );
 
     const start = useCallback(() => {
         const engine = engineRef.current;
@@ -334,12 +392,63 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
                         disabled={isLoading}
                     />
                 </label>
+
+                {user && (
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowMyFiles((v) => !v)}
+                            className="flex items-center gap-2 px-3 py-1.5 theme-muted-bg theme-secondary-text rounded-lg text-sm hover:opacity-90"
+                        >
+                            <FolderOpen size={16} /> My Files{myFiles.length > 0 ? ` (${myFiles.length})` : ''}
+                        </button>
+                        {showMyFiles && (
+                            <div className="absolute left-0 z-20 mt-2 w-72 max-h-80 overflow-y-auto rounded-lg theme-card shadow-xl">
+                                {myFiles.length === 0 ? (
+                                    <p className="px-4 py-3 text-sm theme-secondary-text">
+                                        Files you upload while signed in are saved here automatically.
+                                    </p>
+                                ) : (
+                                    myFiles.map((record) => (
+                                        <button
+                                            key={record.id}
+                                            onClick={() => openSavedFile(record)}
+                                            className="flex w-full items-center justify-between gap-2 px-4 py-2 text-left text-sm theme-text hover:theme-muted-bg"
+                                        >
+                                            <span className="truncate">
+                                                {record.fileName}
+                                                <span className="ml-1 theme-secondary-text">
+                                                    ({record.fileKind === 'gp' ? 'Guitar Pro' : 'MIDI'})
+                                                </span>
+                                            </span>
+                                            <Trash2
+                                                size={14}
+                                                className="shrink-0 theme-secondary-text hover:text-red-400"
+                                                onClick={(e) => removeSavedFile(record, e)}
+                                            />
+                                        </button>
+                                    ))
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )}
+
                 {parsed && (
                     <span className="theme-secondary-text text-sm">
                         {parsed.title} · {fileKind === 'gp' ? 'Guitar Pro' : 'MIDI'} · {trackNotes.length} notes
                     </span>
                 )}
+
+                {saveState === 'saving' && <span className="text-xs theme-secondary-text">Saving to your account…</span>}
+                {saveState === 'saved' && <span className="text-xs text-green-400">Saved to your account</span>}
+                {saveState === 'error' && <span className="text-xs text-red-400">Couldn&apos;t save to your account</span>}
             </div>
+
+            {!user && (
+                <p className="text-xs theme-secondary-text mb-4">
+                    Sign in to automatically save files you upload here and reopen them on any device.
+                </p>
+            )}
 
             {loadError && (
                 <p className="mb-4 text-sm text-red-400 bg-red-950/30 border border-red-500/30 rounded-lg px-3 py-2">
@@ -548,7 +657,7 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
                     </div>
 
                     {midi.permission !== 'granted' && (
-                        <p className="mt-3 text-sm text-yellow-400">
+                        <p className="mt-3 text-sm theme-warning-text">
                             Connect a MIDI device from the panel above for hands-on grading, or use the on-screen
                             keyboard.
                         </p>

@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Footer from "./Footer";
+import AppHeader from "./AppHeader";
+import { AuthProvider } from "@/app/utils/AuthContext";
 
 // Assuming geistSans and geistMono are passed as props or defined/imported here
 // For simplicity, let's assume they are passed as props for now.
@@ -28,8 +30,11 @@ export default function ThemeWrapper({
         isLightMode ? "light-mode" : ""
       }`}
     >
-      {children}
-      <Footer isLightMode={isLightMode} toggleLightMode={toggleLightMode} />
+      <AuthProvider>
+        <AppHeader />
+        {children}
+        <Footer isLightMode={isLightMode} toggleLightMode={toggleLightMode} />
+      </AuthProvider>
     </body>
   );
 }

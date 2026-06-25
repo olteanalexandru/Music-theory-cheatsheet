@@ -39,6 +39,9 @@
   --accent-bg: #4f46e5; /* Accent background */
   --accent-fg: #ffffff; /* Accent foreground */
   --hover-bg: #4338ca; /* Hover background */
+  --warning-fg: #facc15; /* Bright yellow reads fine on dark backgrounds */
+  --warning-bg: rgba(250, 204, 21, 0.08);
+  --warning-border: rgba(234, 179, 8, 0.3);
 }
 
 .light-mode {
@@ -57,6 +60,9 @@
   --accent-bg: #6366f1; /* Accent background */
   --accent-fg: #ffffff; /* Accent foreground */
   --hover-bg: #4f46e5; /* Hover background */
+  --warning-fg: #92400e; /* Dark amber keeps contrast on light backgrounds */
+  --warning-bg: #fef3c7;
+  --warning-border: #fde68a;
 }
 
 /* Apply background and foreground variables to the root elements */
@@ -147,6 +153,18 @@ a:hover {
 .theme-accent-bg {
   background-color: var(--accent-bg);
   color: var(--accent-fg);
+}
+
+.theme-warning-text {
+  color: var(--warning-fg);
+}
+
+.theme-warning-bg {
+  background-color: var(--warning-bg);
+}
+
+.theme-warning-border {
+  border-color: var(--warning-border);
 }
 
 @keyframes galaxy {

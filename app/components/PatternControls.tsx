@@ -186,7 +186,7 @@ const PatternControls: React.FC<PatternControlsProps> = ({
                     {useLandmarkNumbers ? 'Landmark Numbers' : 'Note System'}
                 </button>
                 {useLandmarkNumbers && !selectedRoot && (
-                    <p className="text-xs text-yellow-400 mt-1">Select a root note to see landmark numbers.</p>
+                    <p className="text-xs theme-warning-text mt-1">Select a root note to see landmark numbers.</p>
                 )}
             </div>
         </div>
