@@ -20,6 +20,7 @@ import {
 import PianoKeyboard from '@/app/components/PianoKeyboard';
 import ScoreNotation from '@/app/components/ScoreNotation';
 import NoteHighway from '@/app/components/NoteHighway';
+import ShareButton from '@/app/components/ShareButton';
 import { useAuth } from '@/app/utils/AuthContext';
 import { getSupabaseClient } from '@/app/utils/supabaseClient';
 import { listUserFiles, uploadUserFile, downloadUserFile, deleteUserFile, type UserFileRecord } from '@/app/utils/userFiles';
@@ -977,7 +978,14 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
 
                     {report && runState === 'finished' && (
                         <div className="mt-6 p-4 rounded-lg theme-secondary-bg">
-                            <h3 className="theme-text font-semibold mb-3">Session Report</h3>
+                            <div className="flex items-center justify-between gap-3 mb-3">
+                                <h3 className="theme-text font-semibold">Session Report</h3>
+                                <ShareButton
+                                    title="Music Theory Cheatsheet"
+                                    text={`I just scored ${report.accuracyPct}% accuracy (${report.hit} hit, ${report.wrong} wrong, ${report.missed} missed) on my Play Along session in Music Theory Cheatsheet! 🎸`}
+                                    label="Share results"
+                                />
+                            </div>
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
                                 <div>
                                     <p className="theme-secondary-text">Accuracy</p>

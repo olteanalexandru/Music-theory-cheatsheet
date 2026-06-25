@@ -9,6 +9,7 @@ import {
     subscribeToGamificationChanges,
     type GamificationStore,
 } from '@/app/utils/gamificationStore';
+import ShareButton from '@/app/components/ShareButton';
 
 const GamificationPanel: React.FC = () => {
     const [gamification, setGamification] = useState<GamificationStore>(() => loadGamification());
@@ -33,15 +34,22 @@ const GamificationPanel: React.FC = () => {
                         </p>
                     </div>
                 </div>
-                <button
-                    onClick={() => setShowAchievements((current) => !current)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 theme-muted-bg theme-secondary-text rounded-lg text-sm hover:opacity-90"
-                    aria-expanded={showAchievements}
-                >
-                    <Trophy size={16} />
-                    {unlockedCount} / {ACHIEVEMENTS.length} Achievements
-                    {showAchievements ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => setShowAchievements((current) => !current)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 theme-muted-bg theme-secondary-text rounded-lg text-sm hover:opacity-90"
+                        aria-expanded={showAchievements}
+                    >
+                        <Trophy size={16} />
+                        {unlockedCount} / {ACHIEVEMENTS.length} Achievements
+                        {showAchievements ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    </button>
+                    <ShareButton
+                        title="Music Theory Cheatsheet"
+                        text={`I'm Level ${level} with ${unlockedCount}/${ACHIEVEMENTS.length} achievements unlocked on Music Theory Cheatsheet! 🎵`}
+                        label="Share progress"
+                    />
+                </div>
             </div>
 
             <div className="h-2 rounded-full theme-muted-bg overflow-hidden">
