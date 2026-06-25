@@ -5,6 +5,7 @@ import type { Session, User } from '@supabase/supabase-js';
 import { getSupabaseClient } from '@/app/utils/supabaseClient';
 import { loadProgress, saveProgress, mergeProgress, subscribeToProgressChanges } from '@/app/utils/progressStore';
 import { loadCurriculum, saveCurriculum, mergeCurriculum, subscribeToCurriculumChanges } from '@/app/utils/curriculumStore';
+import { loadReview, saveReview, mergeReview, subscribeToReviewChanges } from '@/app/utils/reviewStore';
 import { useCloudSync } from '@/app/utils/useCloudSync';
 
 interface AuthResult {
@@ -48,6 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const userId = session?.user.id;
     useCloudSync(supabase, userId, 'progress', loadProgress, saveProgress, mergeProgress, subscribeToProgressChanges);
     useCloudSync(supabase, userId, 'curriculum_progress', loadCurriculum, saveCurriculum, mergeCurriculum, subscribeToCurriculumChanges);
+    useCloudSync(supabase, userId, 'review_progress', loadReview, saveReview, mergeReview, subscribeToReviewChanges);
 
     const signUp = useCallback<AuthContextValue['signUp']>(
         async (email, password) => {

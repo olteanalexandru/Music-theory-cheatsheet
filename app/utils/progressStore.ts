@@ -70,3 +70,16 @@ export function mergeProgress(local: ProgressStore, cloud: ProgressStore): Progr
     }
     return merged;
 }
+
+// Higher = this category deserves more practice: weighted toward low
+// accuracy and toward categories that haven't been touched in a while, so a
+// "weak areas" mixed session resurfaces both wrong answers and stale ones.
+// Never-practiced categories score above average so they get a fair shot.
+export function categoryWeaknessScore(stats: CategoryStats | undefined, now: number): number {
+    if (!stats || stats.total === 0) return 2;
+    const accuracy = stats.correct / stats.total;
+    const daysSincePracticed = stats.lastPracticed ? (now - stats.lastPracticed) / (24 * 60 * 60 * 1000) : 30;
+    const inaccuracyWeight = (1 - accuracy) * 3;
+    const stalenessWeight = Math.min(daysSincePracticed / 3, 4);
+    return 1 + inaccuracyWeight + stalenessWeight;
+}

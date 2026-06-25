@@ -38,13 +38,15 @@ import {
     progressionsForDifficulty,
     type ProgressionDef,
 } from '@/app/utils/progressionData';
-import { loadProgress, saveProgress, type ProgressStore } from '@/app/utils/progressStore';
+import { loadProgress, saveProgress, categoryWeaknessScore, type ProgressStore } from '@/app/utils/progressStore';
+import { loadReview, saveReview, applyReviewResult, itemWeight, type ReviewStore } from '@/app/utils/reviewStore';
 import { subscribeToPracticeFocus } from '@/app/utils/practiceFocusBus';
 import NoteStaffPrompt from '@/app/components/NoteStaffPrompt';
 import GuitarFretPrompt from '@/app/components/GuitarFretPrompt';
 import PianoKeyboard from '@/app/components/PianoKeyboard';
 import RhythmNotation from '@/app/components/RhythmNotation';
 import ProgressPanel from '@/app/components/ProgressPanel';
+import ReviewPanel from '@/app/components/ReviewPanel';
 import type { MidiInputController } from '@/app/utils/useMidiInput';
 
 interface EarTrainingProps {
@@ -159,9 +161,29 @@ function pickRandom<T>(items: T[]): T {
     return items[Math.floor(Math.random() * items.length)];
 }
 
+function pickWeighted<T>(items: T[], weights: number[]): T {
+    const total = weights.reduce((sum, weight) => sum + weight, 0);
+    if (total <= 0) return pickRandom(items);
+    let roll = Math.random() * total;
+    for (let i = 0; i < items.length; i++) {
+        roll -= weights[i];
+        if (roll <= 0) return items[i];
+    }
+    return items[items.length - 1];
+}
+
+function weightedPickCategory(categories: Category[], progress: ProgressStore): Category {
+    const now = Date.now();
+    const weights = categories.map((cat) => categoryWeaknessScore(progress[cat], now));
+    return pickWeighted(categories, weights);
+}
+
 function buildStandardQuestion(category: EarTrainingCategory, difficulty: EarTrainingDifficulty): StandardQuestion {
     const pool = poolForDifficulty(category, difficulty);
-    const item = pickRandom(pool);
+    const review = loadReview();
+    const now = Date.now();
+    const weights = pool.map((entry) => itemWeight(review, category, entry.name, now));
+    const item = pickWeighted(pool, weights);
     const root = 57 + Math.floor(Math.random() * 12); // A3..G#4
     const notes = item.intervals.map((interval) => root + interval);
     const maxChoices = Math.min(6, pool.length);
@@ -183,7 +205,10 @@ function formatKeySignature(info: KeySignatureInfo): string {
 
 function buildKeySigQuestion(difficulty: EarTrainingDifficulty): KeySigQuestion {
     const pool = keysForDifficulty(difficulty);
-    const keyName = pickRandom(pool);
+    const review = loadReview();
+    const now = Date.now();
+    const weights = pool.map((key) => itemWeight(review, 'keysig', formatKeySignature(getKeySignatureInfo(key)), now));
+    const keyName = pickWeighted(pool, weights);
     const info = getKeySignatureInfo(keyName);
     const maxChoices = Math.min(6, pool.length);
     const distractorKeys = shuffle(pool.filter((key) => key !== keyName)).slice(0, maxChoices - 1);
@@ -223,7 +248,10 @@ function buildRhythmQuestion(difficulty: EarTrainingDifficulty): RhythmQuestion 
 
 function buildProgressionQuestion(difficulty: EarTrainingDifficulty): ProgressionQuestion {
     const pool = progressionsForDifficulty(difficulty);
-    const def = pickRandom(pool);
+    const review = loadReview();
+    const now = Date.now();
+    const weights = pool.map((entry) => itemWeight(review, 'progressions', formatProgression(entry.degrees), now));
+    const def = pickWeighted(pool, weights);
     const rootMidi = 57 + Math.floor(Math.random() * 12); // A3..G#4
     const chords = chordsForProgression(def.degrees, rootMidi);
     const keyName = CHROMATIC_NOTES[((rootMidi % 12) + 12) % 12];
@@ -254,6 +282,7 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
     const [status, setStatus] = useState<AnswerStatus>('idle');
     const [score, setScore] = useState({ correct: 0, total: 0 });
     const [progress, setProgress] = useState<ProgressStore>(() => loadProgress());
+    const [review, setReview] = useState<ReviewStore>(() => loadReview());
     const [clef, setClef] = useState<ClefId>('treble');
     const [selectedKeys, setSelectedKeys] = useState<string[]>(['C']);
     const [range, setRange] = useState<RangePreset>('staff');
@@ -261,6 +290,7 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
     const [session, setSession] = useState<PracticeSession | null>(null);
     const [sessionLength, setSessionLength] = useState(SESSION_LENGTHS[0]);
     const [mixedSession, setMixedSession] = useState(false);
+    const [weakReviewMode, setWeakReviewMode] = useState(false);
     const attemptNotesRef = useRef<Set<number>>(new Set());
 
     // Track every note pressed during the current attempt, even after it's
@@ -274,6 +304,11 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
     useEffect(() => {
         saveProgress(progress);
     }, [progress]);
+
+    // Persist per-item spaced-repetition stats the same way.
+    useEffect(() => {
+        saveReview(review);
+    }, [review]);
 
     const resetAnswerState = () => {
         setStatus('idle');
@@ -345,7 +380,11 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
 
     const handleNewQuestion = () => {
         if (session && !session.finished) {
-            const nextCategory = session.mixed ? pickRandom(CATEGORIES) : category;
+            const nextCategory = session.mixed
+                ? weakReviewMode
+                    ? weightedPickCategory(CATEGORIES, progress)
+                    : pickRandom(CATEGORIES)
+                : category;
             applyCategory(nextCategory);
             newQuestionForCategory(nextCategory, difficulty);
             return;
@@ -473,6 +512,7 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
                 },
             };
         });
+        setReview((current) => applyReviewResult(current, category, correctAnswerDisplayName, correct));
         setSession((current) => {
             if (!current || current.finished) return current;
             const missed = correct ? current.missed : [...current.missed, { category, correctAnswer: correctAnswerDisplayName }];
@@ -492,17 +532,30 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
         setScore({ correct: 0, total: 0 });
     };
 
-    const startSession = () => {
+    // Shared by the regular "Start Session" button and "Review Weak Areas" —
+    // weak-review forces a mixed session whose category draws are biased by
+    // categoryWeaknessScore instead of picked uniformly at random.
+    const beginSession = (weak: boolean) => {
         setAnswerMode('choices');
-        const firstCategory = mixedSession ? pickRandom(CATEGORIES) : category;
+        setWeakReviewMode(weak);
+        const mixed = weak || mixedSession;
+        const firstCategory = mixed
+            ? weak
+                ? weightedPickCategory(CATEGORIES, progress)
+                : pickRandom(CATEGORIES)
+            : category;
         applyCategory(firstCategory);
         setQuestion(buildQuestionForCategory(firstCategory, difficulty));
         resetAnswerState();
-        setSession({ length: sessionLength, mixed: mixedSession, index: 0, correctCount: 0, missed: [], finished: false });
+        setSession({ length: sessionLength, mixed, index: 0, correctCount: 0, missed: [], finished: false });
     };
+
+    const startSession = () => beginSession(false);
+    const startWeakReview = () => beginSession(true);
 
     const endSession = () => {
         setSession(null);
+        setWeakReviewMode(false);
     };
 
     const handleChoice = (name: string) => {
@@ -572,7 +625,9 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
             </div>
 
             <div className="mb-6 p-4 rounded-lg theme-secondary-bg">
-                <p className="theme-text font-semibold mb-3">Practice Session</p>
+                <p className="theme-text font-semibold mb-3">
+                    {weakReviewMode && session ? 'Weak Areas Review' : 'Practice Session'}
+                </p>
                 {!session ? (
                     <div className="space-y-3">
                         <div className="flex flex-wrap items-center gap-2">
@@ -621,7 +676,7 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
                             <p className="text-sm text-green-400">Perfect score — no missed questions!</p>
                         )}
                         <div className="flex flex-wrap gap-2">
-                            <button onClick={startSession} className="px-4 py-2 theme-btn rounded-lg hover:opacity-90">
+                            <button onClick={() => beginSession(weakReviewMode)} className="px-4 py-2 theme-btn rounded-lg hover:opacity-90">
                                 Start New Session
                             </button>
                             <button
@@ -787,6 +842,8 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
                     Score: {score.correct} / {score.total}
                 </span>
             </div>
+
+            <ReviewPanel review={review} labels={CATEGORY_LABELS} onStartReview={startWeakReview} disabled={sessionActive} />
 
             <ProgressPanel progress={progress} categories={CATEGORIES} labels={CATEGORY_LABELS} onReset={resetProgress} />
 

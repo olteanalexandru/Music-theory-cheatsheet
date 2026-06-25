@@ -45,6 +45,28 @@ create policy "Users can update their own curriculum progress"
     on public.curriculum_progress for update
     using (auth.uid() = user_id);
 
+-- Per-item spaced-repetition stats (Leitner boxes), one row per user,
+-- synced with the browser's localStorage copy (app/utils/reviewStore.ts).
+create table if not exists public.review_progress (
+    user_id uuid primary key references auth.users(id) on delete cascade,
+    data jsonb not null default '{}'::jsonb,
+    updated_at timestamptz not null default now()
+);
+
+alter table public.review_progress enable row level security;
+
+create policy "Users can read their own review progress"
+    on public.review_progress for select
+    using (auth.uid() = user_id);
+
+create policy "Users can upsert their own review progress"
+    on public.review_progress for insert
+    with check (auth.uid() = user_id);
+
+create policy "Users can update their own review progress"
+    on public.review_progress for update
+    using (auth.uid() = user_id);
+
 -- Metadata for Guitar Pro / MIDI files saved from the Play Along feature.
 -- The actual file bytes live in the `play-along-files` storage bucket below.
 create table if not exists public.uploaded_files (
