@@ -8,6 +8,7 @@ import StaffSection from '@/app/components/StaffSection';
 import RhythmSection from '@/app/components/RhythmSection';
 import EarTraining from '@/app/components/EarTraining';
 import PlayAlong from '@/app/components/PlayAlong';
+import Curriculum from '@/app/components/Curriculum';
 import { guitarTunings,  defaultGuitarTuningName } from '@/app/utils/guitarTunings';
 import { useMidiInput } from '@/app/utils/useMidiInput';
 import { useSynth } from '@/app/utils/useSynth';
@@ -22,7 +23,7 @@ type NoteName = string;  // e.g., 'C', 'C♯', 'D♭', etc.
 // Pattern-related types
 type PatternType = 'scales' | 'arpeggios' | 'chords';
 type PatternName = string;  // e.g., 'Ionian (Major)', 'Dorian', etc.
-type VisibleComponent = 'fretboard' | 'theory' | 'circle' | 'staff' | 'rhythm' | 'earTraining' | 'playAlong';
+type VisibleComponent = 'fretboard' | 'theory' | 'circle' | 'staff' | 'rhythm' | 'earTraining' | 'playAlong' | 'curriculum';
 
 interface Pattern {
   intervals: number[];
@@ -60,6 +61,7 @@ const InteractiveFretboardDisplay = () => {
                 rhythm: true,
                 earTraining: true,
                 playAlong: true,
+                curriculum: true,
             };
         }
 
@@ -73,6 +75,7 @@ const InteractiveFretboardDisplay = () => {
                 rhythm: true,
                 earTraining: true,
                 playAlong: true,
+                curriculum: true,
             };
         }
 
@@ -85,6 +88,7 @@ const InteractiveFretboardDisplay = () => {
                 rhythm: true,
                 earTraining: true,
                 playAlong: true,
+                curriculum: true,
                 ...JSON.parse(saved),
             };
         } catch {
@@ -96,6 +100,7 @@ const InteractiveFretboardDisplay = () => {
                 rhythm: true,
                 earTraining: true,
                 playAlong: true,
+                curriculum: true,
             };
         }
     });
@@ -382,6 +387,12 @@ const InteractiveFretboardDisplay = () => {
                                     >
                                         Play Along
                                     </button>
+                                    <button
+                                        className={componentToggleClass(visibleComponents.curriculum)}
+                                        onClick={() => toggleComponent('curriculum')}
+                                    >
+                                        Curriculum
+                                    </button>
                                 </div>
                             </div>
                             <div className="mt-3 flex flex-wrap items-center gap-3 border-t theme-secondary-bg pt-3">
@@ -458,6 +469,8 @@ const InteractiveFretboardDisplay = () => {
                         </div>
                     )}
                 </div>
+
+                {visibleComponents.curriculum && <Curriculum />}
 
                 {/* Header */}
                 {visibleComponents.fretboard && (

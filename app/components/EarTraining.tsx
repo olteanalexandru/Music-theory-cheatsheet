@@ -39,6 +39,7 @@ import {
     type ProgressionDef,
 } from '@/app/utils/progressionData';
 import { loadProgress, saveProgress, type ProgressStore } from '@/app/utils/progressStore';
+import { subscribeToPracticeFocus } from '@/app/utils/practiceFocusBus';
 import NoteStaffPrompt from '@/app/components/NoteStaffPrompt';
 import GuitarFretPrompt from '@/app/components/GuitarFretPrompt';
 import PianoKeyboard from '@/app/components/PianoKeyboard';
@@ -51,7 +52,7 @@ interface EarTrainingProps {
     synth: SynthController;
 }
 
-type Category = EarTrainingCategory | 'notes' | 'keysig' | 'guitar' | 'rhythm' | 'progressions';
+export type Category = EarTrainingCategory | 'notes' | 'keysig' | 'guitar' | 'rhythm' | 'progressions';
 type AnswerMode = 'choices' | 'midi';
 type AnswerStatus = 'idle' | 'correct' | 'incorrect';
 
@@ -364,6 +365,25 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
         }
     };
 
+    // Lets a Curriculum lesson's "Practice this" button steer this panel to a
+    // specific category/difficulty without page.tsx having to prop-drill it.
+    useEffect(() => {
+        return subscribeToPracticeFocus(({ category: nextCategory, difficulty: nextDifficulty }) => {
+            applyCategory(nextCategory);
+            setDifficulty(nextDifficulty);
+            setSession(null);
+            if (nextCategory === 'notes') {
+                const preset = NOTES_DIFFICULTY_PRESETS[nextDifficulty];
+                setRange(preset.range);
+                setSelectedKeys(preset.keys);
+                newNotesQuestion(clef, preset.keys, preset.range);
+            } else {
+                newQuestionForCategory(nextCategory, nextDifficulty);
+            }
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [clef, answerMode]);
+
     const handleClefChange = (nextClef: ClefId) => {
         setClef(nextClef);
         newNotesQuestion(nextClef, selectedKeys, range);
@@ -517,7 +537,7 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
     const sessionActive = session !== null && !session.finished;
 
     return (
-        <div className="theme-card rounded-lg p-4 md:p-6 shadow-lg">
+        <div id="ear-training-section" className="theme-card rounded-lg p-4 md:p-6 shadow-lg">
             <h3 className="text-lg md:text-xl font-bold theme-text mb-4">Ear Training</h3>
 
             <div className="flex flex-wrap gap-2 mb-4">

@@ -1,9 +1,11 @@
 'use client';
 
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { getSupabaseClient } from '@/app/utils/supabaseClient';
-import { loadProgress, saveProgress, mergeProgress, subscribeToProgressChanges, type ProgressStore } from '@/app/utils/progressStore';
+import { loadProgress, saveProgress, mergeProgress, subscribeToProgressChanges } from '@/app/utils/progressStore';
+import { loadCurriculum, saveCurriculum, mergeCurriculum, subscribeToCurriculumChanges } from '@/app/utils/curriculumStore';
+import { useCloudSync } from '@/app/utils/useCloudSync';
 
 interface AuthResult {
     error: string | null;
@@ -41,37 +43,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return () => subscription.subscription.unsubscribe();
     }, [supabase]);
 
-    // Pulls the cloud copy once per sign-in and merges it into localStorage,
-    // then keeps pushing local changes up while signed in. progressStore stays
-    // unaware of Supabase entirely - this is the only place the two meet.
+    // Pulls each cloud copy once per sign-in and merges it into localStorage,
+    // then keeps pushing local changes up while signed in - see useCloudSync.
     const userId = session?.user.id;
-    const pushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    useEffect(() => {
-        if (!supabase || !userId) return;
-        let cancelled = false;
-
-        (async () => {
-            const { data } = await supabase.from('progress').select('data').eq('user_id', userId).maybeSingle();
-            if (cancelled) return;
-            const cloud = (data?.data ?? {}) as ProgressStore;
-            saveProgress(mergeProgress(loadProgress(), cloud));
-        })();
-
-        const unsubscribe = subscribeToProgressChanges((progress) => {
-            if (pushTimerRef.current) clearTimeout(pushTimerRef.current);
-            pushTimerRef.current = setTimeout(() => {
-                void supabase
-                    .from('progress')
-                    .upsert({ user_id: userId, data: progress, updated_at: new Date().toISOString() });
-            }, 1000);
-        });
-
-        return () => {
-            cancelled = true;
-            unsubscribe();
-            if (pushTimerRef.current) clearTimeout(pushTimerRef.current);
-        };
-    }, [supabase, userId]);
+    useCloudSync(supabase, userId, 'progress', loadProgress, saveProgress, mergeProgress, subscribeToProgressChanges);
+    useCloudSync(supabase, userId, 'curriculum_progress', loadCurriculum, saveCurriculum, mergeCurriculum, subscribeToCurriculumChanges);
 
     const signUp = useCallback<AuthContextValue['signUp']>(
         async (email, password) => {
