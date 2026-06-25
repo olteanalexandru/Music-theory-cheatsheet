@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Moon, Sun } from "lucide-react";
+import type { AppTheme } from "./ThemeWrapper";
 import { FacebookIcon, InstagramIcon, LinkedinIcon } from "./icons/SocialIcons";
 import ShareButton from "./ShareButton";
 
@@ -16,12 +18,19 @@ interface StarElement {
 }
 
 interface FooterProps {
-  isLightMode: boolean;
-  toggleLightMode: () => void;
+  theme: AppTheme;
+  setTheme: (theme: AppTheme) => void;
 }
 
-const Footer = ({ isLightMode, toggleLightMode }: FooterProps) => {
+const THEME_OPTIONS: { value: AppTheme; label: string; icon: React.ReactNode }[] = [
+  { value: "dark", label: "Dark", icon: <Moon size={14} /> },
+  { value: "light", label: "Light", icon: <Sun size={14} /> },
+  { value: "psychedelic", label: "Psychedelic", icon: <span aria-hidden="true">🍄</span> },
+];
+
+const Footer = ({ theme, setTheme }: FooterProps) => {
   const [starElements, setStarElements] = useState<StarElement[]>([]);
+  const isLightMode = theme === "light";
 
   // Stars use Math.random(), so they must be generated client-side only,
   // after mount, to avoid a hydration mismatch against the static export.
@@ -84,12 +93,22 @@ const Footer = ({ isLightMode, toggleLightMode }: FooterProps) => {
             label="Share"
           />
 
-          <button
-            onClick={toggleLightMode}
-            className="btn"
-          >
-            {isLightMode ? 'Dark Mode' : 'Light Mode'}
-          </button>
+          <div role="group" aria-label="Theme" className="flex items-center gap-1 p-1 rounded-lg theme-muted-bg">
+            {THEME_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                onClick={() => setTheme(option.value)}
+                aria-pressed={theme === option.value}
+                title={option.label}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm transition-colors ${
+                  theme === option.value ? 'theme-btn' : 'theme-secondary-text hover:opacity-80'
+                }`}
+              >
+                {option.icon}
+                <span className="hidden sm:inline">{option.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
       <div className="absolute inset-0 z-0">

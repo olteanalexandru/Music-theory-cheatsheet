@@ -65,10 +65,37 @@
   --warning-border: #fde68a;
 }
 
+.psychedelic-mode {
+  /* Psychedelic mode overrides */
+  --background: #1a0b2e;
+  --foreground: #fdf4ff;
+  --card-background: rgba(45, 11, 67, 0.72);
+  --card-foreground: #fef08a;
+  --button-background: #ec4899;
+  --button-foreground: #ffffff;
+  --link-color: #5eead4;
+  --secondary-bg: rgba(26, 7, 46, 0.85);
+  --secondary-fg: #fbcfe8;
+  --muted-bg: rgba(124, 58, 237, 0.35);
+  --muted-fg: #f5d0fe;
+  --accent-bg: #f97316;
+  --accent-fg: #1a0b2e;
+  --hover-bg: #db2777;
+  --warning-fg: #fde047;
+  --warning-bg: rgba(249, 115, 22, 0.15);
+  --warning-border: rgba(249, 115, 22, 0.45);
+}
+
 /* Apply background and foreground variables to the root elements */
 html, body {
   background-color: var(--background);
   color: var(--foreground);
+}
+
+body.psychedelic-mode {
+  background: linear-gradient(135deg, #ff00cc, #7c3aed, #06b6d4, #fbbf24, #ff00cc);
+  background-size: 400% 400%;
+  animation: psychedelic-bg-shift 20s ease infinite;
 }
 
 body {
@@ -181,4 +208,90 @@ a:hover {
 
 .animate-galaxy {
   animation: galaxy linear infinite;
+}
+
+/* Psychedelic mode: animated rainbow background + gentle movement everywhere */
+@keyframes psychedelic-bg-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes psy-wobble {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  25% { transform: rotate(0.6deg) scale(1.01); }
+  50% { transform: rotate(-0.5deg) scale(1); }
+  75% { transform: rotate(0.4deg) scale(1.01); }
+}
+
+@keyframes psy-glow {
+  0%, 100% { box-shadow: 0 0 18px rgba(236, 72, 153, 0.45), 0 0 36px rgba(34, 211, 238, 0.25); }
+  50% { box-shadow: 0 0 28px rgba(34, 211, 238, 0.5), 0 0 50px rgba(249, 115, 22, 0.3); }
+}
+
+@keyframes psy-btn-shift {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 300% 50%; }
+}
+
+.psychedelic-mode .theme-card,
+.psychedelic-mode .card {
+  animation: psy-wobble 7s ease-in-out infinite, psy-glow 5s ease-in-out infinite;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.psychedelic-mode .theme-card:nth-of-type(2n),
+.psychedelic-mode .card:nth-of-type(2n) {
+  animation-delay: -2.5s, -1.5s;
+}
+
+.psychedelic-mode .theme-card:nth-of-type(3n),
+.psychedelic-mode .card:nth-of-type(3n) {
+  animation-delay: -4.5s, -3s;
+}
+
+.psychedelic-mode .btn,
+.psychedelic-mode .theme-btn {
+  background: linear-gradient(90deg, #ec4899, #8b5cf6, #06b6d4, #f97316, #ec4899);
+  background-size: 300% 100%;
+  animation: psy-btn-shift 5s linear infinite;
+  color: #ffffff;
+}
+
+.psychedelic-mode a {
+  text-shadow: 0 0 8px rgba(94, 234, 212, 0.5);
+}
+
+/* Floating mushroom field: a fixed, full-viewport decoration layer. Renders
+   above page content (the header/footer/cards all paint opaque backgrounds,
+   so a lower z-index would be invisible); pointer-events is disabled so it
+   never blocks real clicks. */
+.psychedelic-mushroom-field {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.psychedelic-mushroom {
+  position: absolute;
+  bottom: -10%;
+  display: inline-block;
+  animation-name: mushroom-rise, mushroom-hue;
+  animation-timing-function: linear, linear;
+  animation-iteration-count: infinite, infinite;
+  filter: hue-rotate(0deg) saturate(1.5) drop-shadow(0 0 6px rgba(236, 72, 153, 0.6));
+}
+
+@keyframes mushroom-rise {
+  0% { transform: translate(0, 10vh) rotate(0deg) scale(0.8); opacity: 0; }
+  10% { opacity: 0.85; }
+  50% { transform: translate(var(--mushroom-drift), -55vh) rotate(180deg) scale(1.15); }
+  90% { opacity: 0.85; }
+  100% { transform: translate(0, -120vh) rotate(360deg) scale(0.8); opacity: 0; }
+}
+
+@keyframes mushroom-hue {
+  0% { filter: hue-rotate(0deg) saturate(1.5) drop-shadow(0 0 6px rgba(236, 72, 153, 0.6)); }
+  100% { filter: hue-rotate(360deg) saturate(1.5) drop-shadow(0 0 6px rgba(34, 211, 238, 0.6)); }
 }
