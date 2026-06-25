@@ -1,4 +1,5 @@
 import type { NoteTimelineEntry, ParsedScore } from '@/app/utils/scoreTypes';
+import { buildNotationFromMidi } from '@/app/utils/midiToNotation';
 
 // Hand-rolled Standard MIDI File (SMF) reader. alphaTab (used for Guitar Pro
 // import elsewhere in this feature) explicitly cannot import standalone .mid
@@ -187,7 +188,7 @@ function buildTickToMsConverter(tempoChanges: TempoChange[], division: number): 
     };
 }
 
-export function parseMidiFile(buffer: ArrayBuffer, fileName: string): ParsedScore {
+export async function parseMidiFile(buffer: ArrayBuffer, fileName: string): Promise<ParsedScore> {
     const reader = new ByteReader(new Uint8Array(buffer));
 
     if (reader.readString(4) !== 'MThd') {
@@ -237,11 +238,14 @@ export function parseMidiFile(buffer: ArrayBuffer, fileName: string): ParsedScor
         .sort((a, b) => a.startMs - b.startMs);
 
     const durationMs = notes.reduce((max, n) => Math.max(max, n.startMs + n.durationMs), 0);
+    const title = fileName.replace(/\.[^/.]+$/, '');
+    const notation = await buildNotationFromMidi(rawNotes, tempoChanges, division, trackNames, title).catch(() => null);
 
     return {
-        title: fileName.replace(/\.[^/.]+$/, ''),
+        title,
         trackNames,
         notes,
         durationMs,
+        ...(notation ? { notation } : {}),
     };
 }

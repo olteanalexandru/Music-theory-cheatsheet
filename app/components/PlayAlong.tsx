@@ -18,7 +18,7 @@ import {
     type Instrument,
 } from '@/app/utils/tunings';
 import PianoKeyboard from '@/app/components/PianoKeyboard';
-import ScoreNotation, { type ClefOverride } from '@/app/components/ScoreNotation';
+import ScoreNotation, { type ClefOverride, type NoteLabelMode } from '@/app/components/ScoreNotation';
 import NoteHighway from '@/app/components/NoteHighway';
 import ShareButton from '@/app/components/ShareButton';
 import { useAuth } from '@/app/utils/AuthContext';
@@ -88,6 +88,8 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
     const [customTunings, setCustomTunings] = useState<Record<number, { instrument: Instrument; notes: number[] } | null>>({});
     const [showTuningPanel, setShowTuningPanel] = useState(false);
     const [clefOverride, setClefOverride] = useState<ClefOverride>('auto');
+    const [showTab, setShowTab] = useState(true);
+    const [noteLabelMode, setNoteLabelMode] = useState<NoteLabelMode>('off');
 
     const { user } = useAuth();
     const supabase = useMemo(() => getSupabaseClient(), []);
@@ -307,7 +309,7 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
             let result: ParsedScore;
             let kind: FileKind;
             if (ext === 'mid' || ext === 'midi') {
-                result = parseMidiFile(buffer, file.name);
+                result = await parseMidiFile(buffer, file.name);
                 kind = 'midi';
             } else if (GUITAR_PRO_EXTENSIONS.has(ext)) {
                 result = await parseGuitarProFile(buffer, file.name);
@@ -328,6 +330,7 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
             setCustomTunings({});
             setShowTuningPanel(false);
             setClefOverride('auto');
+            setShowTab(kind !== 'midi');
 
             if (!options?.skipSave && user && supabase) {
                 setSaveState('saving');
@@ -714,7 +717,7 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
                                         effectiveViewMode === 'notation' ? 'theme-btn' : 'theme-muted-bg theme-secondary-text'
                                     }`}
                                 >
-                                    Staff + Tab
+                                    {fileKind === 'midi' ? 'Staff' : 'Staff + Tab'}
                                 </button>
                                 <button
                                     onClick={() => setViewMode('highway')}
@@ -729,7 +732,7 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
                     </div>
 
                     {parsed.notation && effectiveViewMode === 'notation' && (
-                        <div className="flex items-center gap-2 mb-4">
+                        <div className="flex flex-wrap items-center gap-2 mb-4">
                             <span className="text-sm theme-secondary-text">Clef:</span>
                             {(['auto', 'treble', 'bass'] as ClefOverride[]).map((option) => (
                                 <button
@@ -740,6 +743,28 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
                                     }`}
                                 >
                                     {option === 'auto' ? 'Auto' : option === 'treble' ? 'Treble (G)' : 'Bass (F)'}
+                                </button>
+                            ))}
+
+                            {fileKind === 'gp' && (
+                                <button
+                                    onClick={() => setShowTab((cur) => !cur)}
+                                    className="px-3 py-1 rounded-lg text-sm theme-muted-bg theme-secondary-text ml-2"
+                                >
+                                    {showTab ? 'Hide Tab' : 'Show Tab'}
+                                </button>
+                            )}
+
+                            <span className="text-sm theme-secondary-text ml-2">Note Labels:</span>
+                            {(['off', 'names', 'solfege'] as NoteLabelMode[]).map((option) => (
+                                <button
+                                    key={option}
+                                    onClick={() => setNoteLabelMode(option)}
+                                    className={`px-3 py-1 rounded-lg text-sm capitalize ${
+                                        noteLabelMode === option ? 'theme-btn' : 'theme-muted-bg theme-secondary-text'
+                                    }`}
+                                >
+                                    {option === 'off' ? 'Off' : option === 'names' ? 'Names' : 'Solfège'}
                                 </button>
                             ))}
                         </div>
@@ -848,10 +873,11 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
                         </p>
                     )}
 
-                    {fileKind === 'midi' && (
+                    {fileKind === 'midi' && parsed.notation && effectiveViewMode === 'notation' && (
                         <p className="text-xs theme-secondary-text mb-3">
-                            Staff/tab notation isn&apos;t available for MIDI files — only the piano roll view works
-                            here. Import a Guitar Pro file (.gp/.gp3/.gp4/.gp5/.gpx) to see engraved notation.
+                            MIDI files carry no fret/string data, so only a standard notation staff (no tab) is
+                            shown — note positions are quantized to a sixteenth-note grid and may not exactly
+                            match the original rhythm.
                         </p>
                     )}
 
@@ -963,6 +989,19 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
                                 gradedNotes={gradedNotes}
                                 transposeSemitones={transposeSemitones}
                                 clef={clefOverride}
+                                showTab={showTab}
+                                noteLabelMode={noteLabelMode}
+                                loopStartMs={loopEnabled ? loopStartMs : 0}
+                                loopEndMs={loopEnabled ? loopEndMs : 0}
+                                onLoopRangeSelect={
+                                    runState === 'running' || runState === 'paused'
+                                        ? undefined
+                                        : (startMs, endMs) => {
+                                              setLoopStartMs(startMs);
+                                              setLoopEndMs(endMs);
+                                              setLoopEnabled(true);
+                                          }
+                                }
                             />
                         </div>
                     )}

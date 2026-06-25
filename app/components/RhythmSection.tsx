@@ -27,12 +27,38 @@ function buildExamplePatterns(): Record<TimeSignatureName, RhythmEvent[]> {
     return initial;
 }
 
+// A fixed, non-random measure of quarter notes per time signature, used only
+// as the initial render's example pattern so server and client markup match.
+// generateRhythmPattern uses Math.random(), so calling it directly in a
+// useState initializer would render a different pattern on the server vs.
+// the client's first render and trigger a hydration mismatch.
+function buildDefaultExamplePatterns(): Record<TimeSignatureName, RhythmEvent[]> {
+    const initial = {} as Record<TimeSignatureName, RhythmEvent[]>;
+    TIME_SIGNATURE_NAMES.forEach((name) => {
+        initial[name] = Array.from({ length: TIME_SIGNATURES[name].beatsPerMeasure }, () => ({
+            type: 'note' as const,
+            duration: 'quarter' as const,
+            beats: 1,
+        }));
+    });
+    return initial;
+}
+
 const RhythmSection: React.FC<RhythmSectionProps> = ({ synth }) => {
     const [bpm, setBpm] = useState(100);
     const [timeSig, setTimeSig] = useState<TimeSignatureName>('4/4');
     const [isPlaying, setIsPlaying] = useState(false);
-    const [examplePatterns, setExamplePatterns] = useState<Record<TimeSignatureName, RhythmEvent[]>>(buildExamplePatterns);
+    const [examplePatterns, setExamplePatterns] = useState<Record<TimeSignatureName, RhythmEvent[]>>(
+        buildDefaultExamplePatterns
+    );
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    // Swaps in the randomized example patterns after mount, once the
+    // server-matching deterministic initial render has already committed.
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setExamplePatterns(buildExamplePatterns());
+    }, []);
 
     const beatsPerMeasure = TIME_SIGNATURES[timeSig].beatsPerMeasure;
 
