@@ -42,6 +42,11 @@ interface ScoreNotationProps {
     // Overlays a label above every notehead: 'off' (default), 'names' (C,
     // D♯, ...) or 'solfege' (fixed-do Do/Re/Mi/...).
     noteLabelMode?: NoteLabelMode;
+    // Caller-owned controls (e.g. PlayAlong's Play/Pause/Stop transport
+    // buttons) rendered inside the full-view overlay, which otherwise covers
+    // them since it portals to document.body above everything else on the
+    // page. Ignored outside full view, where the caller renders them itself.
+    controls?: React.ReactNode;
 }
 
 export type NoteLabelMode = 'off' | 'names' | 'solfege';
@@ -176,6 +181,7 @@ const ScoreNotation: React.FC<ScoreNotationProps> = ({
     loopEndMs = 0,
     onLoopRangeSelect,
     noteLabelMode = 'off',
+    controls,
 }) => {
     const containerRef = useRef<HTMLDivElement | null>(null);
     const renderHostRef = useRef<HTMLDivElement | null>(null);
@@ -610,6 +616,7 @@ const ScoreNotation: React.FC<ScoreNotationProps> = ({
                     {fullView ? '✕ Exit Full View' : '⤢ Full View'}
                 </button>
             </div>
+            {fullView && controls && <div className="px-2 pb-2">{controls}</div>}
             {onLoopRangeSelect && (
                 <p className="text-xs theme-secondary-text px-2 pb-1">
                     Click a note to mark the loop start, then click another to set the end — or drag across a range.

@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Patterns, PatternType } from '@/app/page';
+import type { Patterns, PatternType } from '@/app/app/page';
 
 type FretboardProps = {
     getNoteAtFret: (string: string, fret: number) => string,

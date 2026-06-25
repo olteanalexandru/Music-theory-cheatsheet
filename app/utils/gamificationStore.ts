@@ -13,7 +13,10 @@ export interface GamificationStore {
 
 const STORAGE_KEY = 'music-theory-cheatsheet-gamification';
 
-function normalizeStore(data: Partial<GamificationStore> | undefined): GamificationStore {
+// Exported so profileStore.ts can normalize a gamification row fetched
+// directly from Supabase (for viewing someone else's level/achievements)
+// without duplicating the defaulting logic.
+export function normalizeStore(data: Partial<GamificationStore> | undefined): GamificationStore {
     return {
         xp: data?.xp ?? 0,
         achievements: data?.achievements ?? {},

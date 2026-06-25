@@ -479,6 +479,65 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
         return { hit, wrong, missed };
     }, [gradedNotes]);
 
+    // Rendered both inline (its normal position below the view-mode toggle)
+    // and passed into ScoreNotation's `controls` prop, which surfaces it
+    // inside the full-view overlay too — full view portals to document.body
+    // with its own z-50 stacking context, so without this the transport
+    // buttons would be covered and unreachable while full view is open.
+    const transportControls = (
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+            {(runState === 'idle' || runState === 'finished') && (
+                <button
+                    onClick={start}
+                    disabled={trackNotes.length === 0}
+                    className="px-4 py-2 theme-btn rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
+                >
+                    ▶ Start
+                </button>
+            )}
+            {runState === 'running' && (
+                <>
+                    <button
+                        onClick={pause}
+                        className="px-4 py-2 theme-muted-bg theme-secondary-text rounded-lg font-medium hover:opacity-90"
+                    >
+                        ⏸ Pause
+                    </button>
+                    <button
+                        onClick={stopEarly}
+                        className="px-4 py-2 bg-red-500 text-white rounded-lg font-medium hover:opacity-90"
+                    >
+                        ■ Stop
+                    </button>
+                </>
+            )}
+            {runState === 'paused' && (
+                <>
+                    <button
+                        onClick={resume}
+                        className="px-4 py-2 theme-btn rounded-lg font-medium hover:opacity-90"
+                    >
+                        ▶ Resume
+                    </button>
+                    <button
+                        onClick={stopEarly}
+                        className="px-4 py-2 bg-red-500 text-white rounded-lg font-medium hover:opacity-90"
+                    >
+                        ■ Stop
+                    </button>
+                </>
+            )}
+
+            {(runState === 'running' || runState === 'paused') && (
+                <span className="text-sm theme-secondary-text">
+                    Hit: <span className="text-green-400">{liveCounts.hit}</span> · Wrong:{' '}
+                    <span className="text-red-400">{liveCounts.wrong}</span> · Missed:{' '}
+                    <span className="text-slate-400">{liveCounts.missed}</span>
+                </span>
+            )}
+        </div>
+    );
+
     return (
         <div className="theme-card rounded-lg p-4 md:p-6 shadow-lg">
             <h2 className="text-2xl font-bold theme-text mb-2">Play Along</h2>
@@ -881,57 +940,7 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
                         </p>
                     )}
 
-                    <div className="flex flex-wrap items-center gap-2 mb-4">
-                        {(runState === 'idle' || runState === 'finished') && (
-                            <button
-                                onClick={start}
-                                disabled={trackNotes.length === 0}
-                                className="px-4 py-2 theme-btn rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
-                            >
-                                ▶ Start
-                            </button>
-                        )}
-                        {runState === 'running' && (
-                            <>
-                                <button
-                                    onClick={pause}
-                                    className="px-4 py-2 theme-muted-bg theme-secondary-text rounded-lg font-medium hover:opacity-90"
-                                >
-                                    ⏸ Pause
-                                </button>
-                                <button
-                                    onClick={stopEarly}
-                                    className="px-4 py-2 bg-red-500 text-white rounded-lg font-medium hover:opacity-90"
-                                >
-                                    ■ Stop
-                                </button>
-                            </>
-                        )}
-                        {runState === 'paused' && (
-                            <>
-                                <button
-                                    onClick={resume}
-                                    className="px-4 py-2 theme-btn rounded-lg font-medium hover:opacity-90"
-                                >
-                                    ▶ Resume
-                                </button>
-                                <button
-                                    onClick={stopEarly}
-                                    className="px-4 py-2 bg-red-500 text-white rounded-lg font-medium hover:opacity-90"
-                                >
-                                    ■ Stop
-                                </button>
-                            </>
-                        )}
-
-                        {(runState === 'running' || runState === 'paused') && (
-                            <span className="text-sm theme-secondary-text">
-                                Hit: <span className="text-green-400">{liveCounts.hit}</span> · Wrong:{' '}
-                                <span className="text-red-400">{liveCounts.wrong}</span> · Missed:{' '}
-                                <span className="text-slate-400">{liveCounts.missed}</span>
-                            </span>
-                        )}
-                    </div>
+                    {transportControls}
 
                     {effectiveViewMode === 'roll' && (
                         <div className="flex items-center gap-4 mb-2 text-xs theme-secondary-text">
@@ -991,6 +1000,7 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
                                 clef={clefOverride}
                                 showTab={showTab}
                                 noteLabelMode={noteLabelMode}
+                                controls={transportControls}
                                 loopStartMs={loopEnabled ? loopStartMs : 0}
                                 loopEndMs={loopEnabled ? loopEndMs : 0}
                                 onLoopRangeSelect={

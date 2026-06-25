@@ -9,13 +9,39 @@ interface ShareButtonProps {
     url?: string;
     label?: string;
     className?: string;
+    // Renders a richer PNG card (level/XP/achievements) to share or download
+    // instead of plain text - see app/utils/shareCard.ts. Ignored if it
+    // resolves null (e.g. canvas unsupported), falling back to text sharing.
+    canvasRenderer?: () => Promise<Blob | null>;
 }
 
-const ShareButton: React.FC<ShareButtonProps> = ({ title, text, url, label = 'Share', className = '' }) => {
+const ShareButton: React.FC<ShareButtonProps> = ({ title, text, url, label = 'Share', className = '', canvasRenderer }) => {
     const [copied, setCopied] = useState(false);
 
     const handleShare = async () => {
         const shareUrl = url ?? window.location.href;
+
+        if (canvasRenderer) {
+            const blob = await canvasRenderer().catch(() => null);
+            if (blob) {
+                const file = new File([blob], 'music-theory-cheatsheet-progress.png', { type: 'image/png' });
+                if (navigator.canShare?.({ files: [file] })) {
+                    try {
+                        await navigator.share({ title, text, files: [file] });
+                        return;
+                    } catch (err) {
+                        if (err instanceof DOMException && err.name === 'AbortError') return;
+                        // Falls through to a direct download below.
+                    }
+                }
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(file);
+                link.download = file.name;
+                link.click();
+                URL.revokeObjectURL(link.href);
+                return;
+            }
+        }
 
         if (navigator.share) {
             try {

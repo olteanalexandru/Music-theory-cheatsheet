@@ -10,6 +10,7 @@ import {
     type GamificationStore,
 } from '@/app/utils/gamificationStore';
 import ShareButton from '@/app/components/ShareButton';
+import { buildShareCardData, renderShareCard } from '@/app/utils/shareCard';
 
 const GamificationPanel: React.FC = () => {
     const [gamification, setGamification] = useState<GamificationStore>(() => loadGamification());
@@ -48,6 +49,7 @@ const GamificationPanel: React.FC = () => {
                         title="Music Theory Cheatsheet"
                         text={`I'm Level ${level} with ${unlockedCount}/${ACHIEVEMENTS.length} achievements unlocked on Music Theory Cheatsheet! 🎵`}
                         label="Share progress"
+                        canvasRenderer={() => renderShareCard(buildShareCardData(gamification))}
                     />
                 </div>
             </div>

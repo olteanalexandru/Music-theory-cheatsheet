@@ -154,3 +154,78 @@ drop policy if exists "Users can delete their own play-along files" on storage.o
 create policy "Users can delete their own play-along files"
     on storage.objects for delete
     using (bucket_id = 'play-along-files' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- Public-facing profile (username, display name, bio), one row per user.
+-- Unlike progress/gamification/etc. this is meant to be readable by other
+-- users (when is_public = true) to support shareable profile pages and the
+-- leaderboard, not just synced privately to its own owner.
+create table if not exists public.profiles (
+    user_id uuid primary key references auth.users(id) on delete cascade,
+    username text not null unique check (username ~ '^[a-z0-9_]{3,20}$'),
+    display_name text,
+    bio text,
+    is_public boolean not null default true,
+    created_at timestamptz not null default now()
+);
+
+alter table public.profiles enable row level security;
+
+drop policy if exists "Anyone can read public profiles" on public.profiles;
+create policy "Anyone can read public profiles"
+    on public.profiles for select
+    using (is_public = true or auth.uid() = user_id);
+
+drop policy if exists "Users can insert their own profile" on public.profiles;
+create policy "Users can insert their own profile"
+    on public.profiles for insert
+    with check (auth.uid() = user_id);
+
+drop policy if exists "Users can update their own profile" on public.profiles;
+create policy "Users can update their own profile"
+    on public.profiles for update
+    using (auth.uid() = user_id);
+
+-- Lets a public profile's gamification (XP/level/achievements) row be read
+-- by anyone, in addition to the existing owner-only policy above (Postgres
+-- combines multiple permissive policies for the same command with OR), so
+-- the leaderboard and public profile pages can show it without exposing
+-- private users' data.
+drop policy if exists "Anyone can read public profiles' gamification data" on public.gamification;
+create policy "Anyone can read public profiles' gamification data"
+    on public.gamification for select
+    using (
+        exists (
+            select 1 from public.profiles
+            where profiles.user_id = gamification.user_id
+            and profiles.is_public = true
+        )
+    );
+
+-- Follow graph for the friends/leaderboard-filter feature. Readable by
+-- anyone so follower/following counts and "friends" leaderboard filtering
+-- work for any viewer, but only the follower can create/remove their own
+-- follow rows.
+create table if not exists public.follows (
+    follower_id uuid not null references auth.users(id) on delete cascade,
+    followee_id uuid not null references auth.users(id) on delete cascade,
+    created_at timestamptz not null default now(),
+    primary key (follower_id, followee_id),
+    check (follower_id <> followee_id)
+);
+
+alter table public.follows enable row level security;
+
+drop policy if exists "Anyone can read follows" on public.follows;
+create policy "Anyone can read follows"
+    on public.follows for select
+    using (true);
+
+drop policy if exists "Users can follow others" on public.follows;
+create policy "Users can follow others"
+    on public.follows for insert
+    with check (auth.uid() = follower_id);
+
+drop policy if exists "Users can unfollow" on public.follows;
+create policy "Users can unfollow"
+    on public.follows for delete
+    using (auth.uid() = follower_id);
