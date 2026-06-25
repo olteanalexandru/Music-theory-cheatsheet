@@ -66,6 +66,8 @@ Sign-in, practice progress sync, and saved Play Along files are powered by [Supa
 
 Once configured, signing in will automatically merge any existing localStorage progress into the cloud, then keep both in sync going forward.
 
+**Troubleshooting a 403 on `uploaded_files` or `play-along-files`**: this happens if `schema.sql` was run more than once before its policies were idempotent — an early `CREATE POLICY` would fail with "policy already exists" and abort the script before reaching the `uploaded_files` table or storage bucket policies near the end. The script now drops each policy before recreating it, so just re-run the current [`supabase/schema.sql`](./supabase/schema.sql) in the SQL Editor again to fix it.
+
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
 ## Learn More

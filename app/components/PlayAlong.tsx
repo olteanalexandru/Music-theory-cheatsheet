@@ -18,7 +18,7 @@ import {
     type Instrument,
 } from '@/app/utils/tunings';
 import PianoKeyboard from '@/app/components/PianoKeyboard';
-import ScoreNotation from '@/app/components/ScoreNotation';
+import ScoreNotation, { type ClefOverride } from '@/app/components/ScoreNotation';
 import NoteHighway from '@/app/components/NoteHighway';
 import ShareButton from '@/app/components/ShareButton';
 import { useAuth } from '@/app/utils/AuthContext';
@@ -87,6 +87,7 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
     const [transposeSemitones, setTransposeSemitones] = useState(0);
     const [customTunings, setCustomTunings] = useState<Record<number, { instrument: Instrument; notes: number[] } | null>>({});
     const [showTuningPanel, setShowTuningPanel] = useState(false);
+    const [clefOverride, setClefOverride] = useState<ClefOverride>('auto');
 
     const { user } = useAuth();
     const supabase = useMemo(() => getSupabaseClient(), []);
@@ -326,6 +327,7 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
             setTransposeSemitones(0);
             setCustomTunings({});
             setShowTuningPanel(false);
+            setClefOverride('auto');
 
             if (!options?.skipSave && user && supabase) {
                 setSaveState('saving');
@@ -726,6 +728,23 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
                         )}
                     </div>
 
+                    {parsed.notation && effectiveViewMode === 'notation' && (
+                        <div className="flex items-center gap-2 mb-4">
+                            <span className="text-sm theme-secondary-text">Clef:</span>
+                            {(['auto', 'treble', 'bass'] as ClefOverride[]).map((option) => (
+                                <button
+                                    key={option}
+                                    onClick={() => setClefOverride(option)}
+                                    className={`px-3 py-1 rounded-lg text-sm capitalize ${
+                                        clefOverride === option ? 'theme-btn' : 'theme-muted-bg theme-secondary-text'
+                                    }`}
+                                >
+                                    {option === 'auto' ? 'Auto' : option === 'treble' ? 'Treble (G)' : 'Bass (F)'}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
                     {showTuningPanel && originalTuningMidi && (() => {
                         const tuningMidi = activeTuning?.notes ?? originalTuningMidi;
                         const instrument = activeTuning?.instrument ?? defaultInstrumentFor(originalTuningMidi.length);
@@ -822,11 +841,10 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
                         );
                     })()}
 
-                    {parsed.notation && (transposeSemitones !== 0 || activeTuning) && (
+                    {parsed.notation && activeTuning && (
                         <p className="text-xs theme-secondary-text mb-3">
-                            Transpose and custom tuning change what you play in the Piano Roll, Note Highway, and
-                            live grading, but the Staff + Tab view still shows the file&apos;s original key and
-                            tuning.
+                            Custom tuning changes what you play in the Piano Roll, Note Highway, and live grading,
+                            but the Staff + Tab view still shows the file&apos;s original tuning.
                         </p>
                     )}
 
@@ -943,6 +961,8 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
                                 getSongMs={getSongMs}
                                 running={runState === 'running'}
                                 gradedNotes={gradedNotes}
+                                transposeSemitones={transposeSemitones}
+                                clef={clefOverride}
                             />
                         </div>
                     )}
