@@ -9,9 +9,19 @@ export interface NoteTimelineEntry {
     velocity: number;
 }
 
+// Only populated for Guitar Pro family files (.gp/.gp3/.gp4/.gp5/.gpx) - raw
+// MIDI files carry no fret/string/rhythmic-layout metadata, so there's no
+// staff/tab notation to render for them, only the note timeline above.
+export interface NotationSource {
+    score: import('@coderline/alphatab').model.Score;
+    tempoTicks: number[];
+    tempoBpm: number[];
+}
+
 export interface ParsedScore {
     title: string;
     trackNames: string[];
     notes: NoteTimelineEntry[];
     durationMs: number;
+    notation?: NotationSource;
 }

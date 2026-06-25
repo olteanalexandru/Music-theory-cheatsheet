@@ -9,6 +9,7 @@ import type { NoteTimelineEntry, ParsedScore } from '@/app/utils/scoreTypes';
 import { ScoreFollowEngine, type GradedNote, type NoteJudgement } from '@/app/utils/scoreFollow';
 import { noteNameFromMidi } from '@/app/utils/notes';
 import PianoKeyboard from '@/app/components/PianoKeyboard';
+import ScoreNotation from '@/app/components/ScoreNotation';
 
 interface PlayAlongProps {
     midi: MidiInputController;
@@ -17,6 +18,7 @@ interface PlayAlongProps {
 
 type FileKind = 'gp' | 'midi';
 type RunState = 'idle' | 'running' | 'paused' | 'finished';
+type ViewMode = 'roll' | 'notation';
 
 const GUITAR_PRO_EXTENSIONS = new Set(['gp', 'gp3', 'gp4', 'gp5', 'gpx']);
 const STRICTNESS_OPTIONS: { label: string; hitWindowMs: number }[] = [
@@ -63,6 +65,7 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
     const [report, setReport] = useState<ReturnType<ScoreFollowEngine['getReport']> | null>(null);
     const [gradedNotes, setGradedNotes] = useState<GradedNote[]>([]);
     const [heldClickNotes, setHeldClickNotes] = useState<Set<number>>(new Set());
+    const [viewMode, setViewMode] = useState<ViewMode>('notation');
 
     const engineRef = useRef<ScoreFollowEngine | null>(null);
     const elapsedAtPauseRef = useRef(0);
@@ -298,6 +301,8 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
         [synth]
     );
 
+    const effectiveViewMode: ViewMode = parsed?.notation ? viewMode : 'roll';
+
     const liveCounts = useMemo(() => {
         let hit = 0;
         let wrong = 0;
@@ -393,7 +398,35 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
                         <span ref={timeLabelRef} className="theme-secondary-text text-sm tabular-nums">
                             0:00 / {formatTime(parsed.durationMs)}
                         </span>
+
+                        {parsed.notation && (
+                            <div className="flex items-center gap-1 ml-auto">
+                                <button
+                                    onClick={() => setViewMode('roll')}
+                                    className={`px-3 py-1 rounded-lg text-sm ${
+                                        effectiveViewMode === 'roll' ? 'theme-btn' : 'theme-muted-bg theme-secondary-text'
+                                    }`}
+                                >
+                                    Piano Roll
+                                </button>
+                                <button
+                                    onClick={() => setViewMode('notation')}
+                                    className={`px-3 py-1 rounded-lg text-sm ${
+                                        effectiveViewMode === 'notation' ? 'theme-btn' : 'theme-muted-bg theme-secondary-text'
+                                    }`}
+                                >
+                                    Staff + Tab
+                                </button>
+                            </div>
+                        )}
                     </div>
+
+                    {fileKind === 'midi' && (
+                        <p className="text-xs theme-secondary-text mb-3">
+                            Staff/tab notation isn&apos;t available for MIDI files — only the piano roll view works
+                            here. Import a Guitar Pro file (.gp/.gp3/.gp4/.gp5/.gpx) to see engraved notation.
+                        </p>
+                    )}
 
                     <div className="flex flex-wrap items-center gap-2 mb-4">
                         {(runState === 'idle' || runState === 'finished') && (
@@ -447,25 +480,27 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
                         )}
                     </div>
 
-                    <div className="flex items-center gap-4 mb-2 text-xs theme-secondary-text">
-                        <span className="flex items-center gap-1">
-                            <span className="inline-block w-3 h-3 rounded" style={{ backgroundColor: judgementColor('pending') }} /> Upcoming
-                        </span>
-                        <span className="flex items-center gap-1">
-                            <span className="inline-block w-3 h-3 rounded" style={{ backgroundColor: judgementColor('hit') }} /> Hit
-                        </span>
-                        <span className="flex items-center gap-1">
-                            <span className="inline-block w-3 h-3 rounded" style={{ backgroundColor: judgementColor('wrong') }} /> Wrong note
-                        </span>
-                        <span className="flex items-center gap-1">
-                            <span className="inline-block w-3 h-3 rounded" style={{ backgroundColor: judgementColor('missed') }} /> Missed
-                        </span>
-                    </div>
+                    {effectiveViewMode === 'roll' && (
+                        <div className="flex items-center gap-4 mb-2 text-xs theme-secondary-text">
+                            <span className="flex items-center gap-1">
+                                <span className="inline-block w-3 h-3 rounded" style={{ backgroundColor: judgementColor('pending') }} /> Upcoming
+                            </span>
+                            <span className="flex items-center gap-1">
+                                <span className="inline-block w-3 h-3 rounded" style={{ backgroundColor: judgementColor('hit') }} /> Hit
+                            </span>
+                            <span className="flex items-center gap-1">
+                                <span className="inline-block w-3 h-3 rounded" style={{ backgroundColor: judgementColor('wrong') }} /> Wrong note
+                            </span>
+                            <span className="flex items-center gap-1">
+                                <span className="inline-block w-3 h-3 rounded" style={{ backgroundColor: judgementColor('missed') }} /> Missed
+                            </span>
+                        </div>
+                    )}
 
                     <div
                         ref={rollContainerRef}
                         className="relative w-full overflow-hidden rounded-lg theme-secondary-bg"
-                        style={{ height: rollHeight }}
+                        style={{ height: rollHeight, display: effectiveViewMode === 'roll' ? undefined : 'none' }}
                     >
                         <div
                             className="absolute top-0 bottom-0 w-px bg-yellow-400 z-10"
@@ -490,6 +525,17 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
                             ))}
                         </div>
                     </div>
+
+                    {parsed.notation && (
+                        <div style={{ display: effectiveViewMode === 'notation' ? undefined : 'none' }}>
+                            <ScoreNotation
+                                notation={parsed.notation}
+                                trackIndex={selectedTrack}
+                                getSongMs={getSongMs}
+                                running={runState === 'running'}
+                            />
+                        </div>
+                    )}
 
                     <div className="mt-4">
                         <PianoKeyboard

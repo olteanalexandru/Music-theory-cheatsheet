@@ -1,9 +1,5 @@
 import type { NoteTimelineEntry, ParsedScore } from '@/app/utils/scoreTypes';
-
-// alphaTab's internal ticks-per-quarter-note resolution (MidiUtils.QuarterTime).
-// Not exported publicly, but it's a fixed constant the library always uses for
-// the tick values passed into IMidiFileHandler, so it's safe to hardcode here.
-const ALPHATAB_TICKS_PER_QUARTER = 960;
+import { buildTickToMsConverter } from '@/app/utils/tempoMap';
 
 export class UnsupportedScoreFormatError extends Error {}
 
@@ -79,31 +75,6 @@ export async function parseGuitarProFile(buffer: ArrayBuffer, fileName: string):
         trackNames: score.tracks.map((track, i) => track.name || `Track ${i + 1}`),
         notes,
         durationMs,
-    };
-}
-
-function buildTickToMsConverter(tempoTicks: number[], tempoBpm: number[]): (tick: number) => number {
-    const points = tempoTicks.map((tick, i) => ({ tick, bpm: tempoBpm[i] })).sort((a, b) => a.tick - b.tick);
-    if (points.length === 0 || points[0].tick > 0) {
-        points.unshift({ tick: 0, bpm: 120 });
-    }
-
-    const segmentStartMs: number[] = [0];
-    for (let i = 1; i < points.length; i++) {
-        const deltaTicks = points[i].tick - points[i - 1].tick;
-        const msPerTick = 60000 / (points[i - 1].bpm * ALPHATAB_TICKS_PER_QUARTER);
-        segmentStartMs.push(segmentStartMs[i - 1] + deltaTicks * msPerTick);
-    }
-
-    return (tick: number): number => {
-        let segment = 0;
-        for (let i = points.length - 1; i >= 0; i--) {
-            if (tick >= points[i].tick) {
-                segment = i;
-                break;
-            }
-        }
-        const msPerTick = 60000 / (points[segment].bpm * ALPHATAB_TICKS_PER_QUARTER);
-        return segmentStartMs[segment] + (tick - points[segment].tick) * msPerTick;
+        notation: { score, tempoTicks, tempoBpm },
     };
 }
