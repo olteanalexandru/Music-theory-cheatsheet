@@ -31,11 +31,11 @@ export default function ThemeWrapper({
 
   return (
     <body
-      className={`${geistSansVariable} ${geistMonoVariable} antialiased ${THEME_BODY_CLASS[theme]}`}
+      className={`${geistSansVariable} ${geistMonoVariable} antialiased ${THEME_BODY_CLASS[theme]} flex min-h-screen flex-col`}
     >
       <AuthProvider>
         <AppHeader />
-        {children}
+        <main className="flex-1 flex flex-col">{children}</main>
         <Footer theme={theme} setTheme={setTheme} />
       </AuthProvider>
       {theme === "psychedelic" && <Mushrooms />}

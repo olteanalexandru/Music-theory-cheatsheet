@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { FolderOpen, Trash2 } from 'lucide-react';
 import type { MidiInputController } from '@/app/utils/useMidiInput';
 import type { SynthController } from '@/app/utils/useSynth';
@@ -90,6 +91,8 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
     const [clefOverride, setClefOverride] = useState<ClefOverride>('auto');
     const [showTab, setShowTab] = useState(true);
     const [noteLabelMode, setNoteLabelMode] = useState<NoteLabelMode>('off');
+    const [vizFullView, setVizFullView] = useState(false);
+    const [vizPortalSlot, setVizPortalSlot] = useState<HTMLDivElement | null>(null);
 
     const { user } = useAuth();
     const supabase = useMemo(() => getSupabaseClient(), []);
@@ -179,6 +182,18 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
         [pitchRange]
     );
 
+    // A C-note gridline + label per visible octave, since the roll otherwise
+    // has no pitch axis at all - the only way to tell what a note is today is
+    // a non-touch-friendly hover tooltip.
+    const octaveMarkers = useMemo(() => {
+        const markers: { pitch: number; top: number; label: string }[] = [];
+        const startPitch = Math.ceil(pitchRange.min / 12) * 12;
+        for (let pitch = startPitch; pitch <= pitchRange.max; pitch += 12) {
+            markers.push({ pitch, top: pitchToTop(pitch), label: `C${Math.floor(pitch / 12) - 1}` });
+        }
+        return markers;
+    }, [pitchRange, pitchToTop]);
+
     // Rebuild the grading engine whenever the active note set changes (new
     // file, different track, or a strictness change while idle). Reset is done
     // during render (React's documented pattern for "adjust state when inputs
@@ -214,6 +229,24 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
         const observer = new ResizeObserver(update);
         observer.observe(el);
         return () => observer.disconnect();
+    }, []);
+
+    useEffect(() => {
+        if (!vizFullView) return;
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') setVizFullView(false);
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [vizFullView]);
+
+    // The Piano Roll/Note Highway full-view toggle only makes sense for those
+    // two modes - if the player switches to Staff+Tab while it's open, drop
+    // it so an empty fixed-fullscreen overlay doesn't get stranded on screen
+    // (Staff+Tab has its own, independent full-view inside ScoreNotation).
+    const selectViewMode = useCallback((mode: ViewMode) => {
+        setViewMode(mode);
+        if (mode === 'notation') setVizFullView(false);
     }, []);
 
     const getSongMs = useCallback((): number => {
@@ -538,6 +571,157 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
         </div>
     );
 
+    // Shared color-key for both the Piano Roll and Note Highway - previously
+    // gated to Piano Roll only, so it vanished in Note Highway mode even
+    // though that view uses the exact same judgement coloring.
+    const vizLegend = (
+        <div className="flex items-center gap-4 mb-2 text-xs theme-secondary-text flex-wrap">
+            <span className="flex items-center gap-1">
+                <span className="inline-block w-3 h-3 rounded" style={{ backgroundColor: judgementColor('pending') }} /> Upcoming
+            </span>
+            <span className="flex items-center gap-1">
+                <span className="inline-block w-3 h-3 rounded" style={{ backgroundColor: judgementColor('hit') }} /> Hit
+            </span>
+            <span className="flex items-center gap-1">
+                <span className="inline-block w-3 h-3 rounded" style={{ backgroundColor: judgementColor('wrong') }} /> Wrong note
+            </span>
+            <span className="flex items-center gap-1">
+                <span className="inline-block w-3 h-3 rounded" style={{ backgroundColor: judgementColor('missed') }} /> Missed
+            </span>
+        </div>
+    );
+
+    const rollPanel = (
+        <div
+            ref={rollContainerRef}
+            className="relative w-full overflow-hidden rounded-lg theme-secondary-bg"
+            style={{ height: rollHeight, display: effectiveViewMode === 'roll' ? undefined : 'none' }}
+        >
+            {octaveMarkers.map((m) => (
+                <div
+                    key={m.pitch}
+                    className="absolute left-0 right-0 border-t border-white/10 pointer-events-none"
+                    style={{ top: m.top }}
+                >
+                    <span className="text-[10px] theme-secondary-text px-1 leading-none bg-black/30 rounded-sm">
+                        {m.label}
+                    </span>
+                </div>
+            ))}
+            <div
+                className="absolute top-0 bottom-0 w-px bg-yellow-400 z-10"
+                style={{ left: `${PLAYHEAD_FRACTION * 100}%` }}
+            />
+            <div ref={scrollLayerRef} className="absolute top-0 left-0" style={{ willChange: 'transform' }}>
+                {gradedNotes.map((note) => (
+                    <div
+                        key={note.id}
+                        title={`${noteNameFromMidi(note.pitch)}${Math.floor(note.pitch / 12) - 1}`}
+                        style={{
+                            position: 'absolute',
+                            left: note.startMs * PIXELS_PER_MS,
+                            top: pitchToTop(note.pitch),
+                            width: Math.max(note.durationMs * PIXELS_PER_MS, 3),
+                            height: NOTE_ROW_HEIGHT - 1,
+                            backgroundColor: judgementColor(note.judgement),
+                            opacity: note.judgement === 'missed' ? 0.5 : 0.95,
+                            borderRadius: 2,
+                        }}
+                    />
+                ))}
+            </div>
+        </div>
+    );
+
+    const highwayPanel = parsed && parsed.notation && (
+        <div style={{ display: effectiveViewMode === 'highway' ? undefined : 'none' }}>
+            <NoteHighway
+                notes={gradedNotes}
+                getSongMs={getSongMs}
+                running={runState === 'running'}
+                durationMs={parsed.durationMs}
+                tuningNames={effectiveTuningNames}
+                onSwitchToRoll={() => selectViewMode('roll')}
+            />
+        </div>
+    );
+
+    // Shared by vizHeader (its normal, inline home) and vizContent's full-view
+    // header (a second mount point) - plain buttons with no refs, so unlike
+    // the time label below it's safe to render in either spot without
+    // fighting over a single DOM node.
+    const viewModeSwitcher = parsed && parsed.notation && (
+        <div className="flex items-center gap-1 ml-auto">
+            <button
+                onClick={() => selectViewMode('roll')}
+                className={`px-3 py-1 rounded-lg text-sm ${
+                    effectiveViewMode === 'roll' ? 'theme-btn' : 'theme-muted-bg theme-secondary-text'
+                }`}
+            >
+                Piano Roll
+            </button>
+            <button
+                onClick={() => selectViewMode('notation')}
+                className={`px-3 py-1 rounded-lg text-sm ${
+                    effectiveViewMode === 'notation' ? 'theme-btn' : 'theme-muted-bg theme-secondary-text'
+                }`}
+            >
+                {fileKind === 'midi' ? 'Staff' : 'Staff + Tab'}
+            </button>
+            <button
+                onClick={() => selectViewMode('highway')}
+                className={`px-3 py-1 rounded-lg text-sm ${
+                    effectiveViewMode === 'highway' ? 'theme-btn' : 'theme-muted-bg theme-secondary-text'
+                }`}
+            >
+                Note Highway
+            </button>
+        </div>
+    );
+
+    const vizHeader = parsed && (
+        <div className="flex flex-wrap items-center gap-3 mb-4">
+            <span ref={timeLabelRef} className="theme-secondary-text text-sm tabular-nums">
+                0:00 / {formatTime(parsed.durationMs)}
+            </span>
+            {viewModeSwitcher}
+        </div>
+    );
+
+    // Piano Roll/Note Highway full view, mirroring ScoreNotation's own
+    // createPortal-to-document.body pattern: portaling the *same* element
+    // (rather than conditionally rendering two different trees) keeps the
+    // roll's scroll/resize refs and the highway's rAF loop alive across the
+    // toggle instead of remounting and resetting them.
+    const vizContent = (
+        <div className={vizFullView ? 'fixed inset-0 z-50 theme-secondary-bg p-2 flex flex-col overflow-auto' : ''}>
+            {(effectiveViewMode === 'roll' || effectiveViewMode === 'highway') && (
+                <div className="flex items-center justify-between px-1 pb-2 gap-2">
+                    <span className="text-sm theme-secondary-text shrink-0">
+                        {effectiveViewMode === 'highway' ? 'Note Highway' : 'Piano Roll'}
+                    </span>
+                    {/* While full view is open, the regular mode switcher above is
+                        covered by this fixed overlay - duplicate it here so the
+                        player isn't stuck needing Escape/Exit just to change view. */}
+                    {vizFullView && viewModeSwitcher}
+                    <button
+                        onClick={() => setVizFullView((cur) => !cur)}
+                        className="px-3 py-1 rounded-lg text-sm theme-muted-bg theme-secondary-text hover:opacity-90 shrink-0"
+                    >
+                        {vizFullView ? '✕ Exit Full View' : '⤢ Full View'}
+                    </button>
+                </div>
+            )}
+            {vizFullView && <div className="px-1 pb-2">{transportControls}</div>}
+            <div className="px-1">
+                {(effectiveViewMode === 'roll' || effectiveViewMode === 'highway') && vizLegend}
+                {rollPanel}
+                {highwayPanel}
+            </div>
+        </div>
+    );
+    const vizPortalContainer = vizFullView ? (typeof document !== 'undefined' ? document.body : null) : vizPortalSlot;
+
     return (
         <div className="theme-card rounded-lg p-4 md:p-6 shadow-lg">
             <h2 className="text-2xl font-bold theme-text mb-2">Play Along</h2>
@@ -756,39 +940,9 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
                             </>
                         )}
 
-                        <span ref={timeLabelRef} className="theme-secondary-text text-sm tabular-nums">
-                            0:00 / {formatTime(parsed.durationMs)}
-                        </span>
-
-                        {parsed.notation && (
-                            <div className="flex items-center gap-1 ml-auto">
-                                <button
-                                    onClick={() => setViewMode('roll')}
-                                    className={`px-3 py-1 rounded-lg text-sm ${
-                                        effectiveViewMode === 'roll' ? 'theme-btn' : 'theme-muted-bg theme-secondary-text'
-                                    }`}
-                                >
-                                    Piano Roll
-                                </button>
-                                <button
-                                    onClick={() => setViewMode('notation')}
-                                    className={`px-3 py-1 rounded-lg text-sm ${
-                                        effectiveViewMode === 'notation' ? 'theme-btn' : 'theme-muted-bg theme-secondary-text'
-                                    }`}
-                                >
-                                    {fileKind === 'midi' ? 'Staff' : 'Staff + Tab'}
-                                </button>
-                                <button
-                                    onClick={() => setViewMode('highway')}
-                                    className={`px-3 py-1 rounded-lg text-sm ${
-                                        effectiveViewMode === 'highway' ? 'theme-btn' : 'theme-muted-bg theme-secondary-text'
-                                    }`}
-                                >
-                                    Note Highway
-                                </button>
-                            </div>
-                        )}
                     </div>
+
+                    {vizHeader}
 
                     {parsed.notation && effectiveViewMode === 'notation' && (
                         <div className="flex flex-wrap items-center gap-2 mb-4">
@@ -942,51 +1096,8 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
 
                     {transportControls}
 
-                    {effectiveViewMode === 'roll' && (
-                        <div className="flex items-center gap-4 mb-2 text-xs theme-secondary-text">
-                            <span className="flex items-center gap-1">
-                                <span className="inline-block w-3 h-3 rounded" style={{ backgroundColor: judgementColor('pending') }} /> Upcoming
-                            </span>
-                            <span className="flex items-center gap-1">
-                                <span className="inline-block w-3 h-3 rounded" style={{ backgroundColor: judgementColor('hit') }} /> Hit
-                            </span>
-                            <span className="flex items-center gap-1">
-                                <span className="inline-block w-3 h-3 rounded" style={{ backgroundColor: judgementColor('wrong') }} /> Wrong note
-                            </span>
-                            <span className="flex items-center gap-1">
-                                <span className="inline-block w-3 h-3 rounded" style={{ backgroundColor: judgementColor('missed') }} /> Missed
-                            </span>
-                        </div>
-                    )}
-
-                    <div
-                        ref={rollContainerRef}
-                        className="relative w-full overflow-hidden rounded-lg theme-secondary-bg"
-                        style={{ height: rollHeight, display: effectiveViewMode === 'roll' ? undefined : 'none' }}
-                    >
-                        <div
-                            className="absolute top-0 bottom-0 w-px bg-yellow-400 z-10"
-                            style={{ left: `${PLAYHEAD_FRACTION * 100}%` }}
-                        />
-                        <div ref={scrollLayerRef} className="absolute top-0 left-0" style={{ willChange: 'transform' }}>
-                            {gradedNotes.map((note) => (
-                                <div
-                                    key={note.id}
-                                    title={`${noteNameFromMidi(note.pitch)}${Math.floor(note.pitch / 12) - 1}`}
-                                    style={{
-                                        position: 'absolute',
-                                        left: note.startMs * PIXELS_PER_MS,
-                                        top: pitchToTop(note.pitch),
-                                        width: Math.max(note.durationMs * PIXELS_PER_MS, 3),
-                                        height: NOTE_ROW_HEIGHT - 1,
-                                        backgroundColor: judgementColor(note.judgement),
-                                        opacity: note.judgement === 'missed' ? 0.5 : 0.95,
-                                        borderRadius: 2,
-                                    }}
-                                />
-                            ))}
-                        </div>
-                    </div>
+                    <div ref={setVizPortalSlot} />
+                    {vizPortalContainer && createPortal(vizContent, vizPortalContainer)}
 
                     {parsed.notation && (
                         <div style={{ display: effectiveViewMode === 'notation' ? undefined : 'none' }}>
@@ -1012,18 +1123,6 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
                                               setLoopEnabled(true);
                                           }
                                 }
-                            />
-                        </div>
-                    )}
-
-                    {parsed.notation && (
-                        <div style={{ display: effectiveViewMode === 'highway' ? undefined : 'none' }}>
-                            <NoteHighway
-                                notes={gradedNotes}
-                                getSongMs={getSongMs}
-                                running={runState === 'running'}
-                                durationMs={parsed.durationMs}
-                                tuningNames={effectiveTuningNames}
                             />
                         </div>
                     )}

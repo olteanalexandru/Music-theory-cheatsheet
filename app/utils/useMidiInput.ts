@@ -27,14 +27,27 @@ export function useMidiInput(): MidiInputController {
     const [error, setError] = useState<string | null>(null);
     const midiAccessRef = useRef<MIDIAccess | null>(null);
     const selectedDeviceIdRef = useRef<string | null>(null);
+    // MPE controllers spread notes across member channels (2-15), and can hold
+    // the same pitch on more than one channel at once (e.g. a glide/bend
+    // crossing onto a new channel while the original is still ringing). Track
+    // which channels currently hold each pitch so a note-off on one channel
+    // doesn't clear a pitch that's still sounding on another.
+    const heldChannelsRef = useRef<Map<number, Set<number>>>(new Map());
 
     const handleMessage = useCallback((event: MIDIMessageEvent) => {
         const data = event.data;
         if (!data || data.length < 3) return;
         const [status, note, velocity] = data;
         const command = status & 0xf0;
+        const channel = status & 0x0f;
 
         if (command === 0x90 && velocity > 0) {
+            let channels = heldChannelsRef.current.get(note);
+            if (!channels) {
+                channels = new Set();
+                heldChannelsRef.current.set(note, channels);
+            }
+            channels.add(channel);
             setActiveNotes((current) => {
                 if (current.has(note)) return current;
                 const next = new Set(current);
@@ -42,6 +55,10 @@ export function useMidiInput(): MidiInputController {
                 return next;
             });
         } else if (command === 0x80 || (command === 0x90 && velocity === 0)) {
+            const channels = heldChannelsRef.current.get(note);
+            channels?.delete(channel);
+            if (channels && channels.size > 0) return;
+            heldChannelsRef.current.delete(note);
             setActiveNotes((current) => {
                 if (!current.has(note)) return current;
                 const next = new Set(current);
@@ -92,6 +109,7 @@ export function useMidiInput(): MidiInputController {
     const selectDevice = useCallback((deviceId: string | null) => {
         selectedDeviceIdRef.current = deviceId;
         setSelectedDeviceIdState(deviceId);
+        heldChannelsRef.current.clear();
         setActiveNotes(new Set());
         if (midiAccessRef.current) {
             attachListeners(midiAccessRef.current);

@@ -2,18 +2,31 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, BookOpen, CheckCircle2, Circle, Lock, Map as MapIcon, Sparkles, Target, Trophy } from 'lucide-react';
 import {
-    ALL_LESSONS,
-    CURRICULUM,
-    getUnitForLesson,
-    isLessonUnlocked,
-    nextIncompleteLesson,
-} from '@/app/utils/curriculumData';
+    Award,
+    ArrowRight,
+    BarChart3,
+    BookOpen,
+    CheckCircle2,
+    Circle,
+    Flame,
+    Lock,
+    Map as MapIcon,
+    Sparkles,
+    Target,
+    Trophy,
+} from 'lucide-react';
+import { ALL_LESSONS, CURRICULUM, getUnitForLesson, isLessonUnlocked, upcomingLessons } from '@/app/utils/curriculumData';
 import { completedLessonIds, loadCurriculum } from '@/app/utils/curriculumStore';
 import { CATEGORIES, CATEGORY_LABELS, type Category } from '@/app/components/EarTraining';
-import { categoryWeaknessScore, loadProgress } from '@/app/utils/progressStore';
-import { levelProgress, loadGamification } from '@/app/utils/gamificationStore';
+import {
+    bestStreakAcrossCategories,
+    categoryWeaknessScore,
+    loadProgress,
+    totalCorrectAnswers,
+    totalQuestionsAnswered,
+} from '@/app/utils/progressStore';
+import { closestAchievements, levelProgress, loadGamification } from '@/app/utils/gamificationStore';
 import type { EarTrainingDifficulty } from '@/app/utils/earTrainingData';
 
 export default function PlanPage() {
@@ -25,8 +38,20 @@ export default function PlanPage() {
     const totalLessons = ALL_LESSONS.length;
     const completedCount = completed.size;
 
-    const upNext = useMemo(() => nextIncompleteLesson(completed), [completed]);
+    const upcoming = useMemo(() => upcomingLessons(completed, 3), [completed]);
+    const upNext = upcoming[0] ?? null;
+    const laterLessons = upcoming.slice(1);
     const upNextUnit = upNext ? getUnitForLesson(upNext.id) : undefined;
+
+    const totalCorrect = useMemo(() => totalCorrectAnswers(progress), [progress]);
+    const totalAnswered = useMemo(() => totalQuestionsAnswered(progress), [progress]);
+    const bestStreak = useMemo(() => bestStreakAcrossCategories(progress), [progress]);
+    const overallAccuracy = totalAnswered > 0 ? totalCorrect / totalAnswered : null;
+
+    const achievementPreview = useMemo(
+        () => closestAchievements(gamification, totalCorrect, bestStreak, 3),
+        [gamification, totalCorrect, bestStreak]
+    );
 
     // Date.now() can't run during render, so the "staleness" clock is captured
     // in an effect (deferred a tick to avoid a synchronous setState-in-effect)
@@ -89,6 +114,34 @@ export default function PlanPage() {
 
             <section className="theme-card rounded-xl shadow-lg p-5 mb-6">
                 <h2 className="text-lg font-bold theme-text flex items-center gap-2 mb-3">
+                    <BarChart3 size={20} /> Your Stats
+                </h2>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="theme-secondary-bg rounded-lg p-3">
+                        <p className="text-xs theme-secondary-text mb-1">Questions Answered</p>
+                        <p className="text-xl font-bold theme-text">{totalAnswered}</p>
+                    </div>
+                    <div className="theme-secondary-bg rounded-lg p-3">
+                        <p className="text-xs theme-secondary-text mb-1">Correct Answers</p>
+                        <p className="text-xl font-bold theme-text">{totalCorrect}</p>
+                    </div>
+                    <div className="theme-secondary-bg rounded-lg p-3">
+                        <p className="text-xs theme-secondary-text mb-1">Overall Accuracy</p>
+                        <p className="text-xl font-bold theme-text">
+                            {overallAccuracy === null ? '—' : `${Math.round(overallAccuracy * 100)}%`}
+                        </p>
+                    </div>
+                    <div className="theme-secondary-bg rounded-lg p-3">
+                        <p className="text-xs theme-secondary-text mb-1 flex items-center gap-1">
+                            <Flame size={12} /> Best Streak
+                        </p>
+                        <p className="text-xl font-bold theme-text">{bestStreak}</p>
+                    </div>
+                </div>
+            </section>
+
+            <section className="theme-card rounded-xl shadow-lg p-5 mb-6">
+                <h2 className="text-lg font-bold theme-text flex items-center gap-2 mb-3">
                     <Sparkles size={20} /> Up Next
                 </h2>
                 {upNext ? (
@@ -102,6 +155,23 @@ export default function PlanPage() {
                         >
                             Continue Lesson <ArrowRight size={14} />
                         </Link>
+                        {laterLessons.length > 0 && (
+                            <div className="mt-4 pt-4 border-t border-white/10">
+                                <p className="text-xs font-semibold theme-secondary-text uppercase tracking-wide mb-2">
+                                    Coming Up After This
+                                </p>
+                                <ul className="space-y-1.5">
+                                    {laterLessons.map((lesson, i) => (
+                                        <li key={lesson.id} className="flex items-center gap-2 text-sm theme-secondary-text">
+                                            <span className="flex items-center justify-center w-5 h-5 rounded-full theme-muted-bg text-[10px] font-semibold shrink-0">
+                                                {i + 2}
+                                            </span>
+                                            {lesson.title}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
                     </>
                 ) : (
                     <p className="text-sm theme-secondary-text">
@@ -133,6 +203,35 @@ export default function PlanPage() {
                     ))}
                 </div>
             </section>
+
+            {achievementPreview.length > 0 && (
+                <section className="theme-card rounded-xl shadow-lg p-5 mb-6">
+                    <h2 className="text-lg font-bold theme-text flex items-center gap-2 mb-3">
+                        <Award size={20} /> Almost There
+                    </h2>
+                    <p className="text-sm theme-secondary-text mb-4">
+                        The achievements closest to unlocking based on your current progress.
+                    </p>
+                    <div className="grid sm:grid-cols-3 gap-3">
+                        {achievementPreview.map(({ achievement, current }) => {
+                            const target = achievement.target ?? 1;
+                            const pct = Math.min(100, Math.round((current / target) * 100));
+                            return (
+                                <div key={achievement.id} className="theme-muted-bg rounded-lg p-3">
+                                    <p className="font-semibold theme-text text-sm mb-0.5">{achievement.title}</p>
+                                    <p className="text-xs theme-secondary-text mb-2">{achievement.description}</p>
+                                    <div className="h-1.5 rounded-full theme-secondary-bg overflow-hidden">
+                                        <div className="h-full theme-accent-bg transition-all" style={{ width: `${pct}%` }} />
+                                    </div>
+                                    <p className="text-xs theme-secondary-text mt-1">
+                                        {current} / {target}
+                                    </p>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </section>
+            )}
 
             <section className="theme-card rounded-xl shadow-lg p-5">
                 <h2 className="text-lg font-bold theme-text flex items-center gap-2 mb-4">

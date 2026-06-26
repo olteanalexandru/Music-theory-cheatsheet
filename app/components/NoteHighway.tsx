@@ -9,6 +9,7 @@ interface NoteHighwayProps {
     running: boolean;
     durationMs: number;
     tuningNames?: string[] | null;
+    onSwitchToRoll?: () => void;
 }
 
 const PIXELS_PER_MS = 0.15;
@@ -25,9 +26,9 @@ function judgementStyle(judgement: NoteJudgement): { bg: string; glow: boolean }
         case 'wrong':
             return { bg: '#ef4444', glow: false };
         case 'missed':
-            return { bg: '#475569', glow: false };
+            return { bg: '#64748b', glow: false };
         default:
-            return { bg: '#6366f1', glow: false };
+            return { bg: '#818cf8', glow: false };
     }
 }
 
@@ -44,7 +45,7 @@ function formatTime(ms: number): string {
 // missed feedback updates live during playback. Runs its own rAF loop off
 // getSongMs/running (mirroring ScoreNotation's cursor), so the parent only
 // needs to re-render this when `notes` actually changes judgement.
-const NoteHighway: React.FC<NoteHighwayProps> = ({ notes, getSongMs, running, durationMs, tuningNames }) => {
+const NoteHighway: React.FC<NoteHighwayProps> = ({ notes, getSongMs, running, durationMs, tuningNames, onSwitchToRoll }) => {
     const containerRef = useRef<HTMLDivElement | null>(null);
     const scrollLayerRef = useRef<HTMLDivElement | null>(null);
     const timeLabelRef = useRef<HTMLSpanElement | null>(null);
@@ -78,9 +79,17 @@ const NoteHighway: React.FC<NoteHighwayProps> = ({ notes, getSongMs, running, du
 
     if (stringCount === 0) {
         return (
-            <p className="theme-secondary-text text-sm p-4">
-                This track has no fretted note positions to display in the Note Highway.
-            </p>
+            <div className="theme-secondary-text text-sm p-4 flex flex-col gap-2">
+                <p>This track has no fretted note positions to display in the Note Highway.</p>
+                {onSwitchToRoll && (
+                    <button
+                        onClick={onSwitchToRoll}
+                        className="self-start px-3 py-1.5 rounded-lg text-sm theme-btn hover:opacity-90"
+                    >
+                        Switch to Piano Roll
+                    </button>
+                )}
+            </div>
         );
     }
 

@@ -357,7 +357,7 @@ const InteractiveFretboardDisplay = () => {
         }`;
 
     return (
-        <div className="min-h-screen theme-bg p-4 md:p-8 relative">
+        <div className="flex-1 theme-bg p-4 md:p-8 relative">
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <div className="moving-part bg-indigo-500 opacity-50"></div>
                 <div className="moving-part bg-indigo-400 opacity-50"></div>

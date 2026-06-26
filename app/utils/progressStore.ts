@@ -89,6 +89,10 @@ export function totalCorrectAnswers(progress: ProgressStore): number {
     return Object.values(progress).reduce((sum, stats) => sum + stats.correct, 0);
 }
 
+export function totalQuestionsAnswered(progress: ProgressStore): number {
+    return Object.values(progress).reduce((sum, stats) => sum + stats.total, 0);
+}
+
 export function bestStreakAcrossCategories(progress: ProgressStore): number {
     return Object.values(progress).reduce((max, stats) => Math.max(max, stats.bestStreak), 0);
 }

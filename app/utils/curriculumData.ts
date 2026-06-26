@@ -1236,6 +1236,13 @@ export function isLessonUnlocked(lessonId: string, completedLessonIds: ReadonlyS
     return completedLessonIds.has(ALL_LESSONS[index - 1].id);
 }
 
+// Returns the next `count` not-yet-completed lessons in curriculum order,
+// starting with the very next one - powers both nextIncompleteLesson() below
+// and the /plan page's multi-lesson lookahead preview.
+export function upcomingLessons(completedLessonIds: ReadonlySet<string>, count: number): Lesson[] {
+    return ALL_LESSONS.filter((lesson) => !completedLessonIds.has(lesson.id)).slice(0, count);
+}
+
 export function nextIncompleteLesson(completedLessonIds: ReadonlySet<string>): Lesson | null {
-    return ALL_LESSONS.find((lesson) => !completedLessonIds.has(lesson.id)) ?? null;
+    return upcomingLessons(completedLessonIds, 1)[0] ?? null;
 }
