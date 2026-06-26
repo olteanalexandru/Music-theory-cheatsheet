@@ -1,5 +1,7 @@
 'use client';
 
+import { emitActivityEvent } from '@/app/utils/activityBus';
+
 // XP, levels, and achievements, layered on top of progressStore/curriculumStore.
 // Callers (EarTraining.tsx, Curriculum.tsx) don't hold gamification in React
 // state themselves - they just call applyXpAndAchievements() as a fire-and-
@@ -63,13 +65,13 @@ function addXp(store: GamificationStore, amount: number): GamificationStore {
     return amount > 0 ? { ...store, xp: store.xp + amount } : store;
 }
 
-function unlockAchievements(store: GamificationStore, ids: string[]): GamificationStore {
+function unlockAchievements(store: GamificationStore, ids: string[]): { store: GamificationStore; newIds: string[] } {
     const newIds = ids.filter((id) => !store.achievements[id]);
-    if (newIds.length === 0) return store;
+    if (newIds.length === 0) return { store, newIds };
     const now = Date.now();
     const achievements = { ...store.achievements };
     for (const id of newIds) achievements[id] = now;
-    return { ...store, achievements };
+    return { store: { ...store, achievements }, newIds };
 }
 
 // Cumulative XP needed to *reach* a level follows a triangular curve: level 1
@@ -178,6 +180,14 @@ export const XP_QUIZ_PERFECT_BONUS = 15;
 export function applyXpAndAchievements(xpAmount: number, ctx: AchievementContext): void {
     const current = loadGamification();
     const withXp = addXp(current, xpAmount);
-    const next = unlockAchievements(withXp, evaluateAchievements(ctx));
+    const { store: next, newIds } = unlockAchievements(withXp, evaluateAchievements(ctx));
     saveGamification(next);
+
+    if (levelFromXp(next.xp) > levelFromXp(current.xp)) {
+        emitActivityEvent({ type: 'level_up', data: { level: levelFromXp(next.xp) } });
+    }
+    for (const id of newIds) {
+        const achievement = ACHIEVEMENTS.find((a) => a.id === id);
+        emitActivityEvent({ type: 'achievement_unlocked', data: { achievementId: id, title: achievement?.title ?? id } });
+    }
 }

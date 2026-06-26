@@ -229,3 +229,160 @@ drop policy if exists "Users can unfollow" on public.follows;
 create policy "Users can unfollow"
     on public.follows for delete
     using (auth.uid() = follower_id);
+
+-- Activity feed: an immutable log of noteworthy events (achievement unlocked,
+-- level up, lesson complete, challenge completed) a user generates. Readable
+-- by anyone when the owner's profile is public, mirroring the gamification
+-- public-read policy below, so the feed page can show "people you follow"
+-- without exposing private users' activity.
+create table if not exists public.activity_events (
+    id uuid primary key default gen_random_uuid(),
+    user_id uuid not null references auth.users(id) on delete cascade,
+    type text not null check (type in ('achievement_unlocked', 'level_up', 'lesson_complete', 'challenge_completed')),
+    data jsonb not null default '{}'::jsonb,
+    created_at timestamptz not null default now()
+);
+
+alter table public.activity_events enable row level security;
+
+drop policy if exists "Anyone can read public profiles' activity" on public.activity_events;
+create policy "Anyone can read public profiles' activity"
+    on public.activity_events for select
+    using (
+        auth.uid() = user_id
+        or exists (
+            select 1 from public.profiles
+            where profiles.user_id = activity_events.user_id
+            and profiles.is_public = true
+        )
+    );
+
+drop policy if exists "Users can record their own activity" on public.activity_events;
+create policy "Users can record their own activity"
+    on public.activity_events for insert
+    with check (auth.uid() = user_id);
+
+-- Comments on activity feed items. Readable by anyone (same "fully public
+-- join table" shape as follows below) since the feed item itself is already
+-- gated by the policy above.
+create table if not exists public.activity_comments (
+    id uuid primary key default gen_random_uuid(),
+    event_id uuid not null references public.activity_events(id) on delete cascade,
+    author_id uuid not null references auth.users(id) on delete cascade,
+    body text not null check (char_length(body) <= 500),
+    created_at timestamptz not null default now()
+);
+
+alter table public.activity_comments enable row level security;
+
+drop policy if exists "Anyone can read activity comments" on public.activity_comments;
+create policy "Anyone can read activity comments"
+    on public.activity_comments for select
+    using (true);
+
+drop policy if exists "Users can comment as themselves" on public.activity_comments;
+create policy "Users can comment as themselves"
+    on public.activity_comments for insert
+    with check (auth.uid() = author_id);
+
+drop policy if exists "Users can delete their own comments" on public.activity_comments;
+create policy "Users can delete their own comments"
+    on public.activity_comments for delete
+    using (auth.uid() = author_id);
+
+-- One reaction (emoji) per user per activity feed item; upsert to change it.
+create table if not exists public.activity_reactions (
+    event_id uuid not null references public.activity_events(id) on delete cascade,
+    user_id uuid not null references auth.users(id) on delete cascade,
+    emoji text not null,
+    created_at timestamptz not null default now(),
+    primary key (event_id, user_id)
+);
+
+alter table public.activity_reactions enable row level security;
+
+drop policy if exists "Anyone can read activity reactions" on public.activity_reactions;
+create policy "Anyone can read activity reactions"
+    on public.activity_reactions for select
+    using (true);
+
+drop policy if exists "Users can react as themselves" on public.activity_reactions;
+create policy "Users can react as themselves"
+    on public.activity_reactions for insert
+    with check (auth.uid() = user_id);
+
+drop policy if exists "Users can update their own reaction" on public.activity_reactions;
+create policy "Users can update their own reaction"
+    on public.activity_reactions for update
+    using (auth.uid() = user_id);
+
+drop policy if exists "Users can remove their own reaction" on public.activity_reactions;
+create policy "Users can remove their own reaction"
+    on public.activity_reactions for delete
+    using (auth.uid() = user_id);
+
+-- Head-to-head practice challenges between two users. Unlike follows/profiles,
+-- challenges are private to their two participants rather than globally
+-- readable - there's no leaderboard-style use case for exposing them.
+create table if not exists public.challenges (
+    id uuid primary key default gen_random_uuid(),
+    challenger_id uuid not null references auth.users(id) on delete cascade,
+    challengee_id uuid not null references auth.users(id) on delete cascade,
+    category text not null,
+    difficulty text not null,
+    length int not null,
+    status text not null default 'pending' check (status in ('pending', 'active', 'declined', 'completed')),
+    challenger_score int,
+    challengee_score int,
+    winner_id uuid references auth.users(id),
+    created_at timestamptz not null default now(),
+    check (challenger_id <> challengee_id)
+);
+
+alter table public.challenges enable row level security;
+
+drop policy if exists "Participants can read their challenges" on public.challenges;
+create policy "Participants can read their challenges"
+    on public.challenges for select
+    using (auth.uid() in (challenger_id, challengee_id));
+
+drop policy if exists "Users can create challenges" on public.challenges;
+create policy "Users can create challenges"
+    on public.challenges for insert
+    with check (auth.uid() = challenger_id);
+
+drop policy if exists "Participants can update their challenges" on public.challenges;
+create policy "Participants can update their challenges"
+    on public.challenges for update
+    using (auth.uid() in (challenger_id, challengee_id));
+
+-- In-app notifications (new follower, challenge invite/result, comment,
+-- reaction). The recipient (user_id) only ever reads/marks-read their own
+-- rows, but the actor who triggered the notification is the one inserting
+-- it on the recipient's behalf - same shape as follows.followee_id.
+create table if not exists public.notifications (
+    id uuid primary key default gen_random_uuid(),
+    user_id uuid not null references auth.users(id) on delete cascade,
+    actor_id uuid not null references auth.users(id) on delete cascade,
+    type text not null check (type in ('follow', 'challenge_invite', 'challenge_result', 'comment', 'reaction')),
+    data jsonb not null default '{}'::jsonb,
+    read boolean not null default false,
+    created_at timestamptz not null default now()
+);
+
+alter table public.notifications enable row level security;
+
+drop policy if exists "Users can read their own notifications" on public.notifications;
+create policy "Users can read their own notifications"
+    on public.notifications for select
+    using (auth.uid() = user_id);
+
+drop policy if exists "Users can notify others" on public.notifications;
+create policy "Users can notify others"
+    on public.notifications for insert
+    with check (auth.uid() = actor_id);
+
+drop policy if exists "Users can mark their own notifications read" on public.notifications;
+create policy "Users can mark their own notifications read"
+    on public.notifications for update
+    using (auth.uid() = user_id);

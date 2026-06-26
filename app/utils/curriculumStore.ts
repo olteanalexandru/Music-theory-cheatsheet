@@ -1,5 +1,7 @@
 'use client';
 
+import { emitActivityEvent } from '@/app/utils/activityBus';
+
 export interface LessonRecord {
     completed: boolean;
     quizBestScore: number; // 0-1
@@ -67,12 +69,16 @@ export function mergeCurriculum(local: CurriculumStore, cloud: CurriculumStore):
 export function markLessonComplete(lessonId: string, quizScore: number): void {
     const store = loadCurriculum();
     const existing = store[lessonId];
+    const isNewCompletion = !existing?.completed;
     store[lessonId] = {
         completed: true,
         quizBestScore: Math.max(existing?.quizBestScore ?? 0, quizScore),
         completedAt: Date.now(),
     };
     saveCurriculum(store);
+    if (isNewCompletion) {
+        emitActivityEvent({ type: 'lesson_complete', data: { lessonId, quizScore } });
+    }
 }
 
 export function completedLessonIds(store: CurriculumStore): Set<string> {

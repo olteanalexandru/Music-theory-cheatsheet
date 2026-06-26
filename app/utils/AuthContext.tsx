@@ -8,6 +8,10 @@ import { loadCurriculum, saveCurriculum, mergeCurriculum, subscribeToCurriculumC
 import { loadReview, saveReview, mergeReview, subscribeToReviewChanges } from '@/app/utils/reviewStore';
 import { loadGamification, saveGamification, mergeGamification, subscribeToGamificationChanges } from '@/app/utils/gamificationStore';
 import { useCloudSync } from '@/app/utils/useCloudSync';
+import { subscribeToActivityEvents } from '@/app/utils/activityBus';
+import { recordActivityEvent } from '@/app/utils/activityStore';
+import { subscribeToChallengeResults } from '@/app/utils/challengeBus';
+import { submitChallengeScore } from '@/app/utils/challengeStore';
 
 interface AuthResult {
     error: string | null;
@@ -52,6 +56,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     useCloudSync(supabase, userId, 'curriculum_progress', loadCurriculum, saveCurriculum, mergeCurriculum, subscribeToCurriculumChanges);
     useCloudSync(supabase, userId, 'review_progress', loadReview, saveReview, mergeReview, subscribeToReviewChanges);
     useCloudSync(supabase, userId, 'gamification', loadGamification, saveGamification, mergeGamification, subscribeToGamificationChanges);
+
+    // Bridges the Supabase-agnostic gamification/curriculum stores' activity
+    // events (achievement unlocked, level up, lesson complete, challenge
+    // completed) to the activity_events table - this is the only place those
+    // events touch the network, mirroring useCloudSync's agnostic-stores rule.
+    useEffect(() => {
+        if (!supabase || !userId) return;
+        return subscribeToActivityEvents((event) => {
+            void recordActivityEvent(supabase, userId, event);
+        });
+    }, [supabase, userId]);
+
+    // Same bridge for challenge results EarTraining reports via challengeBus
+    // once a challenge session finishes.
+    useEffect(() => {
+        if (!supabase || !userId) return;
+        return subscribeToChallengeResults(({ challengeId, correct, total }) => {
+            void submitChallengeScore(supabase, userId, challengeId, correct, total);
+        });
+    }, [supabase, userId]);
 
     const signUp = useCallback<AuthContextValue['signUp']>(
         async (email, password) => {

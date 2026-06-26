@@ -57,6 +57,7 @@ import {
     XP_WEAK_REVIEW_BONUS,
 } from '@/app/utils/gamificationStore';
 import { subscribeToPracticeFocus } from '@/app/utils/practiceFocusBus';
+import { subscribeToChallengeSession, reportChallengeResult, type ChallengeSession } from '@/app/utils/challengeBus';
 import NoteStaffPrompt from '@/app/components/NoteStaffPrompt';
 import GuitarFretPrompt from '@/app/components/GuitarFretPrompt';
 import PianoKeyboard from '@/app/components/PianoKeyboard';
@@ -324,6 +325,7 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
     const [sessionLength, setSessionLength] = useState(SESSION_LENGTHS[0]);
     const [mixedSession, setMixedSession] = useState(false);
     const [weakReviewMode, setWeakReviewMode] = useState(false);
+    const activeChallengeId = useRef<string | null>(null);
     const attemptNotesRef = useRef<Set<number>>(new Set());
 
     // Track every note pressed during the current attempt, even after it's
@@ -356,6 +358,10 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
             bestCategoryAccuracy: bestCategoryAccuracy(progress),
             sessionCompleted: { length: session.length, weak: weakReviewMode },
         });
+        if (activeChallengeId.current) {
+            reportChallengeResult({ challengeId: activeChallengeId.current, correct: session.correctCount, total: session.length });
+            activeChallengeId.current = null;
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [session?.finished]);
 
@@ -471,6 +477,26 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [clef, answerMode]);
+
+    // Lets the Challenges page hand this panel a specific category/difficulty/
+    // length and auto-start it, the same deep-link shape as practiceFocusBus
+    // above, plus tagging the resulting session with its challenge id so the
+    // session.finished effect knows to report the score back.
+    useEffect(() => {
+        return subscribeToChallengeSession(({ challengeId, category: nextCategory, difficulty: nextDifficulty, length }: ChallengeSession) => {
+            setAnswerMode('choices');
+            setWeakReviewMode(false);
+            setMixedSession(false);
+            applyCategory(nextCategory);
+            setDifficulty(nextDifficulty);
+            setSessionLength(length);
+            activeChallengeId.current = challengeId;
+            setQuestion(buildQuestionForCategory(nextCategory, nextDifficulty));
+            resetAnswerState();
+            setSession({ length, mixed: false, index: 0, correctCount: 0, missed: [], finished: false });
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const handleClefChange = (nextClef: ClefId) => {
         setClef(nextClef);

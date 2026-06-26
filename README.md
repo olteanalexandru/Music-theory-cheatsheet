@@ -50,7 +50,7 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 Sign-in, practice progress sync, and saved Play Along files are powered by [Supabase](https://supabase.com). Without it configured, the app works fully as a guest-only, localStorage-only experience — the "Sign in" button stays disabled with an explanatory note. To turn cloud sync on:
 
 1. **Create a Supabase project** at [supabase.com](https://supabase.com) (the free tier is enough).
-2. **Run the schema migration**: open your project's *SQL Editor* and run the contents of [`supabase/schema.sql`](./supabase/schema.sql). This creates the `progress`, `curriculum_progress`, `review_progress`, `gamification`, `uploaded_files`, `profiles`, and `follows` tables (with row-level security so each user can only see their own data, except `profiles` rows marked public and the matching `gamification` row, which are readable by anyone for the leaderboard/profile pages) and a private `play-along-files` storage bucket for saved Guitar Pro / MIDI files.
+2. **Run the schema migration**: open your project's *SQL Editor* and run the contents of [`supabase/schema.sql`](./supabase/schema.sql). This creates the `progress`, `curriculum_progress`, `review_progress`, `gamification`, `uploaded_files`, `profiles`, `follows`, `activity_events`, `activity_comments`, `activity_reactions`, `challenges`, and `notifications` tables (with row-level security so each user can only see their own data, except `profiles` rows marked public and their related rows — `gamification`, activity feed events, etc. — which are readable by anyone for the leaderboard/profile/feed pages) and a private `play-along-files` storage bucket for saved Guitar Pro / MIDI files.
 3. **Copy your API credentials**: in *Project Settings -> API*, copy the *Project URL* and the *anon public* key.
 4. **Set environment variables**: copy `.env.example` to `.env.local` and fill in:
    ```
@@ -67,6 +67,20 @@ Sign-in, practice progress sync, and saved Play Along files are powered by [Supa
 Once configured, signing in will automatically merge any existing localStorage progress into the cloud, then keep both in sync going forward.
 
 **Troubleshooting a 403 on `uploaded_files` or `play-along-files`**: this happens if `schema.sql` was run more than once before its policies were idempotent — an early `CREATE POLICY` would fail with "policy already exists" and abort the script before reaching the `uploaded_files` table or storage bucket policies near the end. The script now drops each policy before recreating it, so just re-run the current [`supabase/schema.sql`](./supabase/schema.sql) in the SQL Editor again to fix it.
+
+## Integration Testing
+
+`npm run test:integration` runs [`scripts/test-integration.ts`](./scripts/test-integration.ts), which exercises the Supabase data layer end-to-end against a real Supabase project — the same store functions (`profileStore.ts`, `activityStore.ts`, `challengeStore.ts`, `notificationStore.ts`, etc.) the browser app calls. Since this app has no Next.js API routes (`next.config.ts` sets `output: 'export'`), this is the closest equivalent to an "API route test suite": it signs in as disposable test accounts with the anon key and asserts on real row-level-security behavior, rather than bypassing it.
+
+To run it:
+
+1. Make sure `.env.local` has `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` set (see [Cloud Sync Setup](#cloud-sync-setup-optional) above).
+2. Add one more variable: `SUPABASE_SERVICE_ROLE_KEY` (from *Project Settings -> API -> service_role*). This key is **test-only** — it's used solely by this script to create and delete disposable test accounts, and is never read by the Next.js app itself. Never commit a real value for it.
+3. Run `npm run test:integration`.
+
+The script creates a few throwaway accounts, runs through profile/follow/gamification/sync-table/leaderboard/activity-feed/challenge/notification/storage scenarios (covering both allowed access and expected RLS denials), prints a PASS/FAIL line per scenario, deletes the test accounts again, and exits non-zero if anything failed.
+
+⚠️ Run this only against a project you're comfortable seeding with test data — it's safe to run repeatedly (test users are cleaned up automatically), but it does write real rows during the run, and a crash before the `finally` cleanup block would leave the disposable users behind for manual deletion.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 

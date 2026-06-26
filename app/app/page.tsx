@@ -18,6 +18,7 @@ import { noteNameFromMidi } from '@/app/utils/notes';
 import type { Waveform } from '@/app/utils/audioSynth';
 import { DIFFICULTY_LEVELS, type EarTrainingDifficulty } from '@/app/utils/earTrainingData';
 import { requestPracticeFocus } from '@/app/utils/practiceFocusBus';
+import { requestChallengeSession } from '@/app/utils/challengeBus';
 
 const WAVEFORMS: Waveform[] = ['sine', 'triangle', 'sawtooth', 'square'];
 
@@ -147,15 +148,27 @@ const InteractiveFretboardDisplay = () => {
     const focusParam = searchParams.get('focus');
     const focusCategory = focusParam && CATEGORIES.includes(focusParam as Category) ? (focusParam as Category) : null;
     const focusDifficultyParam = searchParams.get('difficulty');
+    const focusLengthParam = searchParams.get('length');
+    const challengeIdParam = searchParams.get('challenge');
 
     useEffect(() => {
         if (!focusCategory) return;
         const difficulty: EarTrainingDifficulty = (DIFFICULTY_LEVELS as string[]).includes(focusDifficultyParam ?? '')
             ? (focusDifficultyParam as EarTrainingDifficulty)
             : 'medium';
-        requestPracticeFocus({ category: focusCategory, difficulty });
+        if (challengeIdParam) {
+            const length = Number(focusLengthParam);
+            requestChallengeSession({
+                challengeId: challengeIdParam,
+                category: focusCategory,
+                difficulty,
+                length: Number.isFinite(length) && length > 0 ? length : 10,
+            });
+        } else {
+            requestPracticeFocus({ category: focusCategory, difficulty });
+        }
         document.getElementById('ear-training-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, [focusCategory, focusDifficultyParam]);
+    }, [focusCategory, focusDifficultyParam, focusLengthParam, challengeIdParam]);
 
     const tuning = useMemo<string[]>(() => {
         if (instrument === 'bass') {

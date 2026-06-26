@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { normalizeStore, type GamificationStore } from '@/app/utils/gamificationStore';
+import { createNotification } from '@/app/utils/notificationStore';
 
 export interface Profile {
     userId: string;
@@ -93,6 +94,9 @@ export async function isFollowing(supabase: SupabaseClient, followerId: string, 
 
 export async function followUser(supabase: SupabaseClient, followerId: string, followeeId: string): Promise<{ error: string | null }> {
     const { error } = await supabase.from('follows').insert({ follower_id: followerId, followee_id: followeeId });
+    if (!error) {
+        await createNotification(supabase, { userId: followeeId, actorId: followerId, type: 'follow' });
+    }
     return { error: error?.message ?? null };
 }
 
