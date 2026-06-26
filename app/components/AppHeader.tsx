@@ -8,6 +8,7 @@ import { useAuth } from '@/app/utils/AuthContext';
 import { getSupabaseClient } from '@/app/utils/supabaseClient';
 import { fetchNotifications, fetchUnreadCount, markAllRead, type AppNotification } from '@/app/utils/notificationStore';
 import AuthModal from '@/app/components/AuthModal';
+import ScrollHint from '@/app/components/ScrollHint';
 
 const MARKETING_NAV_LINKS = [
     { href: '/features', label: 'Features' },
@@ -260,7 +261,7 @@ const AppHeader: React.FC = () => {
                             ) : isMarketing ? (
                                 <button
                                     onClick={() => setShowAuthModal(true)}
-                                    className="text-sm font-medium theme-secondary-text hover:theme-text"
+                                    className="rounded-md px-3 py-2 text-sm font-medium theme-secondary-text hover:theme-text"
                                 >
                                     Log in
                                 </button>
@@ -278,13 +279,13 @@ const AppHeader: React.FC = () => {
             </div>
 
             {isMarketing ? (
-                <nav className="flex sm:hidden items-center gap-4 pb-2 -mt-1 overflow-x-auto">
+                <ScrollHint as="nav" className="flex sm:hidden items-center gap-4 pb-2 -mt-1">
                     {MARKETING_NAV_LINKS.map((link) => marketingNavLink(link.href, link.label))}
-                </nav>
+                </ScrollHint>
             ) : (
-                <nav className="flex sm:hidden items-center gap-1 pb-2 -mt-1 overflow-x-auto">
+                <ScrollHint as="nav" className="flex sm:hidden items-center gap-1 pb-2 -mt-1">
                     {APP_NAV_LINKS.map((link) => navLink(link.href, link.label))}
-                </nav>
+                </ScrollHint>
             )}
 
             {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}

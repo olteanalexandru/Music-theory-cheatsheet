@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
+import ScrollHint from '@/app/components/ScrollHint';
 
 const STATS: { value: string; label: string }[] = [
     { value: '8', label: 'Practice tools, one app' },
@@ -78,19 +79,19 @@ export default function LandingPage() {
                         </div>
                     </div>
 
-                    <div className="relative">
+                    <div className="relative min-w-0">
                         <div
                             className="hidden md:block absolute -bottom-5 -right-5 w-full h-full theme-accent-bg"
                             aria-hidden="true"
                         />
-                        <div className="relative theme-card rounded-lg shadow-2xl overflow-hidden">
+                        <ScrollHint className="relative theme-card rounded-lg shadow-2xl">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                                 src="/screenshots/hero-app.png"
                                 alt="The Music Theory practice app: fretboard navigator, gamification panel, and navigation"
-                                className="w-full h-auto block"
+                                className="min-w-[640px] w-full h-auto block"
                             />
-                        </div>
+                        </ScrollHint>
                     </div>
                 </div>
             </section>
@@ -125,10 +126,10 @@ export default function LandingPage() {
                             </h2>
                             <p className="theme-secondary-text max-w-md">{row.description}</p>
                         </div>
-                        <div className="theme-card rounded-lg shadow-lg overflow-hidden md:[direction:ltr]">
+                        <ScrollHint className="theme-card rounded-lg shadow-lg md:[direction:ltr]">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={row.image} alt={row.imageAlt} className="w-full h-auto block" />
-                        </div>
+                            <img src={row.image} alt={row.imageAlt} className="min-w-[640px] w-full h-auto block" />
+                        </ScrollHint>
                     </div>
                 ))}
             </section>
@@ -153,14 +154,14 @@ export default function LandingPage() {
                             More on community <ArrowRight size={14} />
                         </Link>
                     </div>
-                    <div className="theme-card rounded-lg shadow-lg overflow-hidden">
+                    <ScrollHint className="theme-card rounded-lg shadow-lg">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                             src="/screenshots/leaderboard.png"
                             alt="Leaderboard page with Global and Friends toggle"
-                            className="w-full h-auto block"
+                            className="min-w-[640px] w-full h-auto block"
                         />
-                    </div>
+                    </ScrollHint>
                 </div>
             </section>
 

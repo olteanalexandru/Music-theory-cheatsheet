@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState } from 'react';
 import ClefGlyph from '@/app/components/ClefGlyph';
+import ScrollHint from '@/app/components/ScrollHint';
 import { accidentalShift } from '@/app/utils/keySignatures';
 import { CLEFS, getStaffPositions, noteMidi, type ClefId } from '@/app/utils/staffLayout';
 import type { SynthController } from '@/app/utils/useSynth';
@@ -247,8 +248,8 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
       </div>
 
       {/* Staff Display */}
-      <div
-        className={`rounded-lg p-3 md:p-8 overflow-x-auto border ${
+      <ScrollHint
+        className={`rounded-lg p-3 md:p-8 border ${
           isLightMode
             ? 'bg-slate-50 border-indigo-200'
             : 'bg-indigo-950/50 border-indigo-500/20'
@@ -360,7 +361,7 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
             })}
           </g>
         </svg>
-      </div>
+      </ScrollHint>
 
       {/* Selected Note Display */}
       {selectedNote && (

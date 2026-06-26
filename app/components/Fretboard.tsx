@@ -1,4 +1,5 @@
 import React from 'react';
+import ScrollHint from '@/app/components/ScrollHint';
 import type { Patterns, PatternType } from '@/app/app/page';
 
 type FretboardProps = {
@@ -57,7 +58,7 @@ const Fretboard: React.FC<FretboardProps> = ({
     const currentNumStrings = displayStrings.length; // Get current number of strings for dynamic styling
 
     return (
-        <div className="theme-card rounded-xl shadow-2xl overflow-x-auto">
+        <ScrollHint className="theme-card rounded-xl shadow-2xl">
             {/* Fret numbers and markers */}
             <div className="flex px-4 md:px-8 py-2 border-b theme-secondary-bg">
                 <div className="w-8 md:w-16 shrink-0"></div>
@@ -130,7 +131,7 @@ const Fretboard: React.FC<FretboardProps> = ({
                     </div>
                 ))}
             </div>
-        </div>
+        </ScrollHint>
     );
 };
 
