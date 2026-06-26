@@ -24,21 +24,22 @@
 }
 
 :root {
-  /* Default dark mode */
-  --background: #0a0a0a; /* Dark background */
-  --foreground: #ededed; /* Light text */
-  --card-background: #1f2937; /* Darker card background */
-  --card-foreground: #d1d5db; /* Lighter card text */
-  --button-background: #4f46e5; /* Indigo button */
+  /* Bold editorial: near-black canvas, warm off-white text, one decisive accent */
+  --background: #09090b; /* Near-black background */
+  --foreground: #f4f3ee; /* Warm off-white text */
+  --card-background: #121214; /* Slightly raised surface */
+  --card-foreground: #e4e3df; /* Off-white card text */
+  --card-border: rgba(244, 243, 238, 0.08);
+  --button-background: #5b5fee; /* Decisive violet-blue accent */
   --button-foreground: #ffffff;
-  --link-color: #818cf8; /* Lighter indigo for links */
-  --secondary-bg: #111827; /* Secondary background */
-  --secondary-fg: #d1d5db; /* Secondary foreground */
-  --muted-bg: #374151; /* For inputs and less emphasized areas */
-  --muted-fg: #9ca3af; /* For muted text */
-  --accent-bg: #4f46e5; /* Accent background */
+  --link-color: #9498ff; /* Lighter accent for links */
+  --secondary-bg: #0d0d0f; /* Secondary background */
+  --secondary-fg: #c2c1bd; /* Secondary foreground */
+  --muted-bg: #1b1b1f; /* For inputs and less emphasized areas */
+  --muted-fg: #8a8a8f; /* For muted text */
+  --accent-bg: #5b5fee; /* Accent background */
   --accent-fg: #ffffff; /* Accent foreground */
-  --hover-bg: #4338ca; /* Hover background */
+  --hover-bg: #4548c9; /* Hover background */
   --warning-fg: #facc15; /* Bright yellow reads fine on dark backgrounds */
   --warning-bg: rgba(250, 204, 21, 0.08);
   --warning-border: rgba(234, 179, 8, 0.3);
@@ -46,20 +47,21 @@
 
 .light-mode {
   /* Light mode overrides */
-  --background: #f3f4f6; /* Light gray background */
-  --foreground: #111827; /* Dark text */
+  --background: #fafaf8; /* Warm off-white background */
+  --foreground: #15151a; /* Near-black text */
   --card-background: #ffffff; /* White card background */
-  --card-foreground: #374151; /* Darker card text */
-  --button-background: #6366f1; /* Slightly lighter indigo button */
+  --card-foreground: #2a2a30; /* Darker card text */
+  --card-border: rgba(21, 21, 26, 0.08);
+  --button-background: #5b5fee; /* Same decisive accent as dark mode */
   --button-foreground: #ffffff;
-  --link-color: #4f46e5; /* Darker indigo for links */
-  --secondary-bg: #f9fafb; /* Secondary background */
-  --secondary-fg: #4b5563; /* Secondary foreground */
-  --muted-bg: #e5e7eb; /* For inputs and less emphasized areas */
-  --muted-fg: #6b7280; /* For muted text */
-  --accent-bg: #6366f1; /* Accent background */
+  --link-color: #4548c9; /* Darker accent for links */
+  --secondary-bg: #f3f3f0; /* Secondary background */
+  --secondary-fg: #46464d; /* Secondary foreground */
+  --muted-bg: #e9e9e5; /* For inputs and less emphasized areas */
+  --muted-fg: #6b6b72; /* For muted text */
+  --accent-bg: #5b5fee; /* Accent background */
   --accent-fg: #ffffff; /* Accent foreground */
-  --hover-bg: #4f46e5; /* Hover background */
+  --hover-bg: #4548c9; /* Hover background */
   --warning-fg: #92400e; /* Dark amber keeps contrast on light backgrounds */
   --warning-bg: #fef3c7;
   --warning-border: #fde68a;
@@ -101,17 +103,22 @@ body.psychedelic-mode {
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
   transition: background-color 0.3s ease, color 0.3s ease; /* Smooth transition */
+}
+
+h1, h2, h3 {
+  letter-spacing: -0.02em;
 }
 
 /* Apply card styles */
 .card {
   background-color: var(--card-background);
   color: var(--card-foreground);
+  border: 1px solid var(--card-border);
   border-radius: 0.5rem; /* lg */
   padding: 1.5rem; /* p-6 */
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-lg */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
@@ -150,6 +157,7 @@ a:hover {
 .theme-card {
   background-color: var(--card-background);
   color: var(--card-foreground);
+  border: 1px solid var(--card-border);
 }
 
 .theme-btn {

@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { Moon, Sun } from "lucide-react";
 import type { AppTheme } from "./ThemeWrapper";
-import { FacebookIcon, InstagramIcon, LinkedinIcon } from "./icons/SocialIcons";
 import ShareButton from "./ShareButton";
 
 interface StarElement {
@@ -59,34 +58,6 @@ const Footer = ({ theme, setTheme }: FooterProps) => {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2">
-            {/* Placeholder social links: not yet wired to real profiles, so clicking just refreshes the page. */}
-            <button
-              onClick={() => window.location.reload()}
-              aria-label="Instagram"
-              title="Instagram"
-              className="p-1.5 rounded-full theme-muted-bg hover:opacity-90"
-            >
-              <InstagramIcon size={16} />
-            </button>
-            <button
-              onClick={() => window.location.reload()}
-              aria-label="Facebook"
-              title="Facebook"
-              className="p-1.5 rounded-full theme-muted-bg hover:opacity-90"
-            >
-              <FacebookIcon size={16} />
-            </button>
-            <button
-              onClick={() => window.location.reload()}
-              aria-label="LinkedIn"
-              title="LinkedIn"
-              className="p-1.5 rounded-full theme-muted-bg hover:opacity-90"
-            >
-              <LinkedinIcon size={16} />
-            </button>
-          </div>
-
           <ShareButton
             title="Music Theory Cheatsheet"
             text="Check out Music Theory Cheatsheet — an interactive fretboard, ear training, and play-along practice tool!"
