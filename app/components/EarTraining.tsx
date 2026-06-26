@@ -11,7 +11,7 @@ import {
     poolForDifficulty,
 } from '@/app/utils/earTrainingData';
 import { CHROMATIC_NOTES, noteNameFromMidi } from '@/app/utils/notes';
-import { getKeySignatureInfo, KEY_NAMES, keysForDifficulty, type KeySignatureInfo } from '@/app/utils/keySignatures';
+import { getKeySignatureInfo, KEY_NAMES, keysForDifficulty, relativeMinorName, type KeySignatureInfo } from '@/app/utils/keySignatures';
 import {
     CLEFS,
     generateNoteQuestion,
@@ -90,6 +90,7 @@ interface StaffNoteQuestion {
 interface KeySigQuestion {
     kind: 'keysig';
     keyName: string;
+    mode: 'major' | 'minor';
     info: KeySignatureInfo;
     choices: string[];
 }
@@ -135,7 +136,7 @@ interface PracticeSession {
 
 const SESSION_LENGTHS = [10, 20, 50];
 
-const CATEGORY_LABELS: Record<Category, string> = {
+export const CATEGORY_LABELS: Record<Category, string> = {
     intervals: 'Intervals',
     chords: 'Chords',
     scales: 'Scales',
@@ -146,12 +147,13 @@ const CATEGORY_LABELS: Record<Category, string> = {
     progressions: 'Chord Progressions',
 };
 
-const CATEGORIES: Category[] = [...(Object.keys(EAR_TRAINING_DATA) as EarTrainingCategory[]), 'notes', 'keysig', 'guitar', 'rhythm', 'progressions'];
+export const CATEGORIES: Category[] = [...(Object.keys(EAR_TRAINING_DATA) as EarTrainingCategory[]), 'notes', 'keysig', 'guitar', 'rhythm', 'progressions'];
 
-const DIFFICULTY_LABELS: Record<EarTrainingDifficulty, string> = {
+export const DIFFICULTY_LABELS: Record<EarTrainingDifficulty, string> = {
     easy: 'Easy',
     medium: 'Medium',
     hard: 'Hard',
+    expert: 'Expert',
 };
 
 const DEFAULT_DIFFICULTY: EarTrainingDifficulty = 'easy';
@@ -235,15 +237,19 @@ function buildKeySigQuestion(difficulty: EarTrainingDifficulty): KeySigQuestion 
     const review = loadReview();
     const now = Date.now();
     const weights = pool.map((key) => itemWeight(review, 'keysig', formatKeySignature(getKeySignatureInfo(key)), now));
-    const keyName = pickWeighted(pool, weights);
-    const info = getKeySignatureInfo(keyName);
+    const majorKeyName = pickWeighted(pool, weights);
+    const info = getKeySignatureInfo(majorKeyName);
+    // Expert tier drills the relative minor instead: same accidentals, different
+    // tonic name, so it tests whether you actually know the major/minor pairing.
+    const mode: 'major' | 'minor' = difficulty === 'expert' && Math.random() < 0.5 ? 'minor' : 'major';
+    const keyName = mode === 'minor' ? relativeMinorName(majorKeyName) : majorKeyName;
     const maxChoices = Math.min(6, pool.length);
-    const distractorKeys = shuffle(pool.filter((key) => key !== keyName)).slice(0, maxChoices - 1);
+    const distractorKeys = shuffle(pool.filter((key) => key !== majorKeyName)).slice(0, maxChoices - 1);
     const choices = shuffle([
         formatKeySignature(info),
         ...distractorKeys.map((key) => formatKeySignature(getKeySignatureInfo(key))),
     ]);
-    return { kind: 'keysig', keyName, info, choices };
+    return { kind: 'keysig', keyName, mode, info, choices };
 }
 
 function buildGuitarQuestion(difficulty: EarTrainingDifficulty): GuitarQuestion {
@@ -904,7 +910,7 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
 
             {question.kind === 'keysig' && (
                 <div className="mb-6 text-center">
-                    <p className="theme-text text-2xl font-bold">{question.keyName} major</p>
+                    <p className="theme-text text-2xl font-bold">{question.keyName} {question.mode}</p>
                     <p className="theme-secondary-text text-sm mt-2">
                         How many sharps or flats does this key signature have?
                     </p>

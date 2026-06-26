@@ -1005,6 +1005,216 @@ export const CURRICULUM: Unit[] = [
             },
         ],
     },
+    {
+        id: 'advanced-harmony',
+        title: 'Advanced Harmony',
+        description: 'Beyond the diatonic: chromatic borrowing, secondary dominants, and the jazz vocabulary built on extended chords.',
+        lessons: [
+            {
+                id: 'secondary-dominants',
+                title: 'Secondary Dominants',
+                summary: 'Borrowing the V7 of a V7 — tonicizing a chord other than the tonic.',
+                content: [
+                    'A secondary dominant is a dominant 7th chord that resolves to a chord other than the tonic, temporarily treating that chord as if it were its own little "I." The most common is V7/V — the dominant of the dominant — built a fifth above the V chord and resolving into V itself.',
+                    'Because V7/V borrows its 3rd from outside the home key (in C major, V7/V is D7, which contains F♯ — not in the C major scale), it injects a flash of chromaticism without leaving the key entirely. The ear hears it as extra pull toward whatever chord follows.',
+                    'Any diatonic chord except the tonic and the leading-tone triad can be tonicized this way: V7/vi resolves to vi, V7/ii resolves to ii, and so on. Chains of secondary dominants — V7/ii leading to V7/V leading to V leading to I — tonicize one chord after another on the way home, the same way a jazz player approaches a goal note step by step.',
+                ],
+                practice: { category: 'progressions', difficulty: 'expert', label: 'Chord Progressions · Expert' },
+                quiz: [
+                    {
+                        question: 'What does a secondary dominant do?',
+                        choices: [
+                            'Replaces the tonic permanently',
+                            'Temporarily resolves to a chord other than the tonic, borrowing dominant-to-tonic pull',
+                            'Removes the need for a key signature',
+                            'Only exists in minor keys',
+                        ],
+                        correctIndex: 1,
+                        explanation: 'A secondary dominant briefly treats a non-tonic chord as if it were "I," resolving into it the way V7 resolves into I.',
+                    },
+                    {
+                        question: 'In C major, V7/V is which chord?',
+                        choices: ['G7', 'D7', 'A7', 'C7'],
+                        correctIndex: 1,
+                        explanation: 'V7/V is built a fifth above V (G), landing on D — so V7/V is D7, which resolves into G.',
+                    },
+                    {
+                        question: 'Why does V7/V sound chromatic even though it resolves to a diatonic V chord?',
+                        choices: [
+                            'It contains a note (its major 3rd) from outside the home key\'s scale',
+                            'It removes the bass note entirely',
+                            'It is always played out of tempo',
+                            'It has no 3rd',
+                        ],
+                        correctIndex: 0,
+                        explanation: 'V7/V\'s 3rd comes from outside the home major scale, which is exactly what gives it that flash of color.',
+                    },
+                    {
+                        question: 'What does a chain like V7/ii - V7/V - V - I accomplish?',
+                        choices: [
+                            'It tonicizes the tonic itself, repeatedly',
+                            'It tonicizes a sequence of diatonic chords, approached one at a time',
+                            'Nothing — chains of secondary dominants don\'t occur in real music',
+                            'It only works on the leading-tone triad',
+                        ],
+                        correctIndex: 1,
+                        explanation: 'Each secondary dominant in the chain briefly tonicizes the chord right before its final resolution to I.',
+                    },
+                ],
+            },
+            {
+                id: 'modal-interchange',
+                title: 'Modal Interchange & Borrowed Chords',
+                summary: 'Reaching into the parallel minor for color.',
+                content: [
+                    'Modal interchange (also called "borrowed chords") means temporarily using a chord from the parallel minor key inside a major-key progression, or vice versa. C major and C minor share the same tonic but different 3rds, 6ths, and 7ths, so borrowing swaps in those minor-key notes for a few beats before returning to the major-key sound.',
+                    'The two most common borrowed chords are minor iv (instead of major IV) and ♭VI / ♭VII, both built on flattened scale degrees from the parallel minor. Minor iv gives a bittersweet, melancholy turn that major IV can\'t; ♭VI-♭VII-I is a descending move beloved by rock and film-score writers for sounding both surprising and inevitable.',
+                    'Borrowed chords work because the listener\'s ear still hears the home key\'s tonic as the anchor — the borrowed chord is a brief detour, not a full key change. That\'s what separates modal interchange from modulation: the tonic never moves, only the scale supplying a chord or two does.',
+                ],
+                practice: { category: 'progressions', difficulty: 'expert', label: 'Chord Progressions · Expert' },
+                quiz: [
+                    {
+                        question: 'What is modal interchange?',
+                        choices: [
+                            'Changing key permanently',
+                            'Borrowing a chord from the parallel major or minor key while the tonic stays the same',
+                            'Playing the same chord twice in a row',
+                            'Removing all minor chords from a major key',
+                        ],
+                        correctIndex: 1,
+                        explanation: 'The tonic stays fixed; only a chord or two borrows its notes from the parallel scale.',
+                    },
+                    {
+                        question: 'What is the most common borrowed chord used in place of major IV?',
+                        choices: ['Minor iv, borrowed from the parallel minor', 'Major V', 'Diminished vii°', 'Major II'],
+                        correctIndex: 0,
+                        explanation: 'Minor iv (from the parallel minor key) gives a bittersweet color the major IV doesn\'t have.',
+                    },
+                    {
+                        question: '♭VI and ♭VII are borrowed from:',
+                        choices: [
+                            'The relative minor\'s dominant',
+                            'The parallel minor key',
+                            'A completely unrelated key',
+                            'The harmonic major scale only',
+                        ],
+                        correctIndex: 1,
+                        explanation: 'Both chords are built on flattened scale degrees taken from the parallel minor key.',
+                    },
+                    {
+                        question: 'What distinguishes modal interchange from a full modulation?',
+                        choices: [
+                            'Modal interchange changes the tonic; modulation does not',
+                            'The tonic stays put during modal interchange — only a chord or two borrows from the parallel scale',
+                            'They are the same thing',
+                            'Modal interchange only happens in jazz',
+                        ],
+                        correctIndex: 1,
+                        explanation: 'Modulation moves the tonic to a new key; modal interchange keeps the tonic fixed and borrows briefly.',
+                    },
+                ],
+            },
+            {
+                id: 'extended-chords',
+                title: 'Extended Chords: 9ths, 11ths, and 13ths',
+                summary: 'Stacking past the 7th for denser, jazzier harmony.',
+                content: [
+                    'Extended chords keep stacking 3rds past the 7th: a 9th adds the scale\'s 2nd degree an octave up (0-4-7-10-14 for a dominant 9th), an 11th adds the 4th degree (0-4-7-10-14-17), and a 13th adds the 6th degree (0-4-7-10-14-17-21). Each extension layers in one more color tone without changing the chord\'s underlying functional role.',
+                    'In practice, full stacks are rare — the 5th is often dropped, and on an 11th chord the major 3rd is frequently omitted too, since it clashes with the 11th a half step away. What matters to the ear is the top extension: a 9th sounds lush, an 11th sounds dense and almost cluster-like, and a 13th sounds like the full harmonic series stacked at once.',
+                    'Extended dominant chords are jazz\'s signature sound: a plain V7 resolving to I is functional but plain, while V9, V11, or V13 add the same pull with extra color, which is why comping piano and guitar parts reach for them constantly instead of bare triads or 7th chords.',
+                ],
+                practice: { category: 'chords', difficulty: 'expert', label: 'Chord ID · Expert' },
+                quiz: [
+                    {
+                        question: 'What note does a 9th chord add on top of a 7th chord?',
+                        choices: ['The scale\'s 2nd degree, an octave up', 'The root again', 'The 5th doubled', 'The 6th degree'],
+                        correctIndex: 0,
+                        explanation: 'A 9th is the 2nd scale degree raised an octave, stacked above the existing 7th chord.',
+                    },
+                    {
+                        question: 'Why is the 3rd often dropped from an 11th chord voicing?',
+                        choices: [
+                            'It\'s not needed for the chord to have a root',
+                            'Because it clashes — a half step away from the 11th',
+                            '11th chords never have a 3rd in any voicing',
+                            'To make the chord louder',
+                        ],
+                        correctIndex: 1,
+                        explanation: 'The major 3rd sits a half step below the 11th, creating a clash many players avoid by omitting the 3rd.',
+                    },
+                    {
+                        question: 'When voicing a dense extended chord on a real instrument, which note is typically dropped first?',
+                        choices: ['The root', 'The 5th', 'The 9th', 'The 7th'],
+                        correctIndex: 1,
+                        explanation: 'The 5th adds the least essential color, so it\'s the first note cut when a voicing needs simplifying.',
+                    },
+                    {
+                        question: 'Why do jazz musicians favor V9/V11/V13 over a plain V7?',
+                        choices: [
+                            'They have no dominant function',
+                            'They add the same resolving pull as V7 plus extra harmonic color',
+                            'They are easier to play',
+                            'They remove the need for a 3rd entirely',
+                        ],
+                        correctIndex: 1,
+                        explanation: 'The extensions keep the same dominant function while adding richer, denser color on top.',
+                    },
+                ],
+            },
+            {
+                id: 'tritone-sub-turnarounds',
+                title: 'Tritone Substitution & Jazz Turnarounds',
+                summary: 'Swapping a dominant for the dominant a tritone away.',
+                content: [
+                    'Any dominant 7th chord can be replaced by another dominant 7th chord built a tritone (six semitones) away — a move called tritone substitution. The two chords share the same tritone between their 3rd and 7th (just inverted), so the substitute still resolves convincingly, but the bass now moves down by half step into the next chord instead of by a fifth.',
+                    'In a ii-V-I, swapping V7 for its tritone substitute (notated subV7, a flat-II7) turns the bass line into a smooth chromatic descent: ii - subV7 - I instead of ii - V - I. This half-step bass motion is one of jazz\'s most recognizable reharmonization tricks.',
+                    'A turnaround is a short progression, usually at the end of a phrase or chorus, that leads back to the top of the form — classically I-vi-ii-V. Tritone substitution and secondary dominants are both common ways to "spice up" a plain turnaround, stacking more chromatic motion into the same few bars without losing the underlying function.',
+                ],
+                practice: { category: 'progressions', difficulty: 'expert', label: 'Chord Progressions · Expert' },
+                quiz: [
+                    {
+                        question: 'What defines a tritone substitution?',
+                        choices: [
+                            'Replacing a dominant 7th chord with another dominant 7th a tritone away',
+                            'Replacing a major chord with a minor chord',
+                            'Removing the dominant chord entirely',
+                            'Doubling the root of the V chord',
+                        ],
+                        correctIndex: 0,
+                        explanation: 'The substitute dominant sits a tritone (six semitones) from the original, sharing its key tension notes.',
+                    },
+                    {
+                        question: 'Why does a tritone substitution still resolve convincingly?',
+                        choices: [
+                            'It shares the same tritone (3rd and 7th, inverted) as the chord it replaces',
+                            'It has no 7th',
+                            'It is always played silently',
+                            'It changes the key permanently',
+                        ],
+                        correctIndex: 0,
+                        explanation: 'The 3rd and 7th of one dominant 7th chord are the 7th and 3rd (inverted) of the chord a tritone away — the core tension carries over.',
+                    },
+                    {
+                        question: 'In ii - subV7 - I, how does the bass move into the tonic?',
+                        choices: ['Up a fifth', 'Down by half step', 'Up by a major third', 'It does not move'],
+                        correctIndex: 1,
+                        explanation: 'The tritone substitute sits a half step above the tonic, so resolving into I is a smooth chromatic descent.',
+                    },
+                    {
+                        question: 'What is a turnaround?',
+                        choices: [
+                            'A scale exercise',
+                            'A short progression at the end of a phrase that leads back to the top of the form',
+                            'A type of key signature',
+                            'A rhythm pattern only',
+                        ],
+                        correctIndex: 1,
+                        explanation: 'Classically I-vi-ii-V, a turnaround sets up a return to the beginning of the form, often dressed up with chromatic substitutions.',
+                    },
+                ],
+            },
+        ],
+    },
 ];
 
 export const ALL_LESSONS: Lesson[] = CURRICULUM.flatMap((unit) => unit.lessons);

@@ -21,7 +21,7 @@ function NoteGlyph({
 }: { x: number; y: number; duration: DurationName; stemHeight: number; color: string; bg: string }) {
     const hollow = duration === 'whole' || duration === 'half' || duration === 'dotted-half';
     const hasStem = duration !== 'whole';
-    const flagCount = duration === 'eighth' || duration === 'dotted-eighth' ? 1 : duration === 'sixteenth' ? 2 : 0;
+    const flagCount = duration === 'eighth' || duration === 'dotted-eighth' || duration === 'triplet-eighth' ? 1 : duration === 'sixteenth' ? 2 : 0;
     const dotted = duration.startsWith('dotted');
     const stemX = x + 7;
     const stemTopY = y - stemHeight;
@@ -70,7 +70,7 @@ function RestGlyph({ x, y, duration, color }: { x: number; y: number; duration: 
         );
     }
 
-    const flagCount = duration === 'eighth' || duration === 'dotted-eighth' ? 1 : duration === 'sixteenth' ? 2 : 0;
+    const flagCount = duration === 'eighth' || duration === 'dotted-eighth' || duration === 'triplet-eighth' ? 1 : duration === 'sixteenth' ? 2 : 0;
     return (
         <g>
             <path d={`M ${x - 4} ${y - 13} L ${x + 5} ${y + 13}`} stroke={color} strokeWidth="3" strokeLinecap="round" />

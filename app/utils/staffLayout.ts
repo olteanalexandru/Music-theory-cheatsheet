@@ -31,6 +31,7 @@ export const NOTES_DIFFICULTY_PRESETS: Record<EarTrainingDifficulty, { range: Ra
     easy: { range: 'staff', keys: ['C'] },
     medium: { range: 'extended', keys: ['C', 'G', 'F', 'D', 'B♭'] },
     hard: { range: 'wide', keys: KEY_NAMES },
+    expert: { range: 'wide', keys: KEY_NAMES },
 };
 
 const LETTER_ORDER = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];

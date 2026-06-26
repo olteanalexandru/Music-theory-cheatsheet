@@ -15,6 +15,7 @@ export const GUITAR_DIFFICULTY_PRESETS: Record<EarTrainingDifficulty, { maxFret:
     easy: { maxFret: 4 },
     medium: { maxFret: 8 },
     hard: { maxFret: GUITAR_FRET_COUNT },
+    expert: { maxFret: GUITAR_FRET_COUNT },
 };
 
 export interface FretQuestion {

@@ -14,6 +14,7 @@ const MARKETING_NAV_LINKS = [
 
 const APP_NAV_LINKS = [
     { href: '/app', label: 'Practice' },
+    { href: '/plan', label: 'Plan' },
     { href: '/leaderboard', label: 'Leaderboard' },
     { href: '/profile', label: 'Profile' },
 ];

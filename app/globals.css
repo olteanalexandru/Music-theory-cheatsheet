@@ -269,16 +269,18 @@ a:hover {
   text-shadow: 0 0 8px rgba(94, 234, 212, 0.5);
 }
 
-/* Floating mushroom field: a fixed, full-viewport decoration layer. Renders
-   above page content (the header/footer/cards all paint opaque backgrounds,
-   so a lower z-index would be invisible); pointer-events is disabled so it
-   never blocks real clicks. */
+/* Floating mushroom field: a fixed, full-viewport decoration layer. Sits at a
+   negative z-index so it paints behind both unpositioned content (cards,
+   text - which default to position: static) and any positioned content with
+   z-index >= 0 (header, page wrappers), regardless of DOM order - it's
+   ambient background atmosphere, not foreground clutter. pointer-events is
+   disabled so it never blocks real clicks. */
 .psychedelic-mushroom-field {
   position: fixed;
   inset: 0;
   overflow: hidden;
   pointer-events: none;
-  z-index: 9999;
+  z-index: -1;
 }
 
 .psychedelic-mushroom {
@@ -288,18 +290,18 @@ a:hover {
   animation-name: mushroom-rise, mushroom-hue;
   animation-timing-function: linear, linear;
   animation-iteration-count: infinite, infinite;
-  filter: hue-rotate(0deg) saturate(1.5) drop-shadow(0 0 6px rgba(236, 72, 153, 0.6));
+  filter: blur(1.5px) hue-rotate(0deg) saturate(1.5) drop-shadow(0 0 6px rgba(236, 72, 153, 0.6));
 }
 
 @keyframes mushroom-rise {
   0% { transform: translate(0, 10vh) rotate(0deg) scale(0.8); opacity: 0; }
-  10% { opacity: 0.85; }
+  10% { opacity: 0.4; }
   50% { transform: translate(var(--mushroom-drift), -55vh) rotate(180deg) scale(1.15); }
-  90% { opacity: 0.85; }
+  90% { opacity: 0.4; }
   100% { transform: translate(0, -120vh) rotate(360deg) scale(0.8); opacity: 0; }
 }
 
 @keyframes mushroom-hue {
-  0% { filter: hue-rotate(0deg) saturate(1.5) drop-shadow(0 0 6px rgba(236, 72, 153, 0.6)); }
-  100% { filter: hue-rotate(360deg) saturate(1.5) drop-shadow(0 0 6px rgba(34, 211, 238, 0.6)); }
+  0% { filter: blur(1.5px) hue-rotate(0deg) saturate(1.5) drop-shadow(0 0 6px rgba(236, 72, 153, 0.6)); }
+  100% { filter: blur(1.5px) hue-rotate(360deg) saturate(1.5) drop-shadow(0 0 6px rgba(34, 211, 238, 0.6)); }
 }

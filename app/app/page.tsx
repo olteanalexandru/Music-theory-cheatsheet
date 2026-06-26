@@ -1,12 +1,13 @@
 'use client';
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Info, Settings, ChevronDown, ChevronUp } from 'lucide-react';
 import { CircleOfFifths } from '@/app/components/CircleOfFifths';
 import PatternControls from '@/app/components/PatternControls';
 import Fretboard from '@/app/components/Fretboard';
 import StaffSection from '@/app/components/StaffSection';
 import RhythmSection from '@/app/components/RhythmSection';
-import EarTraining from '@/app/components/EarTraining';
+import EarTraining, { CATEGORIES, type Category } from '@/app/components/EarTraining';
 import PlayAlong from '@/app/components/PlayAlong';
 import Curriculum from '@/app/components/Curriculum';
 import GamificationPanel from '@/app/components/GamificationPanel';
@@ -15,6 +16,8 @@ import { useMidiInput } from '@/app/utils/useMidiInput';
 import { useSynth } from '@/app/utils/useSynth';
 import { noteNameFromMidi } from '@/app/utils/notes';
 import type { Waveform } from '@/app/utils/audioSynth';
+import { DIFFICULTY_LEVELS, type EarTrainingDifficulty } from '@/app/utils/earTrainingData';
+import { requestPracticeFocus } from '@/app/utils/practiceFocusBus';
 
 const WAVEFORMS: Waveform[] = ['sine', 'triangle', 'sawtooth', 'square'];
 
@@ -106,6 +109,7 @@ const InteractiveFretboardDisplay = () => {
         }
     });
 
+    const searchParams = useSearchParams();
     const midi = useMidiInput();
     const synth = useSynth();
     const midiActiveNoteNames = useMemo(
@@ -134,6 +138,24 @@ const InteractiveFretboardDisplay = () => {
             JSON.stringify(visibleComponents)
         );
     }, [visibleComponents]);
+
+    // Cross-page deep link (e.g. from /plan): /app?focus=<category>&difficulty=<level>
+    // requests a specific ear-training drill. focusCategory is derived at render
+    // time (not stored in state) so EarTraining mounts in the same commit as this
+    // page when the section was hidden - by the time this effect runs, its child
+    // effects (including EarTraining's focus-bus subscription) have already run.
+    const focusParam = searchParams.get('focus');
+    const focusCategory = focusParam && CATEGORIES.includes(focusParam as Category) ? (focusParam as Category) : null;
+    const focusDifficultyParam = searchParams.get('difficulty');
+
+    useEffect(() => {
+        if (!focusCategory) return;
+        const difficulty: EarTrainingDifficulty = (DIFFICULTY_LEVELS as string[]).includes(focusDifficultyParam ?? '')
+            ? (focusDifficultyParam as EarTrainingDifficulty)
+            : 'medium';
+        requestPracticeFocus({ category: focusCategory, difficulty });
+        document.getElementById('ear-training-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, [focusCategory, focusDifficultyParam]);
 
     const tuning = useMemo<string[]>(() => {
         if (instrument === 'bass') {
@@ -670,7 +692,7 @@ const InteractiveFretboardDisplay = () => {
 
                 {visibleComponents.rhythm && <RhythmSection synth={synth} />}
 
-                {visibleComponents.earTraining && (
+                {(visibleComponents.earTraining || focusCategory) && (
                     <div className="mt-8">
                         <EarTraining midi={midi} synth={synth} />
                     </div>
@@ -687,4 +709,10 @@ const InteractiveFretboardDisplay = () => {
     );
 };
 
-export default InteractiveFretboardDisplay;
+export default function AppPage() {
+    return (
+        <Suspense fallback={null}>
+            <InteractiveFretboardDisplay />
+        </Suspense>
+    );
+}

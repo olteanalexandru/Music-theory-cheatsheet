@@ -1,8 +1,8 @@
 export type EarTrainingCategory = 'intervals' | 'chords' | 'scales';
-export type EarTrainingDifficulty = 'easy' | 'medium' | 'hard';
+export type EarTrainingDifficulty = 'easy' | 'medium' | 'hard' | 'expert';
 
 // Ordered easiest to hardest; a level's pool includes every item at or below it.
-export const DIFFICULTY_LEVELS: EarTrainingDifficulty[] = ['easy', 'medium', 'hard'];
+export const DIFFICULTY_LEVELS: EarTrainingDifficulty[] = ['easy', 'medium', 'hard', 'expert'];
 
 export interface EarTrainingItem {
     name: string;
@@ -44,6 +44,10 @@ export const EAR_TRAINING_CHORDS: EarTrainingItem[] = [
     { name: 'Diminished 7th', intervals: [0, 3, 6, 9], difficulty: 'hard', description: 'Stacked minor 3rds all the way around — maximally tense and perfectly symmetrical.' },
     { name: 'Major 6th', intervals: [0, 4, 7, 9], difficulty: 'hard', description: 'A major triad plus a major 6th — sweet, with a vintage jazz/swing flavor.' },
     { name: 'Minor 6th', intervals: [0, 3, 7, 9], difficulty: 'hard', description: 'A minor triad plus a major 6th — bittersweet, used often in film and jazz writing.' },
+    { name: 'Dominant 9th', intervals: [0, 4, 7, 10, 14], difficulty: 'expert', description: 'A dominant 7th plus a major 9th — the "9" chord that drives funk and jazz comping.' },
+    { name: 'Minor 9th', intervals: [0, 3, 7, 10, 14], difficulty: 'expert', description: 'A minor 7th plus a major 9th — lush and modern, common in neo-soul and jazz.' },
+    { name: 'Dominant 11th', intervals: [0, 4, 7, 10, 14, 17], difficulty: 'expert', description: 'A dominant 9th plus a perfect 11th — dense and stacked, blurring into quartal harmony.' },
+    { name: 'Dominant 13th', intervals: [0, 4, 7, 10, 14, 17, 21], difficulty: 'expert', description: 'A dominant 11th plus a major 13th — every diatonic extension stacked over the root at once.' },
 ];
 
 export const EAR_TRAINING_SCALES: EarTrainingItem[] = [
@@ -60,6 +64,9 @@ export const EAR_TRAINING_SCALES: EarTrainingItem[] = [
     { name: 'Locrian', intervals: [0, 1, 3, 5, 6, 8, 10], difficulty: 'hard', description: 'A minor scale with lowered 2nd and 5th degrees; the most unstable mode, rarely used as a home key.' },
     { name: 'Blues Scale', intervals: [0, 3, 5, 6, 7, 10], difficulty: 'hard', description: 'The minor pentatonic plus a chromatic ♭5 "blue note" that defines blues phrasing.' },
     { name: 'Whole Tone', intervals: [0, 2, 4, 6, 8, 10], difficulty: 'hard', description: 'Built entirely from whole steps; symmetrical, with no strong tonal center.' },
+    { name: 'Bebop Dominant', intervals: [0, 2, 4, 5, 7, 9, 10, 11], difficulty: 'expert', description: 'Mixolydian plus a passing major 7th, keeping eighth-note bebop lines landing on chord tones on the beat.' },
+    { name: 'Bebop Major', intervals: [0, 2, 4, 5, 7, 8, 9, 11], difficulty: 'expert', description: 'The major scale plus a passing ♭6, used the same rhythmic-placement way as bebop dominant but over major chords.' },
+    { name: 'Altered Scale', intervals: [0, 1, 3, 4, 6, 8, 10], difficulty: 'expert', description: 'The 7th mode of melodic minor; every note is altered (♭9, ♯9, ♭5/♯11, ♭13) against a dominant chord, for maximum tension before resolving.' },
 ];
 
 export const EAR_TRAINING_DATA: Record<EarTrainingCategory, EarTrainingItem[]> = {

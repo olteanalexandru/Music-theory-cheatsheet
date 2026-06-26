@@ -89,7 +89,16 @@ export const KEY_DIFFICULTY: Record<string, EarTrainingDifficulty> = {
 };
 
 // Cumulative pool of keys for a difficulty: 'medium' includes every 'easy' and 'medium' key.
+// Every key is at or below 'hard', so the 'expert' pool is the same 12 keys - expert
+// drilling instead asks for the *relative minor* name via relativeMinorName() below,
+// since a key signature's accidentals are identical for a major key and its relative minor.
 export function keysForDifficulty(difficulty: EarTrainingDifficulty): string[] {
     const maxLevel = DIFFICULTY_LEVELS.indexOf(difficulty);
     return KEY_NAMES.filter((key) => DIFFICULTY_LEVELS.indexOf(KEY_DIFFICULTY[key]) <= maxLevel);
+}
+
+// The relative minor's tonic is the major scale's 6th degree, e.g. relativeMinorName('C') -> 'A' (A minor).
+export function relativeMinorName(keyName: string): string {
+    const scale = KEY_SIGNATURES[keyName] || KEY_SIGNATURES.C;
+    return scale[5];
 }

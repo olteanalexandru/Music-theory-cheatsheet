@@ -19,10 +19,10 @@ const Mushrooms = () => {
   // Math.random()-driven, so generated client-side only after mount to avoid
   // a hydration mismatch (same approach as Footer's star field).
   useEffect(() => {
-    const items: MushroomElement[] = [...Array(22)].map((_, i) => ({
+    const items: MushroomElement[] = [...Array(10)].map((_, i) => ({
       id: i,
       left: Math.random() * 100,
-      size: Math.random() * 28 + 18,
+      size: Math.random() * 14 + 12,
       riseDuration: Math.random() * 14 + 14,
       riseDelay: Math.random() * -28,
       hueDuration: Math.random() * 6 + 4,
