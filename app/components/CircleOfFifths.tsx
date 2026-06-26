@@ -1,20 +1,53 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { circleOfFifths } from '@/app/utils/musicTheory';
+import type { SynthController } from '@/app/utils/useSynth';
 
 interface CircleOfFifthsProps {
     initialSelectedRoot: string;
     mode: 'bass' | 'guitar';
+    synth: SynthController;
 }
 
-export const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ initialSelectedRoot, mode }) => {
-    const [selectedRoot, setSelectedRoot] = useState<string>('');
+const BASE_PITCH_CLASS: Record<string, number> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+
+function noteNameToPitchClass(name: string): number {
+    const base = BASE_PITCH_CLASS[name[0].toUpperCase()] ?? 0;
+    let offset = 0;
+    for (const accidental of name.slice(1)) {
+        if (accidental === '#' || accidental === '♯') offset += 1;
+        else if (accidental === 'b' || accidental === '♭') offset -= 1;
+    }
+    return (((base + offset) % 12) + 12) % 12;
+}
+
+const CHORD_ROOT_MIDI = 60; // C4 — chord chips just need to sound right, not sit at a specific octave.
+
+// Chord names here are always `${root}`, `${root}m`, or `${root}dim` (see
+// getPrimaryChords/getDerivedChords below), so a triad is fully determined by
+// stripping the quality suffix and picking the matching third/fifth.
+function chordNameToMidiNotes(chord: string): number[] {
+    const quality = chord.endsWith('dim') ? 'dim' : chord.endsWith('m') ? 'minor' : 'major';
+    const root = quality === 'dim' ? chord.slice(0, -3) : quality === 'minor' ? chord.slice(0, -1) : chord;
+    const rootMidi = CHORD_ROOT_MIDI + noteNameToPitchClass(root);
+    const third = quality === 'major' ? 4 : 3;
+    const fifth = quality === 'dim' ? 6 : 7;
+    return [rootMidi, rootMidi + third, rootMidi + fifth];
+}
+
+export const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ initialSelectedRoot, mode, synth }) => {
+    const [prevInitialRoot, setPrevInitialRoot] = useState(initialSelectedRoot);
+    const [selectedRoot, setSelectedRoot] = useState(initialSelectedRoot);
     const [showChords, setShowChords] = useState<boolean>(false);
 
-    useEffect(() => {
+    // Reset the selection when the parent supplies a new root, while still
+    // letting the user pick a different note locally (React's documented
+    // pattern for adjusting state during render instead of in an effect).
+    if (initialSelectedRoot !== prevInitialRoot) {
+        setPrevInitialRoot(initialSelectedRoot);
         setSelectedRoot(initialSelectedRoot);
-    }, [initialSelectedRoot]);
+    }
 
     type Note = keyof typeof circleOfFifths.scaleDegrees;
 
@@ -60,17 +93,21 @@ export const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ initialSelectedR
             : (isSelected ? 'bg-indigo-400' : 'theme-secondary-bg');
         const size = isMajor ? 'w-12 h-12' : 'w-10 h-10';
         const fontSize = isMajor ? 'font-bold' : 'text-sm';
+        const chordLabel = isMajor ? note : circleOfFifths.relatives[note as keyof typeof circleOfFifths.relatives];
 
         return (
             <div
                 key={note}
-                className={`absolute transform -translate-x-1/2 -translate-y-1/2 ${size} rounded-full 
+                className={`absolute transform -translate-x-1/2 -translate-y-1/2 ${size} rounded-full
                     flex items-center justify-center cursor-pointer transition-colors duration-200
                     ${bgColor} theme-text ${fontSize}`}
                 style={{ left: `${x}%`, top: `${y}%` }}
-                onClick={() => setSelectedRoot(note)}
+                onClick={() => {
+                    setSelectedRoot(note);
+                    synth.playChord(chordNameToMidiNotes(chordLabel));
+                }}
             >
-                {isMajor ? note : circleOfFifths.relatives[note as keyof typeof circleOfFifths.relatives]}
+                {chordLabel}
             </div>
         );
     };
@@ -89,7 +126,7 @@ export const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ initialSelectedR
                     <h3 className="text-lg md:text-xl font-bold theme-text">Circle of Fifths</h3>
                     <button
                         onClick={() => setShowChords(!showChords)}
-                        className="px-4 py-2 theme-btn rounded hover:opacity-90 z-20" // Added z-20
+                        className="px-4 py-2 theme-btn rounded-sm hover:opacity-90 z-20" // Added z-20
                     >
                         {showChords ? 'Hide Chords' : 'Show Chords'}
                     </button>
@@ -105,7 +142,15 @@ export const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ initialSelectedR
 
                 <div className="mt-6 theme-text space-y-4">
                     <div>
-                        <h4 className="font-semibold mb-2">Selected Key: {selectedRoot}</h4>
+                        <div className="flex items-center gap-3">
+                            <h4 className="font-semibold mb-2">Selected Key: {selectedRoot}</h4>
+                            <button
+                                onClick={() => synth.playChord(chordNameToMidiNotes(selectedRoot))}
+                                className="px-3 py-1 theme-btn rounded-sm text-sm hover:opacity-90"
+                            >
+                                ▶ Play
+                            </button>
+                        </div>
                         <p>Key Signature: {getKeySignature(selectedRoot as Note)}</p>
                         <p>Relative Minor: {circleOfFifths.relatives[selectedRoot as Note]}</p>
                     </div>
@@ -115,7 +160,11 @@ export const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ initialSelectedR
                             <h4 className="font-semibold mb-2">Primary Chords:</h4>
                             <div className="grid grid-cols-3 gap-4">
                                 {Object.entries(getPrimaryChords(selectedRoot)).map(([roman, chord]) => (
-                                    <div key={roman} className="theme-secondary-bg p-2 rounded text-center">
+                                    <div
+                                        key={roman}
+                                        className="theme-secondary-bg p-2 rounded-sm text-center cursor-pointer hover:opacity-90"
+                                        onClick={() => synth.playChord(chordNameToMidiNotes(chord))}
+                                    >
                                         <div className="text-sm theme-secondary-text">{roman}</div>
                                         <div className="font-bold theme-text">{chord}</div>
                                     </div>
@@ -125,7 +174,11 @@ export const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ initialSelectedR
                             <h4 className="font-semibold mt-4 mb-2">Derived Chords</h4>
                             <div className="grid grid-cols-4 gap-4">
                                 {Object.entries(getDerivedChords(selectedRoot)).map(([roman, chord]) => (
-                                    <div key={roman} className="theme-secondary-bg p-2 rounded text-center">
+                                    <div
+                                        key={roman}
+                                        className="theme-secondary-bg p-2 rounded-sm text-center cursor-pointer hover:opacity-90"
+                                        onClick={() => synth.playChord(chordNameToMidiNotes(chord))}
+                                    >
                                         <div className="text-sm theme-secondary-text">{roman}</div>
                                         <div className="font-bold theme-text">{chord}</div>
                                     </div>

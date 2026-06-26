@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Patterns, PatternType } from '@/app/page';
+import type { Patterns, PatternType } from '@/app/app/page';
 
 type FretboardProps = {
     getNoteAtFret: (string: string, fret: number) => string,
@@ -14,7 +14,8 @@ type FretboardProps = {
     useLandmarkNumbers: boolean,
     noteToLandmarkNumber: (note: string) => number | string,
     instrument: 'bass' | 'guitar',
-    tuning: string[]
+    tuning: string[],
+    midiActiveNoteNames?: Set<string>
 };
 
 type PatternName = string;
@@ -32,7 +33,8 @@ const Fretboard: React.FC<FretboardProps> = ({
     useLandmarkNumbers,
     noteToLandmarkNumber,
     instrument,
-    tuning
+    tuning,
+    midiActiveNoteNames
 }) => {
     // Function to get the appropriate strings based on instrument and tuning/numChords
     const getStringsForDisplay = () => {
@@ -58,7 +60,7 @@ const Fretboard: React.FC<FretboardProps> = ({
         <div className="theme-card rounded-xl shadow-2xl overflow-x-auto">
             {/* Fret numbers and markers */}
             <div className="flex px-4 md:px-8 py-2 border-b theme-secondary-bg">
-                <div className="w-8 md:w-16 flex-shrink-0"></div>
+                <div className="w-8 md:w-16 shrink-0"></div>
                 {[...Array(16)].map((_, i) => (
                     <div key={i} className="flex-1 min-w-[30px] md:min-w-[60px] text-center theme-secondary-text text-xs md:text-sm">
                         {i}
@@ -97,6 +99,7 @@ const Fretboard: React.FC<FretboardProps> = ({
                             const isInPattern = selectedPattern && selectedRoot &&
                                 isNoteInPattern(note, selectedRoot, patterns[patternType][selectedPattern as PatternName].intervals);
                             const isRoot = note === selectedRoot;
+                            const isMidiActive = midiActiveNoteNames?.has(note) ?? false;
 
                             return (
                                 <div
@@ -109,9 +112,10 @@ const Fretboard: React.FC<FretboardProps> = ({
                                             rounded-full flex items-center justify-center
                                             text-xs md:text-sm font-medium transition-all duration-200
                                             ${isRoot ? 'theme-accent-bg theme-text scale-110' :
-                                                isInPattern ? 'bg-indigo-400 bg-opacity-75 theme-text' :
+                                                isInPattern ? 'bg-indigo-400/75 theme-text' :
                                                 isHovered ? 'theme-secondary-bg theme-text' :
                                                 'theme-muted-bg theme-secondary-text hover:opacity-90'}
+                                            ${isMidiActive ? 'ring-2 ring-green-400' : ''}
                                             cursor-pointer transform hover:scale-105
                                         `}
                                         onMouseEnter={() => setHoveredNote(note)}
@@ -119,7 +123,7 @@ const Fretboard: React.FC<FretboardProps> = ({
                                     >
                                         {displayNote}
                                     </div>
-                                    <div className="absolute top-1/2 left-0 w-full h-[1px] md:h-[2px] theme-secondary-bg" style={{ zIndex: -1, transform: 'translateY(-50%)' }}></div>
+                                    <div className="absolute top-1/2 left-0 w-full h-px md:h-[2px] theme-secondary-bg" style={{ zIndex: -1, transform: 'translateY(-50%)' }}></div>
                                 </div>
                             );
                         })}

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { guitarTunings, defaultBassTuningName } from '@/app/utils/guitarTunings';
+import React from 'react';
+import { guitarTunings } from '@/app/utils/guitarTunings';
 
 type PatternType = 'scales' | 'arpeggios' | 'chords';
 
@@ -31,7 +31,8 @@ type PatternControlsProps = {
     setUseLandmarkNumbers: (use: boolean) => void,
     instrument: 'bass' | 'guitar',
     setInstrument: (instrument: 'bass' | 'guitar') => void,
-    setTuning: (tuning: string[]) => void
+    selectedTuningName: string,
+    setSelectedTuningName: (tuningName: string) => void
 };
 
 const PatternControls: React.FC<PatternControlsProps> = ({
@@ -49,40 +50,11 @@ const PatternControls: React.FC<PatternControlsProps> = ({
     setUseLandmarkNumbers,
     instrument,
     setInstrument,
-    setTuning
+    selectedTuningName,
+    setSelectedTuningName
 }) => {
-    const [selectedTuningName, setSelectedTuningName] = useState<string>(defaultBassTuningName);
-    const [isMounted, setIsMounted] = useState(false); // Track mount status
-
-    // Set mounted state only on client
-    useEffect(() => {
-        setIsMounted(true);
-    }, []);
-
-    useEffect(() => {
-        // Run effect only after mounting
-        if (isMounted) {
-            setTuning(guitarTunings[selectedTuningName]);
-        }
-    }, [selectedTuningName, setTuning, isMounted]); // Add isMounted dependency
-
-    useEffect(() => {
-        // Run effect only after mounting
-        if (isMounted) {
-            if (instrument === 'bass') {
-                // Avoid unnecessary state update if already default
-                if (selectedTuningName !== defaultBassTuningName) {
-                    setSelectedTuningName(defaultBassTuningName);
-                }
-            } else {
-                setTuning(guitarTunings[selectedTuningName]);
-            }
-        }
-    }, [instrument, setTuning, isMounted, selectedTuningName]); // Add isMounted and selectedTuningName dependencies
-
     const handleTuningChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const newTuningName = e.target.value;
-        setSelectedTuningName(newTuningName);
+        setSelectedTuningName(e.target.value);
     };
 
     return (
@@ -214,7 +186,7 @@ const PatternControls: React.FC<PatternControlsProps> = ({
                     {useLandmarkNumbers ? 'Landmark Numbers' : 'Note System'}
                 </button>
                 {useLandmarkNumbers && !selectedRoot && (
-                    <p className="text-xs text-yellow-400 mt-1">Select a root note to see landmark numbers.</p>
+                    <p className="text-xs theme-warning-text mt-1">Select a root note to see landmark numbers.</p>
                 )}
             </div>
         </div>

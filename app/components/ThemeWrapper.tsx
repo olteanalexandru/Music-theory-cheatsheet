@@ -2,10 +2,21 @@
 
 import { useState } from "react";
 import Footer from "./Footer";
+import AppHeader from "./AppHeader";
+import Mushrooms from "./Mushrooms";
+import { AuthProvider } from "@/app/utils/AuthContext";
 
 // Assuming geistSans and geistMono are passed as props or defined/imported here
 // For simplicity, let's assume they are passed as props for now.
 // You might need to adjust this based on how fonts are handled in layout.tsx
+
+export type AppTheme = "dark" | "light" | "psychedelic";
+
+const THEME_BODY_CLASS: Record<AppTheme, string> = {
+  dark: "",
+  light: "light-mode",
+  psychedelic: "psychedelic-mode",
+};
 
 export default function ThemeWrapper({
   children,
@@ -16,20 +27,18 @@ export default function ThemeWrapper({
   geistSansVariable: string;
   geistMonoVariable: string;
 }) {
-  const [isLightMode, setIsLightMode] = useState(false);
-
-  const toggleLightMode = () => {
-    setIsLightMode(!isLightMode);
-  };
+  const [theme, setTheme] = useState<AppTheme>("dark");
 
   return (
     <body
-      className={`${geistSansVariable} ${geistMonoVariable} antialiased ${
-        isLightMode ? "light-mode" : ""
-      }`}
+      className={`${geistSansVariable} ${geistMonoVariable} antialiased ${THEME_BODY_CLASS[theme]}`}
     >
-      {children}
-      <Footer isLightMode={isLightMode} toggleLightMode={toggleLightMode} />
+      <AuthProvider>
+        <AppHeader />
+        {children}
+        <Footer theme={theme} setTheme={setTheme} />
+      </AuthProvider>
+      {theme === "psychedelic" && <Mushrooms />}
     </body>
   );
 }

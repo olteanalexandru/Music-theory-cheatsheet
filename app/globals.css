@@ -1,41 +1,91 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@theme {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
 
 :root {
-  /* Default dark mode */
-  --background: #0a0a0a; /* Dark background */
-  --foreground: #ededed; /* Light text */
-  --card-background: #1f2937; /* Darker card background */
-  --card-foreground: #d1d5db; /* Lighter card text */
-  --button-background: #4f46e5; /* Indigo button */
+  /* Bold editorial: near-black canvas, warm off-white text, one decisive accent */
+  --background: #09090b; /* Near-black background */
+  --foreground: #f4f3ee; /* Warm off-white text */
+  --card-background: #121214; /* Slightly raised surface */
+  --card-foreground: #e4e3df; /* Off-white card text */
+  --card-border: rgba(244, 243, 238, 0.08);
+  --button-background: #5b5fee; /* Decisive violet-blue accent */
   --button-foreground: #ffffff;
-  --link-color: #818cf8; /* Lighter indigo for links */
-  --secondary-bg: #111827; /* Secondary background */
-  --secondary-fg: #d1d5db; /* Secondary foreground */
-  --muted-bg: #374151; /* For inputs and less emphasized areas */
-  --muted-fg: #9ca3af; /* For muted text */
-  --accent-bg: #4f46e5; /* Accent background */
+  --link-color: #9498ff; /* Lighter accent for links */
+  --secondary-bg: #0d0d0f; /* Secondary background */
+  --secondary-fg: #c2c1bd; /* Secondary foreground */
+  --muted-bg: #1b1b1f; /* For inputs and less emphasized areas */
+  --muted-fg: #8a8a8f; /* For muted text */
+  --accent-bg: #5b5fee; /* Accent background */
   --accent-fg: #ffffff; /* Accent foreground */
-  --hover-bg: #4338ca; /* Hover background */
+  --hover-bg: #4548c9; /* Hover background */
+  --warning-fg: #facc15; /* Bright yellow reads fine on dark backgrounds */
+  --warning-bg: rgba(250, 204, 21, 0.08);
+  --warning-border: rgba(234, 179, 8, 0.3);
 }
 
 .light-mode {
   /* Light mode overrides */
-  --background: #f3f4f6; /* Light gray background */
-  --foreground: #111827; /* Dark text */
+  --background: #fafaf8; /* Warm off-white background */
+  --foreground: #15151a; /* Near-black text */
   --card-background: #ffffff; /* White card background */
-  --card-foreground: #374151; /* Darker card text */
-  --button-background: #6366f1; /* Slightly lighter indigo button */
+  --card-foreground: #2a2a30; /* Darker card text */
+  --card-border: rgba(21, 21, 26, 0.08);
+  --button-background: #5b5fee; /* Same decisive accent as dark mode */
   --button-foreground: #ffffff;
-  --link-color: #4f46e5; /* Darker indigo for links */
-  --secondary-bg: #f9fafb; /* Secondary background */
-  --secondary-fg: #4b5563; /* Secondary foreground */
-  --muted-bg: #e5e7eb; /* For inputs and less emphasized areas */
-  --muted-fg: #6b7280; /* For muted text */
-  --accent-bg: #6366f1; /* Accent background */
+  --link-color: #4548c9; /* Darker accent for links */
+  --secondary-bg: #f3f3f0; /* Secondary background */
+  --secondary-fg: #46464d; /* Secondary foreground */
+  --muted-bg: #e9e9e5; /* For inputs and less emphasized areas */
+  --muted-fg: #6b6b72; /* For muted text */
+  --accent-bg: #5b5fee; /* Accent background */
   --accent-fg: #ffffff; /* Accent foreground */
-  --hover-bg: #4f46e5; /* Hover background */
+  --hover-bg: #4548c9; /* Hover background */
+  --warning-fg: #92400e; /* Dark amber keeps contrast on light backgrounds */
+  --warning-bg: #fef3c7;
+  --warning-border: #fde68a;
+}
+
+.psychedelic-mode {
+  /* Psychedelic mode overrides */
+  --background: #1a0b2e;
+  --foreground: #fdf4ff;
+  --card-background: rgba(45, 11, 67, 0.72);
+  --card-foreground: #fef08a;
+  --button-background: #ec4899;
+  --button-foreground: #ffffff;
+  --link-color: #5eead4;
+  --secondary-bg: rgba(26, 7, 46, 0.85);
+  --secondary-fg: #fbcfe8;
+  --muted-bg: rgba(124, 58, 237, 0.35);
+  --muted-fg: #f5d0fe;
+  --accent-bg: #f97316;
+  --accent-fg: #1a0b2e;
+  --hover-bg: #db2777;
+  --warning-fg: #fde047;
+  --warning-bg: rgba(249, 115, 22, 0.15);
+  --warning-border: rgba(249, 115, 22, 0.45);
 }
 
 /* Apply background and foreground variables to the root elements */
@@ -44,20 +94,31 @@ html, body {
   color: var(--foreground);
 }
 
+body.psychedelic-mode {
+  background: linear-gradient(135deg, #ff00cc, #7c3aed, #06b6d4, #fbbf24, #ff00cc);
+  background-size: 400% 400%;
+  animation: psychedelic-bg-shift 20s ease infinite;
+}
+
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
   transition: background-color 0.3s ease, color 0.3s ease; /* Smooth transition */
+}
+
+h1, h2, h3 {
+  letter-spacing: -0.02em;
 }
 
 /* Apply card styles */
 .card {
   background-color: var(--card-background);
   color: var(--card-foreground);
+  border: 1px solid var(--card-border);
   border-radius: 0.5rem; /* lg */
   padding: 1.5rem; /* p-6 */
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-lg */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
@@ -96,6 +157,7 @@ a:hover {
 .theme-card {
   background-color: var(--card-background);
   color: var(--card-foreground);
+  border: 1px solid var(--card-border);
 }
 
 .theme-btn {
@@ -128,6 +190,18 @@ a:hover {
   color: var(--accent-fg);
 }
 
+.theme-warning-text {
+  color: var(--warning-fg);
+}
+
+.theme-warning-bg {
+  background-color: var(--warning-bg);
+}
+
+.theme-warning-border {
+  border-color: var(--warning-border);
+}
+
 @keyframes galaxy {
    0%, 100% {
     transform: translate(0, 0) scale(1);
@@ -142,4 +216,92 @@ a:hover {
 
 .animate-galaxy {
   animation: galaxy linear infinite;
+}
+
+/* Psychedelic mode: animated rainbow background + gentle movement everywhere */
+@keyframes psychedelic-bg-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes psy-wobble {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  25% { transform: rotate(0.6deg) scale(1.01); }
+  50% { transform: rotate(-0.5deg) scale(1); }
+  75% { transform: rotate(0.4deg) scale(1.01); }
+}
+
+@keyframes psy-glow {
+  0%, 100% { box-shadow: 0 0 18px rgba(236, 72, 153, 0.45), 0 0 36px rgba(34, 211, 238, 0.25); }
+  50% { box-shadow: 0 0 28px rgba(34, 211, 238, 0.5), 0 0 50px rgba(249, 115, 22, 0.3); }
+}
+
+@keyframes psy-btn-shift {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 300% 50%; }
+}
+
+.psychedelic-mode .theme-card,
+.psychedelic-mode .card {
+  animation: psy-wobble 7s ease-in-out infinite, psy-glow 5s ease-in-out infinite;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.psychedelic-mode .theme-card:nth-of-type(2n),
+.psychedelic-mode .card:nth-of-type(2n) {
+  animation-delay: -2.5s, -1.5s;
+}
+
+.psychedelic-mode .theme-card:nth-of-type(3n),
+.psychedelic-mode .card:nth-of-type(3n) {
+  animation-delay: -4.5s, -3s;
+}
+
+.psychedelic-mode .btn,
+.psychedelic-mode .theme-btn {
+  background: linear-gradient(90deg, #ec4899, #8b5cf6, #06b6d4, #f97316, #ec4899);
+  background-size: 300% 100%;
+  animation: psy-btn-shift 5s linear infinite;
+  color: #ffffff;
+}
+
+.psychedelic-mode a {
+  text-shadow: 0 0 8px rgba(94, 234, 212, 0.5);
+}
+
+/* Floating mushroom field: a fixed, full-viewport decoration layer. Sits at a
+   negative z-index so it paints behind both unpositioned content (cards,
+   text - which default to position: static) and any positioned content with
+   z-index >= 0 (header, page wrappers), regardless of DOM order - it's
+   ambient background atmosphere, not foreground clutter. pointer-events is
+   disabled so it never blocks real clicks. */
+.psychedelic-mushroom-field {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.psychedelic-mushroom {
+  position: absolute;
+  bottom: -10%;
+  display: inline-block;
+  animation-name: mushroom-rise, mushroom-hue;
+  animation-timing-function: linear, linear;
+  animation-iteration-count: infinite, infinite;
+  filter: blur(1.5px) hue-rotate(0deg) saturate(1.5) drop-shadow(0 0 6px rgba(236, 72, 153, 0.6));
+}
+
+@keyframes mushroom-rise {
+  0% { transform: translate(0, 10vh) rotate(0deg) scale(0.8); opacity: 0; }
+  10% { opacity: 0.4; }
+  50% { transform: translate(var(--mushroom-drift), -55vh) rotate(180deg) scale(1.15); }
+  90% { opacity: 0.4; }
+  100% { transform: translate(0, -120vh) rotate(360deg) scale(0.8); opacity: 0; }
+}
+
+@keyframes mushroom-hue {
+  0% { filter: blur(1.5px) hue-rotate(0deg) saturate(1.5) drop-shadow(0 0 6px rgba(236, 72, 153, 0.6)); }
+  100% { filter: blur(1.5px) hue-rotate(360deg) saturate(1.5) drop-shadow(0 0 6px rgba(34, 211, 238, 0.6)); }
 }
