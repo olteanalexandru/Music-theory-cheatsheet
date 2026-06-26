@@ -1,6 +1,6 @@
 import React from 'react';
 import ScrollHint from '@/app/components/ScrollHint';
-import type { Patterns, PatternType } from '@/app/app/page';
+import type { Patterns, PatternType } from '@/app/utils/fretboardTheory';
 
 type FretboardProps = {
     getNoteAtFret: (string: string, fret: number) => string,

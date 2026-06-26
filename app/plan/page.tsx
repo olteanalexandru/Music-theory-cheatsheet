@@ -150,7 +150,7 @@ export default function PlanPage() {
                         <h3 className="text-xl font-semibold theme-text mb-1">{upNext.title}</h3>
                         <p className="text-sm theme-secondary-text mb-4">{upNext.summary}</p>
                         <Link
-                            href="/app#curriculum-section"
+                            href="/app/curriculum"
                             className="inline-flex items-center gap-1.5 px-4 py-2 theme-btn rounded-lg text-sm font-medium hover:opacity-90"
                         >
                             Continue Lesson <ArrowRight size={14} />
@@ -192,7 +192,7 @@ export default function PlanPage() {
                     {weakAreas.map(({ category, difficulty }) => (
                         <Link
                             key={category}
-                            href={`/app?focus=${category}&difficulty=${difficulty}`}
+                            href={`/app/ear-training?focus=${category}&difficulty=${difficulty}`}
                             className="theme-muted-bg rounded-lg p-4 hover:opacity-90 transition-colors"
                         >
                             <p className="font-semibold theme-text mb-1">{CATEGORY_LABELS[category as Category]}</p>

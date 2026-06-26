@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { ArrowRight, BookOpen, CheckCircle2, ChevronDown, ChevronRight, Circle, Lock, Sparkles } from 'lucide-react';
 import {
     ALL_LESSONS,
@@ -12,11 +13,11 @@ import {
     type Lesson,
 } from '@/app/utils/curriculumData';
 import { completedLessonIds, loadCurriculum, markLessonComplete, saveCurriculum, type CurriculumStore } from '@/app/utils/curriculumStore';
-import { requestPracticeFocus } from '@/app/utils/practiceFocusBus';
 import { applyXpAndAchievements, XP_LESSON_COMPLETE, XP_QUIZ_PERFECT_BONUS } from '@/app/utils/gamificationStore';
 import LessonQuiz from '@/app/components/LessonQuiz';
 
 const Curriculum: React.FC = () => {
+    const router = useRouter();
     const [store, setStore] = useState<CurriculumStore>(() => loadCurriculum());
     const completed = useMemo(() => completedLessonIds(store), [store]);
 
@@ -63,8 +64,7 @@ const Curriculum: React.FC = () => {
 
     const handlePracticeClick = () => {
         if (!selectedLesson?.practice) return;
-        requestPracticeFocus({ category: selectedLesson.practice.category, difficulty: selectedLesson.practice.difficulty });
-        document.getElementById('ear-training-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        router.push(`/app/ear-training?focus=${selectedLesson.practice.category}&difficulty=${selectedLesson.practice.difficulty}`);
     };
 
     const goToNextLesson = () => {

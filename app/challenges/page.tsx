@@ -292,7 +292,7 @@ export default function ChallengesPage() {
                                     )}
                                     {challenge.status === 'active' && myScore === null && (
                                         <Link
-                                            href={`/app?focus=${challenge.category}&difficulty=${challenge.difficulty}&length=${challenge.length}&challenge=${challenge.id}`}
+                                            href={`/app/ear-training?focus=${challenge.category}&difficulty=${challenge.difficulty}&length=${challenge.length}&challenge=${challenge.id}`}
                                             className="px-3 py-1.5 theme-btn rounded-lg text-sm hover:opacity-90"
                                         >
                                             Play
