@@ -71,6 +71,20 @@ export function mergeProgress(local: ProgressStore, cloud: ProgressStore): Progr
     return merged;
 }
 
+// Folds one practice attempt into a category's running stats - shared by
+// every tool that records pass/fail attempts against a category (ear
+// training questions, rhythm tap-along reps, etc).
+export function nextCategoryStats(stats: CategoryStats, correct: boolean): CategoryStats {
+    const nextStreak = correct ? stats.currentStreak + 1 : 0;
+    return {
+        correct: stats.correct + (correct ? 1 : 0),
+        total: stats.total + 1,
+        currentStreak: nextStreak,
+        bestStreak: Math.max(stats.bestStreak, nextStreak),
+        lastPracticed: Date.now(),
+    };
+}
+
 // Higher = this category deserves more practice: weighted toward low
 // accuracy and toward categories that haven't been touched in a while, so a
 // "weak areas" mixed session resurfaces both wrong answers and stale ones.

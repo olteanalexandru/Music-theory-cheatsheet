@@ -42,10 +42,10 @@ import {
     loadProgress,
     saveProgress,
     categoryWeaknessScore,
+    nextCategoryStats,
     totalCorrectAnswers,
     bestStreakAcrossCategories,
     bestCategoryAccuracy,
-    type CategoryStats,
     type ProgressStore,
 } from '@/app/utils/progressStore';
 import { loadReview, saveReview, applyReviewResult, itemWeight, type ReviewStore } from '@/app/utils/reviewStore';
@@ -195,17 +195,6 @@ function weightedPickCategory(categories: Category[], progress: ProgressStore): 
     const now = Date.now();
     const weights = categories.map((cat) => categoryWeaknessScore(progress[cat], now));
     return pickWeighted(categories, weights);
-}
-
-function nextCategoryStats(stats: CategoryStats, correct: boolean): CategoryStats {
-    const nextStreak = correct ? stats.currentStreak + 1 : 0;
-    return {
-        correct: stats.correct + (correct ? 1 : 0),
-        total: stats.total + 1,
-        currentStreak: nextStreak,
-        bestStreak: Math.max(stats.bestStreak, nextStreak),
-        lastPracticed: Date.now(),
-    };
 }
 
 function buildStandardQuestion(category: EarTrainingCategory, difficulty: EarTrainingDifficulty): StandardQuestion {

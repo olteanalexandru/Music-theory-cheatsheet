@@ -9,6 +9,15 @@ export interface MidiDeviceInfo {
 
 export type MidiPermission = 'idle' | 'pending' | 'granted' | 'denied' | 'unsupported';
 
+export interface MidiNoteOnEvent {
+    pitch: number;
+    velocity: number;
+    /** DOMHighResTimeStamp, same clock as performance.now(). */
+    timestamp: number;
+}
+
+export type MidiNoteOnListener = (event: MidiNoteOnEvent) => void;
+
 export interface MidiInputController {
     permission: MidiPermission;
     devices: MidiDeviceInfo[];
@@ -17,6 +26,12 @@ export interface MidiInputController {
     activeNotes: Set<number>;
     error: string | null;
     connect: () => Promise<void>;
+    /**
+     * Low-latency note-on subscription, fired synchronously from the raw
+     * MIDIMessageEvent handler (not via React state/render diffing, which is
+     * too jittery for timing-sensitive grading like rhythm-tap accuracy).
+     */
+    subscribeNoteOn: (listener: MidiNoteOnListener) => () => void;
 }
 
 export function useMidiInput(): MidiInputController {
@@ -33,6 +48,14 @@ export function useMidiInput(): MidiInputController {
     // which channels currently hold each pitch so a note-off on one channel
     // doesn't clear a pitch that's still sounding on another.
     const heldChannelsRef = useRef<Map<number, Set<number>>>(new Map());
+    const noteOnListenersRef = useRef<Set<MidiNoteOnListener>>(new Set());
+
+    const subscribeNoteOn = useCallback((listener: MidiNoteOnListener) => {
+        noteOnListenersRef.current.add(listener);
+        return () => {
+            noteOnListenersRef.current.delete(listener);
+        };
+    }, []);
 
     const handleMessage = useCallback((event: MIDIMessageEvent) => {
         const data = event.data;
@@ -42,6 +65,7 @@ export function useMidiInput(): MidiInputController {
         const channel = status & 0x0f;
 
         if (command === 0x90 && velocity > 0) {
+            noteOnListenersRef.current.forEach((listener) => listener({ pitch: note, velocity, timestamp: event.timeStamp }));
             let channels = heldChannelsRef.current.get(note);
             if (!channels) {
                 channels = new Set();
@@ -124,5 +148,6 @@ export function useMidiInput(): MidiInputController {
         activeNotes,
         error,
         connect,
+        subscribeNoteOn,
     };
 }
