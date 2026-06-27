@@ -5,7 +5,7 @@ import RhythmSection from '@/app/components/RhythmSection';
 import { usePracticeTools } from '@/app/utils/PracticeToolsContext';
 
 export default function RhythmPage() {
-    const { synth, midi } = usePracticeTools();
+    const { synth, midi, audio } = usePracticeTools();
 
     return (
         <div>
@@ -14,7 +14,7 @@ export default function RhythmPage() {
                 <p className="theme-secondary-text">Practice reading and counting rhythmic notation</p>
             </div>
 
-            <RhythmSection synth={synth} midi={midi} />
+            <RhythmSection synth={synth} midi={midi} audio={audio} />
         </div>
     );
 }

@@ -5,7 +5,7 @@ import PlayAlong from '@/app/components/PlayAlong';
 import { usePracticeTools } from '@/app/utils/PracticeToolsContext';
 
 export default function PlayAlongPage() {
-    const { midi, synth } = usePracticeTools();
+    const { midi, audio, synth } = usePracticeTools();
 
     return (
         <div>
@@ -14,7 +14,7 @@ export default function PlayAlongPage() {
                 <p className="theme-secondary-text">Load a MIDI or Guitar Pro file and play along with real-time feedback</p>
             </div>
 
-            <PlayAlong midi={midi} synth={synth} />
+            <PlayAlong midi={midi} audio={audio} synth={synth} />
         </div>
     );
 }

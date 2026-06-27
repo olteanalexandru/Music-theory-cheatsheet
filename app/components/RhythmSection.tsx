@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { SynthController } from '@/app/utils/useSynth';
 import type { MidiInputController } from '@/app/utils/useMidiInput';
+import type { AudioInputController } from '@/app/utils/useAudioInput';
 import {
     DURATION_NAMES,
     DURATION_LABELS,
@@ -19,6 +20,7 @@ import RhythmTapAlong from '@/app/components/RhythmTapAlong';
 interface RhythmSectionProps {
     synth: SynthController;
     midi: MidiInputController;
+    audio: AudioInputController;
 }
 
 type RhythmTab = 'reference' | 'lessons' | 'tap-along';
@@ -56,7 +58,7 @@ function buildDefaultExamplePatterns(): Record<TimeSignatureName, RhythmEvent[]>
     return initial;
 }
 
-const RhythmSection: React.FC<RhythmSectionProps> = ({ synth, midi }) => {
+const RhythmSection: React.FC<RhythmSectionProps> = ({ synth, midi, audio }) => {
     const [tab, setTab] = useState<RhythmTab>('reference');
     const [bpm, setBpm] = useState(100);
     const [timeSig, setTimeSig] = useState<TimeSignatureName>('4/4');
@@ -203,7 +205,7 @@ const RhythmSection: React.FC<RhythmSectionProps> = ({ synth, midi }) => {
 
             {tab === 'lessons' && <RhythmLessons synth={synth} />}
 
-            {tab === 'tap-along' && <RhythmTapAlong synth={synth} midi={midi} />}
+            {tab === 'tap-along' && <RhythmTapAlong synth={synth} midi={midi} audio={audio} />}
         </div>
     );
 };

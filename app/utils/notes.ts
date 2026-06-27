@@ -21,3 +21,8 @@ export function midiFromPitchClassAndOctave(pitchClass: number, octave: number):
 export function midiToFrequency(midiNote: number): number {
     return 440 * Math.pow(2, (midiNote - 69) / 12);
 }
+
+export function frequencyToMidi(frequencyHz: number): number {
+    const note = Math.round(69 + 12 * Math.log2(frequencyHz / 440));
+    return Math.min(127, Math.max(0, note));
+}

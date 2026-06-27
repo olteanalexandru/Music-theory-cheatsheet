@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { SynthController } from '@/app/utils/useSynth';
 import type { MidiInputController } from '@/app/utils/useMidiInput';
+import type { AudioInputController } from '@/app/utils/useAudioInput';
 import { DIFFICULTY_LEVELS, type EarTrainingDifficulty } from '@/app/utils/earTrainingData';
 import {
     RHYTHM_BPM_BY_DIFFICULTY,
@@ -28,6 +29,7 @@ import RhythmNotation from '@/app/components/RhythmNotation';
 interface RhythmTapAlongProps {
     synth: SynthController;
     midi: MidiInputController;
+    audio: AudioInputController;
 }
 
 type RunState = 'idle' | 'demo' | 'counting-in' | 'listening' | 'finished';
@@ -51,7 +53,7 @@ function timingLabel(report: RhythmFollowReport): string | null {
     return report.averageTimingErrorMs < 0 ? 'You’re rushing slightly — try to relax into the beat.' : 'You’re dragging slightly — try to anticipate the beat.';
 }
 
-const RhythmTapAlong: React.FC<RhythmTapAlongProps> = ({ synth, midi }) => {
+const RhythmTapAlong: React.FC<RhythmTapAlongProps> = ({ synth, midi, audio }) => {
     const [difficulty, setDifficulty] = useState<EarTrainingDifficulty>('easy');
     const [timeSig, setTimeSig] = useState<TimeSignatureName>('4/4');
     const [pattern, setPattern] = useState<RhythmEvent[]>(() => generateRhythmPattern('4/4', 'easy'));
@@ -201,6 +203,7 @@ const RhythmTapAlong: React.FC<RhythmTapAlongProps> = ({ synth, midi }) => {
     }, []);
 
     useEffect(() => midi.subscribeNoteOn((event) => handleTap(event.timestamp)), [midi, handleTap]);
+    useEffect(() => audio.subscribeOnset((event) => handleTap(event.timestamp)), [audio, handleTap]);
 
     useEffect(() => {
         if (runState !== 'listening') return;
@@ -238,9 +241,12 @@ const RhythmTapAlong: React.FC<RhythmTapAlongProps> = ({ synth, midi }) => {
         return { hit, missed };
     }, [gradedBeats]);
 
-    const midiHint = midi.permission === 'granted'
-        ? 'MIDI connected — tap any pad/key, or use the button or spacebar below.'
-        : 'No MIDI device connected — use the button or spacebar below, or connect one via Display & Audio Settings above.';
+    const inputHints: string[] = [];
+    if (midi.permission === 'granted') inputHints.push('MIDI connected — tap any pad/key');
+    if (audio.permission === 'granted') inputHints.push('microphone connected — tap, clap, or play a note near it');
+    const midiHint = inputHints.length > 0
+        ? `${inputHints.join(', or ')}, or use the button or spacebar below.`
+        : 'No MIDI device or microphone connected — use the button or spacebar below, or connect one via Display & Audio Settings above.';
 
     return (
         <div className="space-y-4">

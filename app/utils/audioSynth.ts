@@ -24,6 +24,12 @@ function getAudioContext(): AudioContext | null {
     return audioContext;
 }
 
+// Lets other audio-graph consumers (e.g. microphone input analysis) share the
+// same AudioContext instance as synth playback, instead of opening a second one.
+export function getSharedAudioContext(): AudioContext | null {
+    return getAudioContext();
+}
+
 function scheduleNote(
     ctx: AudioContext,
     midiNote: number,

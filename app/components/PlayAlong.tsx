@@ -4,10 +4,12 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom';
 import { FolderOpen, Trash2 } from 'lucide-react';
 import type { MidiInputController } from '@/app/utils/useMidiInput';
+import type { AudioInputController } from '@/app/utils/useAudioInput';
 import type { SynthController } from '@/app/utils/useSynth';
 import { parseMidiFile } from '@/app/utils/midiFileParser';
 import { parseGuitarProFile, UnsupportedScoreFormatError } from '@/app/utils/guitarProParser';
 import type { NoteTimelineEntry, ParsedScore } from '@/app/utils/scoreTypes';
+import type { RhythmEvent } from '@/app/utils/rhythmData';
 import { ScoreFollowEngine, earliestPendingChord, type GradedNote, type NoteJudgement } from '@/app/utils/scoreFollow';
 import { CHROMATIC_NOTES, noteNameFromMidi, pitchClassFromMidi, midiFromPitchClassAndOctave } from '@/app/utils/notes';
 import {
@@ -28,6 +30,7 @@ import { listUserFiles, uploadUserFile, downloadUserFile, deleteUserFile, type U
 
 interface PlayAlongProps {
     midi: MidiInputController;
+    audio: AudioInputController;
     synth: SynthController;
 }
 
@@ -68,7 +71,7 @@ function judgementColor(judgement: NoteJudgement): string {
     }
 }
 
-const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
+const PlayAlong: React.FC<PlayAlongProps> = ({ midi, audio, synth }) => {
     const [parsed, setParsed] = useState<ParsedScore | null>(null);
     const [fileKind, setFileKind] = useState<FileKind | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -93,6 +96,8 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
     const [noteLabelMode, setNoteLabelMode] = useState<NoteLabelMode>('off');
     const [vizFullView, setVizFullView] = useState(false);
     const [vizPortalSlot, setVizPortalSlot] = useState<HTMLDivElement | null>(null);
+    const [metronomeOn, setMetronomeOn] = useState(false);
+    const [metronomeBpm, setMetronomeBpm] = useState(120);
 
     const { user } = useAuth();
     const supabase = useMemo(() => getSupabaseClient(), []);
@@ -119,8 +124,8 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
     const timeLabelRef = useRef<HTMLSpanElement | null>(null);
 
     const combinedActiveNotes = useMemo(
-        () => new Set<number>([...midi.activeNotes, ...heldClickNotes]),
-        [midi.activeNotes, heldClickNotes]
+        () => new Set<number>([...midi.activeNotes, ...audio.activeNotes, ...heldClickNotes]),
+        [midi.activeNotes, audio.activeNotes, heldClickNotes]
     );
 
     const trackNotes = useMemo<NoteTimelineEntry[]>(() => {
@@ -331,6 +336,22 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
         prevActiveNotesRef.current = combinedActiveNotes;
     }, [combinedActiveNotes, runState, getSongMs, waitMode]);
 
+    // An independent click track, available with or without a loaded file -
+    // mirrors RhythmSection.tsx's Reference-tab metronome (synth.playRhythm
+    // re-triggered on a setInterval timed to the click batch's duration)
+    // rather than coupling to the playhead rAF loop above, which would make
+    // it unusable as a pre-roll before pressing Start.
+    useEffect(() => {
+        if (!metronomeOn) return;
+        const clickPattern: RhythmEvent[] = Array.from({ length: 4 }, () => ({
+            type: 'note', duration: 'quarter', beats: 1,
+        }));
+        const measureSeconds = 4 * (60 / metronomeBpm);
+        synth.playRhythm(clickPattern, metronomeBpm);
+        const interval = setInterval(() => synth.playRhythm(clickPattern, metronomeBpm), measureSeconds * 1000);
+        return () => clearInterval(interval);
+    }, [metronomeOn, metronomeBpm, synth]);
+
     const handleFile = useCallback(async (file: File, options?: { skipSave?: boolean }) => {
         setIsLoading(true);
         setLoadError(null);
@@ -355,6 +376,7 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
             }
             setParsed(result);
             setFileKind(kind);
+            setMetronomeBpm(Math.round(result.notation?.tempoBpm[0] ?? 120));
             setSelectedTrack(0);
             setLoopEnabled(false);
             setLoopStartMs(0);
@@ -805,6 +827,29 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
                 </p>
             )}
 
+            <div className="flex flex-wrap items-center gap-3 mb-4 p-3 rounded-lg theme-secondary-bg">
+                <button
+                    onClick={() => setMetronomeOn((v) => !v)}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                        metronomeOn ? 'bg-red-500 text-white hover:opacity-90' : 'theme-btn hover:opacity-90'
+                    }`}
+                >
+                    {metronomeOn ? '■ Stop Metronome' : '▶ Metronome'}
+                </button>
+                <label className="flex items-center gap-3 text-sm theme-secondary-text">
+                    Tempo: {metronomeBpm} BPM
+                    <input
+                        type="range"
+                        min={40}
+                        max={240}
+                        step={2}
+                        value={metronomeBpm}
+                        onChange={(e) => setMetronomeBpm(Number(e.target.value))}
+                        className="w-32 sm:w-48"
+                    />
+                </label>
+            </div>
+
             {parsed && (
                 <>
                     <div className="flex flex-wrap items-center gap-3 mb-4 p-3 rounded-lg theme-secondary-bg">
@@ -1137,10 +1182,10 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, synth }) => {
                         />
                     </div>
 
-                    {midi.permission !== 'granted' && (
+                    {midi.permission !== 'granted' && audio.permission !== 'granted' && (
                         <p className="mt-3 text-sm theme-warning-text">
-                            Connect a MIDI device from the panel above for hands-on grading, or use the on-screen
-                            keyboard.
+                            Connect a MIDI device or microphone from the panel above for hands-on grading, or use the
+                            on-screen keyboard.
                         </p>
                     )}
 

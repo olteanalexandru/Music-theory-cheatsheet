@@ -47,7 +47,7 @@ const settingsToggleClass = (isActive: boolean) =>
     }`;
 
 function AudioMidiSettings() {
-    const { midi, synth } = usePracticeTools();
+    const { midi, audio, synth } = usePracticeTools();
     const [showSettings, setShowSettings] = useState(false);
 
     return (
@@ -135,6 +135,45 @@ function AudioMidiSettings() {
                                 )}
                             </div>
                         )}
+                    </div>
+                    <div className="mt-3 flex flex-wrap items-center gap-3 border-t theme-secondary-bg pt-3">
+                        <p className="text-sm font-semibold theme-text">Microphone</p>
+                        {audio.permission !== 'granted' ? (
+                            <div className="flex flex-wrap items-center gap-3">
+                                <button
+                                    onClick={audio.connect}
+                                    className="px-3 py-1.5 theme-btn rounded-lg text-sm hover:opacity-90"
+                                >
+                                    Connect Microphone
+                                </button>
+                                {audio.permission === 'pending' && (
+                                    <span className="text-sm theme-secondary-text">Requesting access…</span>
+                                )}
+                                {audio.permission === 'unsupported' && (
+                                    <span className="text-sm theme-warning-text">
+                                        Microphone input isn&apos;t supported in this browser.
+                                    </span>
+                                )}
+                                {audio.permission === 'denied' && (
+                                    <span className="text-sm theme-warning-text">
+                                        {audio.error || 'Microphone access was denied.'}
+                                    </span>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="flex flex-wrap items-center gap-3">
+                                <span className="text-sm theme-secondary-text">Listening for taps and notes.</span>
+                                <button
+                                    onClick={audio.disconnect}
+                                    className="px-3 py-1.5 theme-muted-bg theme-secondary-text rounded-lg text-sm hover:opacity-90"
+                                >
+                                    Disconnect
+                                </button>
+                            </div>
+                        )}
+                        <span className="text-xs theme-secondary-text">
+                            Tip: use headphones — the mic can mistake the app&apos;s own sound for your input.
+                        </span>
                     </div>
                 </div>
             )}
