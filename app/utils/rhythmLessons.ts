@@ -113,8 +113,8 @@ export const RHYTHM_LESSONS: RhythmLesson[] = [
             'Triplets feel noticeably different from straight subdivision — listen for the rolling, three-against-the-beat feel.',
         ],
         examples: [
-            { label: 'Eighth-note triplets, two beats', counting: '1 trip let 2 trip let', timeSig: '4/4', events: Array.from({ length: 6 }, () => note('triplet-eighth', 1 / 3)) },
-            { label: 'Triplet beat, then straight quarters', counting: '1 trip let 2   3', timeSig: '4/4', events: [note('triplet-eighth', 1 / 3), note('triplet-eighth', 1 / 3), note('triplet-eighth', 1 / 3), note('quarter', 1), note('quarter', 1)] },
+            { label: 'Eighth-note triplets, all four beats', counting: '1 trip let 2 trip let 3 trip let 4 trip let', timeSig: '4/4', events: Array.from({ length: 12 }, () => note('triplet-eighth', 1 / 3)) },
+            { label: 'Triplet beat, then straight quarters', counting: '1 trip let 2   3   4', timeSig: '4/4', events: [note('triplet-eighth', 1 / 3), note('triplet-eighth', 1 / 3), note('triplet-eighth', 1 / 3), note('quarter', 1), note('quarter', 1), note('quarter', 1)] },
         ],
     },
     {
