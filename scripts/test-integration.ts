@@ -41,6 +41,7 @@ import {
 import { createChallenge, fetchChallenges, acceptChallenge, submitChallengeScore } from '../app/utils/challengeStore';
 import { fetchNotifications, fetchUnreadCount, markAllRead } from '../app/utils/notificationStore';
 import { createTicket, fetchTicket, fetchTicketMessages, fetchAllTickets, postTicketMessage, updateTicketStatus } from '../app/utils/ticketStore';
+import { subscribeToNewsletter, fetchSubscriberCount, fetchCampaigns } from '../app/utils/newsletterStore';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -348,6 +349,54 @@ async function main(): Promise<void> {
 
         await scenario('a stranger (non-admin) can no longer open the ticket either', async () => {
             assert.equal(await fetchTicket(b.client, ticketId), null);
+        });
+
+        console.log('\nNewsletter (subscribers + campaigns)');
+        // send-newsletter is never invoked here - that would trigger a real
+        // outbound Resend email. The campaign-history scenario below inserts
+        // a row with the service-role client to simulate what that Edge
+        // Function does after a real send, without actually sending one.
+        const newsletterEmail = `itest-newsletter-${randomUUID().slice(0, 8)}@example.com`;
+        await scenario('anyone can subscribe to the newsletter', async () => {
+            const { error } = await subscribeToNewsletter(a.client, newsletterEmail);
+            assert.equal(error, null);
+        });
+
+        await scenario('an invalid email format is rejected by the check constraint', async () => {
+            const { error } = await subscribeToNewsletter(a.client, 'not-an-email');
+            assert.ok(error, 'expected a validation error');
+        });
+
+        await scenario('a duplicate email subscribe attempt returns a friendly error', async () => {
+            const { error } = await subscribeToNewsletter(b.client, newsletterEmail);
+            assert.equal(error, "You're already subscribed.");
+        });
+
+        await scenario('a non-admin cannot read the subscriber list', async () => {
+            assert.equal(await fetchSubscriberCount(b.client), 0);
+        });
+
+        await scenario('an admin can read the subscriber list', async () => {
+            // c was granted is_admin in the Support tickets section above.
+            assert.ok((await fetchSubscriberCount(c.client)) >= 1);
+        });
+
+        let campaignId = '';
+        await scenario('a sent campaign is recorded (simulated via service role)', async () => {
+            const { data, error } = await admin
+                .from('newsletter_campaigns')
+                .insert({ subject: 'Integration test campaign', html_body: '<p>test</p>', sent_by: c.id, recipient_count: 1 })
+                .select('id')
+                .single();
+            assert.equal(error, null);
+            campaignId = data!.id as string;
+        });
+
+        await scenario('only an admin can read campaign history', async () => {
+            const asAdmin = await fetchCampaigns(c.client);
+            assert.ok(asAdmin.some((camp) => camp.id === campaignId));
+            const asNonAdmin = await fetchCampaigns(a.client);
+            assert.ok(!asNonAdmin.some((camp) => camp.id === campaignId));
         });
 
         console.log('\nStorage (play-along-files bucket)');
