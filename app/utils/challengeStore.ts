@@ -90,10 +90,14 @@ export async function declineChallenge(supabase: SupabaseClient, challengeId: st
 // Writes whichever side's score belongs to userId, and once both sides are
 // in, computes the winner (higher score; tie -> no winner) and closes the
 // challenge out - mirroring gamificationStore's load/mutate/save shape, just
-// against a row shared by two people instead of a private one. Only the
-// participant who completes the challenge (the second to submit) notifies
-// the other side - notifications RLS requires auth.uid() = actor_id, so the
-// caller can never insert a notification "from" the other participant.
+// against a row shared by two people instead of a private one. Delegates to
+// the submit_challenge_score Postgres function so the read-modify-write is
+// atomic (a single `for update` row lock) instead of racing a separate
+// select and update against a concurrent submission from the other side.
+// Only the participant who completes the challenge (the second to submit)
+// notifies the other side - notifications RLS requires auth.uid() =
+// actor_id, so the caller can never insert a notification "from" the other
+// participant.
 export async function submitChallengeScore(
     supabase: SupabaseClient,
     userId: string,
@@ -101,25 +105,14 @@ export async function submitChallengeScore(
     correct: number,
     total: number
 ): Promise<void> {
-    const { data } = await supabase.from('challenges').select('*').eq('id', challengeId).maybeSingle();
-    if (!data) return;
+    const { data, error } = await supabase.rpc('submit_challenge_score', { p_challenge_id: challengeId, p_score: correct });
+    if (error || !data) return;
     const row = data as ChallengeRow;
     const isChallenger = row.challenger_id === userId;
-    const update: Record<string, unknown> = isChallenger ? { challenger_score: correct } : { challengee_score: correct };
 
-    const challengerScore = isChallenger ? correct : row.challenger_score;
-    const challengeeScore = isChallenger ? row.challengee_score : correct;
-    const completing = challengerScore !== null && challengeeScore !== null;
-    if (completing) {
-        update.status = 'completed';
-        update.winner_id = challengerScore === challengeeScore ? null : challengerScore! > challengeeScore! ? row.challenger_id : row.challengee_id;
-    }
-
-    await supabase.from('challenges').update(update).eq('id', challengeId);
-
-    if (completing) {
+    if (row.status === 'completed') {
         await recordActivityEvent(supabase, userId, { type: 'challenge_completed', data: { challengeId, category: row.category, correct, total } });
         const otherUserId = isChallenger ? row.challengee_id : row.challenger_id;
-        await createNotification(supabase, { userId: otherUserId, actorId: userId, type: 'challenge_result', data: { challengeId, winnerId: update.winner_id } });
+        await createNotification(supabase, { userId: otherUserId, actorId: userId, type: 'challenge_result', data: { challengeId, winnerId: row.winner_id } });
     }
 }

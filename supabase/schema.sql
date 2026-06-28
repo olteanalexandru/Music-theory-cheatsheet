@@ -356,6 +356,64 @@ create policy "Participants can update their challenges"
     on public.challenges for update
     using (auth.uid() in (challenger_id, challengee_id));
 
+-- Atomically records the calling user's score for a challenge and, once both
+-- sides are in, marks it completed and computes the winner. security invoker
+-- (the default) keeps RLS in force, and identity comes from auth.uid() rather
+-- than a parameter so a participant can never submit a score on the other
+-- side's behalf. The `for update` row lock makes a read-then-write of both
+-- scores safe against two concurrent submissions racing each other.
+create or replace function public.submit_challenge_score(
+    p_challenge_id uuid,
+    p_score int
+)
+returns public.challenges
+language plpgsql
+security invoker
+as $$
+declare
+    current_row public.challenges;
+    new_challenger_score int;
+    new_challengee_score int;
+    new_status text;
+    new_winner_id uuid;
+begin
+    select * into current_row
+    from public.challenges
+    where id = p_challenge_id
+      and (challenger_id = auth.uid() or challengee_id = auth.uid())
+    for update;
+
+    if current_row.id is null then
+        return null;
+    end if;
+
+    new_challenger_score := case when current_row.challenger_id = auth.uid() then p_score else current_row.challenger_score end;
+    new_challengee_score := case when current_row.challengee_id = auth.uid() then p_score else current_row.challengee_score end;
+
+    if new_challenger_score is not null and new_challengee_score is not null then
+        new_status := 'completed';
+        new_winner_id := case
+            when new_challenger_score = new_challengee_score then null
+            when new_challenger_score > new_challengee_score then current_row.challenger_id
+            else current_row.challengee_id
+        end;
+    else
+        new_status := current_row.status;
+        new_winner_id := current_row.winner_id;
+    end if;
+
+    update public.challenges
+    set challenger_score = new_challenger_score,
+        challengee_score = new_challengee_score,
+        status = new_status,
+        winner_id = new_winner_id
+    where id = p_challenge_id
+    returning * into current_row;
+
+    return current_row;
+end;
+$$;
+
 -- In-app notifications (new follower, challenge invite/result, comment,
 -- reaction). The recipient (user_id) only ever reads/marks-read their own
 -- rows, but the actor who triggered the notification is the one inserting
