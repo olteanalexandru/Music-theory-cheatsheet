@@ -47,18 +47,21 @@ const Curriculum: React.FC = () => {
     };
 
     const handleQuizComplete = (score: number) => {
-        markLessonComplete(selectedLessonId, score);
+        const { isNewCompletion, isNewPerfect } = markLessonComplete(selectedLessonId, score);
         const updatedStore = loadCurriculum();
         setStore(updatedStore);
 
+        // Only award XP/achievement progress for genuinely new milestones - otherwise
+        // retaking an already-completed lesson's quiz would farm XP indefinitely.
+        if (!isNewCompletion && !isNewPerfect) return;
+
         const completedIds = completedLessonIds(updatedStore);
         const unit = getUnitForLesson(selectedLessonId);
-        const quizPerfect = score >= 1;
-        applyXpAndAchievements(XP_LESSON_COMPLETE + (quizPerfect ? XP_QUIZ_PERFECT_BONUS : 0), {
-            lessonCompleted: true,
-            quizPerfect,
-            curriculumUnitCompleted: !!unit && unit.lessons.every((lesson) => completedIds.has(lesson.id)),
-            curriculumAllCompleted: completedIds.size >= ALL_LESSONS.length,
+        applyXpAndAchievements((isNewCompletion ? XP_LESSON_COMPLETE : 0) + (isNewPerfect ? XP_QUIZ_PERFECT_BONUS : 0), {
+            lessonCompleted: isNewCompletion,
+            quizPerfect: isNewPerfect,
+            curriculumUnitCompleted: isNewCompletion && !!unit && unit.lessons.every((lesson) => completedIds.has(lesson.id)),
+            curriculumAllCompleted: isNewCompletion && completedIds.size >= ALL_LESSONS.length,
         });
     };
 
