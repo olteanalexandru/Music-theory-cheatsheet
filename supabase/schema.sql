@@ -554,3 +554,60 @@ create policy "Ticket participants can post messages"
 alter table public.notifications drop constraint if exists notifications_type_check;
 alter table public.notifications add constraint notifications_type_check
     check (type in ('follow', 'challenge_invite', 'challenge_result', 'comment', 'reaction', 'ticket_reply', 'ticket_status'));
+
+-- Newsletter subscribers (single opt-in, no account required). Anyone can
+-- subscribe themselves, but there is no public select/update/delete policy
+-- at all - looking up a subscriber by email, or removing one by unsubscribe
+-- token, both go through service-role Supabase Edge Functions instead
+-- (see supabase/functions/), never direct client RLS access. Unsubscribing
+-- hard-deletes the row rather than soft-deleting it, so resubscribing later
+-- is just a plain conflict-free insert.
+create table if not exists public.newsletter_subscribers (
+    id uuid primary key default gen_random_uuid(),
+    email text not null unique check (email ~* '^[^@\s]+@[^@\s]+\.[^@\s]+$'),
+    unsubscribe_token uuid not null default gen_random_uuid(),
+    created_at timestamptz not null default now()
+);
+
+alter table public.newsletter_subscribers enable row level security;
+
+drop policy if exists "Anyone can subscribe to the newsletter" on public.newsletter_subscribers;
+create policy "Anyone can subscribe to the newsletter"
+    on public.newsletter_subscribers for insert
+    with check (true);
+
+drop policy if exists "Admins can read newsletter subscribers" on public.newsletter_subscribers;
+create policy "Admins can read newsletter subscribers"
+    on public.newsletter_subscribers for select
+    using (
+        exists (
+            select 1 from public.profiles
+            where profiles.user_id = auth.uid()
+            and profiles.is_admin = true
+        )
+    );
+
+-- History of sent newsletter campaigns. Written only by the send-newsletter
+-- Edge Function (via its service-role client) after a real send completes,
+-- so there is no client-facing insert policy - clients only ever read it.
+create table if not exists public.newsletter_campaigns (
+    id uuid primary key default gen_random_uuid(),
+    subject text not null check (char_length(subject) <= 200),
+    html_body text not null,
+    sent_by uuid references auth.users(id) on delete set null,
+    recipient_count int not null default 0,
+    sent_at timestamptz not null default now()
+);
+
+alter table public.newsletter_campaigns enable row level security;
+
+drop policy if exists "Admins can read newsletter campaigns" on public.newsletter_campaigns;
+create policy "Admins can read newsletter campaigns"
+    on public.newsletter_campaigns for select
+    using (
+        exists (
+            select 1 from public.profiles
+            where profiles.user_id = auth.uid()
+            and profiles.is_admin = true
+        )
+    );

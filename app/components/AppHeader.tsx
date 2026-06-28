@@ -26,7 +26,10 @@ const APP_NAV_LINKS = [
     { href: '/profile', label: 'Profile' },
 ];
 
-const ADMIN_NAV_LINK = { href: '/admin/tickets', label: 'Admin' };
+const ADMIN_NAV_LINKS = [
+    { href: '/admin/tickets', label: 'Admin' },
+    { href: '/admin/newsletter', label: 'Newsletter' },
+];
 
 const MARKETING_ROUTES = new Set(['/', '/features', '/community']);
 
@@ -93,7 +96,7 @@ const AppHeader: React.FC = () => {
     const [isAdmin, setIsAdmin] = useState(false);
     const pathname = usePathname();
     const isMarketing = MARKETING_ROUTES.has(pathname ?? '');
-    const navLinks = isAdmin ? [...APP_NAV_LINKS, ADMIN_NAV_LINK] : APP_NAV_LINKS;
+    const navLinks = isAdmin ? [...APP_NAV_LINKS, ...ADMIN_NAV_LINKS] : APP_NAV_LINKS;
 
     useEffect(() => {
         if (!showMenu) return;
