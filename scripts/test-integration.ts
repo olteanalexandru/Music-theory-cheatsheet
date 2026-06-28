@@ -40,6 +40,7 @@ import {
 } from '../app/utils/activityStore';
 import { createChallenge, fetchChallenges, acceptChallenge, submitChallengeScore } from '../app/utils/challengeStore';
 import { fetchNotifications, fetchUnreadCount, markAllRead } from '../app/utils/notificationStore';
+import { createTicket, fetchTicket, fetchTicketMessages, fetchAllTickets, postTicketMessage, updateTicketStatus } from '../app/utils/ticketStore';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -296,6 +297,57 @@ async function main(): Promise<void> {
         await scenario('a user cannot insert a notification addressed from someone else', async () => {
             const { error } = await c.client.from('notifications').insert({ user_id: a.id, actor_id: b.id, type: 'follow', data: {} });
             assert.ok(error, 'expected an RLS error');
+        });
+
+        console.log('\nSupport tickets');
+        let ticketId = '';
+        await scenario('a user can open a ticket with an initial message', async () => {
+            const { ticket, error } = await createTicket(a.client, a.id, { subject: 'Cannot hear playback', category: 'bug', body: 'Audio does not play on Safari.' });
+            assert.equal(error, null);
+            assert.ok(ticket);
+            ticketId = ticket!.id;
+            const messages = await fetchTicketMessages(a.client, ticketId);
+            assert.equal(messages.length, 1);
+            assert.equal(messages[0].authorId, a.id);
+        });
+
+        await scenario('the owner can read their own ticket and thread; a stranger cannot', async () => {
+            assert.equal((await fetchTicket(a.client, ticketId))?.id, ticketId);
+            assert.equal(await fetchTicket(c.client, ticketId), null);
+            assert.equal((await fetchTicketMessages(c.client, ticketId)).length, 0);
+        });
+
+        await scenario('granting the is_admin flag (the manual dashboard step) lets a user read every ticket', async () => {
+            const { error } = await admin.from('profiles').update({ is_admin: true }).eq('user_id', c.id);
+            assert.equal(error, null);
+            const allTickets = await fetchAllTickets(c.client);
+            assert.ok(allTickets.some((t) => t.id === ticketId));
+        });
+
+        await scenario("a non-admin's status update is silently rejected by RLS", async () => {
+            const ticket = (await fetchTicket(a.client, ticketId))!;
+            await updateTicketStatus(b.client, b.id, ticket, 'closed');
+            assert.equal((await fetchTicket(a.client, ticketId))?.status, 'open');
+        });
+
+        await scenario('an admin can reply and change status, which notifies the owner', async () => {
+            const ticket = (await fetchTicket(c.client, ticketId))!;
+            assert.equal((await postTicketMessage(c.client, c.id, ticket, 'Looking into it now.')).error, null);
+            assert.equal((await updateTicketStatus(c.client, c.id, ticket, 'in_progress')).error, null);
+            const notes = await fetchNotifications(a.client, a.id);
+            assert.ok(notes.some((n) => n.type === 'ticket_reply' && n.actorId === c.id));
+            assert.ok(notes.some((n) => n.type === 'ticket_status' && n.actorId === c.id));
+        });
+
+        await scenario("the owner's own follow-up does not notify themselves", async () => {
+            const ticket = (await fetchTicket(a.client, ticketId))!;
+            assert.equal(ticket.status, 'in_progress');
+            assert.equal((await postTicketMessage(a.client, a.id, ticket, 'Thanks, still happening on Chrome too.')).error, null);
+            assert.equal((await fetchTicketMessages(a.client, ticketId)).length, 3);
+        });
+
+        await scenario('a stranger (non-admin) can no longer open the ticket either', async () => {
+            assert.equal(await fetchTicket(b.client, ticketId), null);
         });
 
         console.log('\nStorage (play-along-files bucket)');
