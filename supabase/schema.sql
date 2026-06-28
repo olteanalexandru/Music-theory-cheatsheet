@@ -444,3 +444,113 @@ drop policy if exists "Users can mark their own notifications read" on public.no
 create policy "Users can mark their own notifications read"
     on public.notifications for update
     using (auth.uid() = user_id);
+
+-- Minimal admin role: lets specific users see/manage every customer support
+-- ticket below. Granted manually in the Supabase dashboard (see README) -
+-- there is no in-app UI for granting it.
+alter table public.profiles add column if not exists is_admin boolean not null default false;
+
+-- Customer support tickets (bug reports, billing questions, general help).
+-- Owners can open and read their own; admins (profiles.is_admin) can read
+-- and update every ticket, via the same cross-table admin check used by the
+-- policies below, mirroring the public-profile policies above but checking
+-- is_admin instead of is_public.
+create table if not exists public.support_tickets (
+    id uuid primary key default gen_random_uuid(),
+    user_id uuid not null references auth.users(id) on delete cascade,
+    subject text not null check (char_length(subject) <= 200),
+    category text not null check (category in ('bug', 'billing', 'question', 'other')),
+    status text not null default 'open' check (status in ('open', 'in_progress', 'resolved', 'closed')),
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
+);
+
+alter table public.support_tickets enable row level security;
+
+drop policy if exists "Users can read their own tickets" on public.support_tickets;
+create policy "Users can read their own tickets"
+    on public.support_tickets for select
+    using (auth.uid() = user_id);
+
+drop policy if exists "Admins can read all tickets" on public.support_tickets;
+create policy "Admins can read all tickets"
+    on public.support_tickets for select
+    using (
+        exists (
+            select 1 from public.profiles
+            where profiles.user_id = auth.uid()
+            and profiles.is_admin = true
+        )
+    );
+
+drop policy if exists "Users can open their own tickets" on public.support_tickets;
+create policy "Users can open their own tickets"
+    on public.support_tickets for insert
+    with check (auth.uid() = user_id);
+
+drop policy if exists "Admins can update any ticket" on public.support_tickets;
+create policy "Admins can update any ticket"
+    on public.support_tickets for update
+    using (
+        exists (
+            select 1 from public.profiles
+            where profiles.user_id = auth.uid()
+            and profiles.is_admin = true
+        )
+    );
+
+-- Follow-up messages on a ticket (from its owner or an admin). Visibility
+-- and write access both follow the parent ticket's own access rule -
+-- whoever can read/manage the ticket can read/post on its thread.
+create table if not exists public.support_ticket_messages (
+    id uuid primary key default gen_random_uuid(),
+    ticket_id uuid not null references public.support_tickets(id) on delete cascade,
+    author_id uuid not null references auth.users(id) on delete cascade,
+    body text not null check (char_length(body) <= 2000),
+    created_at timestamptz not null default now()
+);
+
+alter table public.support_ticket_messages enable row level security;
+
+drop policy if exists "Ticket participants can read messages" on public.support_ticket_messages;
+create policy "Ticket participants can read messages"
+    on public.support_ticket_messages for select
+    using (
+        exists (
+            select 1 from public.support_tickets
+            where support_tickets.id = support_ticket_messages.ticket_id
+            and support_tickets.user_id = auth.uid()
+        )
+        or exists (
+            select 1 from public.profiles
+            where profiles.user_id = auth.uid()
+            and profiles.is_admin = true
+        )
+    );
+
+drop policy if exists "Ticket participants can post messages" on public.support_ticket_messages;
+create policy "Ticket participants can post messages"
+    on public.support_ticket_messages for insert
+    with check (
+        auth.uid() = author_id
+        and (
+            exists (
+                select 1 from public.support_tickets
+                where support_tickets.id = support_ticket_messages.ticket_id
+                and support_tickets.user_id = auth.uid()
+            )
+            or exists (
+                select 1 from public.profiles
+                where profiles.user_id = auth.uid()
+                and profiles.is_admin = true
+            )
+        )
+    );
+
+-- Extend the notifications type check to cover ticket replies/status changes.
+-- Postgres names an inline column check constraint "<table>_<column>_check"
+-- by default, so this matches the constraint the table definition above
+-- created implicitly.
+alter table public.notifications drop constraint if exists notifications_type_check;
+alter table public.notifications add constraint notifications_type_check
+    check (type in ('follow', 'challenge_invite', 'challenge_result', 'comment', 'reaction', 'ticket_reply', 'ticket_status'));
