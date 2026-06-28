@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Bell, LogIn, LogOut, UserCircle, User as UserIcon } from 'lucide-react';
+import { Bell, LogIn, LogOut, Music2, UserCircle, User as UserIcon } from 'lucide-react';
 import { useAuth } from '@/app/utils/AuthContext';
 import { getSupabaseClient } from '@/app/utils/supabaseClient';
 import { fetchNotifications, fetchUnreadCount, markAllRead, type AppNotification } from '@/app/utils/notificationStore';
@@ -138,7 +138,7 @@ const AppHeader: React.FC = () => {
             key={href}
             href={href}
             className={`px-3 py-1.5 rounded-md text-sm font-medium whitespace-nowrap transition-colors ${
-                pathname === href ? 'theme-accent-bg' : 'theme-secondary-text hover:opacity-90'
+                pathname === href ? 'nav-link-active' : 'theme-secondary-text hover:opacity-90'
             }`}
         >
             {label}
@@ -166,7 +166,9 @@ const AppHeader: React.FC = () => {
                     href={isMarketing ? '/' : '/app'}
                     className="flex items-center gap-2 truncate font-bold tracking-tight theme-text"
                 >
-                    <span className="inline-block h-2.5 w-2.5 shrink-0 theme-accent-bg" aria-hidden="true" />
+                    <span className="flex items-center justify-center h-7 w-7 shrink-0 rounded-lg theme-btn" aria-hidden="true">
+                        <Music2 size={15} />
+                    </span>
                     Music Theory
                 </Link>
 

@@ -1,35 +1,72 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { ChevronDown, ChevronUp, Lock, Trophy } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { ChevronDown, ChevronUp, Lock, Sparkles, Trophy } from 'lucide-react';
 import {
     ACHIEVEMENTS,
     levelProgress,
+    levelTitle,
     loadGamification,
+    normalizeStore,
     subscribeToGamificationChanges,
     type GamificationStore,
 } from '@/app/utils/gamificationStore';
 import ShareButton from '@/app/components/ShareButton';
 import { buildShareCardData, renderShareCard } from '@/app/utils/shareCard';
+import LevelBadge from '@/app/components/LevelBadge';
 
 const GamificationPanel: React.FC = () => {
-    const [gamification, setGamification] = useState<GamificationStore>(() => loadGamification());
+    // Starts from the SSR-safe default and loads the real localStorage value
+    // in an effect (not the initializer) so the client's first render matches
+    // what the server sent, avoiding a hydration mismatch for returning users.
+    const [gamification, setGamification] = useState<GamificationStore>(() => normalizeStore(undefined));
     const [showAchievements, setShowAchievements] = useState(false);
+    const [leveledUpTo, setLeveledUpTo] = useState<number | null>(null);
+    const previousLevelRef = useRef<number | null>(null);
 
-    useEffect(() => subscribeToGamificationChanges(setGamification), []);
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            const initial = loadGamification();
+            previousLevelRef.current = levelProgress(initial.xp).level;
+            setGamification(initial);
+        }, 0);
+
+        const unsubscribe = subscribeToGamificationChanges((store) => {
+            const newLevel = levelProgress(store.xp).level;
+            if (previousLevelRef.current !== null && newLevel > previousLevelRef.current) setLeveledUpTo(newLevel);
+            previousLevelRef.current = newLevel;
+            setGamification(store);
+        });
+
+        return () => {
+            clearTimeout(timer);
+            unsubscribe();
+        };
+    }, []);
+
+    useEffect(() => {
+        if (leveledUpTo === null) return;
+        const timer = setTimeout(() => setLeveledUpTo(null), 4000);
+        return () => clearTimeout(timer);
+    }, [leveledUpTo]);
 
     const { level, xpIntoLevel, xpForNextLevel } = levelProgress(gamification.xp);
     const unlockedCount = Object.keys(gamification.achievements).length;
 
     return (
-        <div className="mb-6 theme-card rounded-xl shadow-lg p-4 md:p-5">
+        <div className="relative mb-6 theme-card rounded-xl shadow-lg p-4 md:p-5">
+            {leveledUpTo !== null && (
+                <div className="animate-level-up absolute -top-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 px-4 py-1.5 rounded-full theme-btn text-sm font-semibold shadow-lg whitespace-nowrap">
+                    <Sparkles size={14} /> Level Up! You&apos;re now Level {leveledUpTo}
+                </div>
+            )}
             <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
                 <div className="flex items-center gap-3">
-                    <div className="flex items-center justify-center w-12 h-12 rounded-full theme-accent-bg font-bold text-lg shrink-0">
-                        {level}
-                    </div>
+                    <LevelBadge level={level} />
                     <div>
-                        <p className="theme-text font-semibold">Level {level}</p>
+                        <p className="theme-text font-semibold">
+                            Level {level} <span className="theme-secondary-text font-normal">· {levelTitle(level)}</span>
+                        </p>
                         <p className="theme-secondary-text text-xs">
                             {xpIntoLevel} / {xpForNextLevel} XP to next level
                         </p>

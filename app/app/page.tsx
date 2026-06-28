@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Guitar, Compass, Music, Drum, Ear, PlayCircle, BookOpen, type LucideIcon } from 'lucide-react';
+import { ArrowRight, Guitar, Compass, Music, Drum, Ear, PlayCircle, BookOpen, type LucideIcon } from 'lucide-react';
 
 const TOOLS: { href: string; title: string; description: string; icon: LucideIcon }[] = [
     {
@@ -56,13 +56,17 @@ export default function AppHubPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {TOOLS.map(({ href, title, description, icon: Icon }) => (
-                    <Link
-                        key={href}
-                        href={href}
-                        className="theme-card rounded-xl p-5 shadow-lg hover:opacity-90 transition-opacity"
-                    >
-                        <Icon size={24} className="text-indigo-400 mb-3" />
-                        <h2 className="text-lg font-semibold theme-text mb-1">{title}</h2>
+                    <Link key={href} href={href} className="group theme-card tool-card rounded-xl p-5 shadow-lg">
+                        <div className="flex items-center justify-center w-11 h-11 rounded-lg theme-accent-soft-bg mb-3">
+                            <Icon size={22} className="theme-secondary-text" />
+                        </div>
+                        <div className="flex items-center gap-1.5 mb-1">
+                            <h2 className="text-lg font-semibold theme-text">{title}</h2>
+                            <ArrowRight
+                                size={16}
+                                className="theme-secondary-text opacity-0 -translate-x-1 transition-all group-hover:opacity-100 group-hover:translate-x-0"
+                            />
+                        </div>
                         <p className="text-sm theme-secondary-text">{description}</p>
                     </Link>
                 ))}

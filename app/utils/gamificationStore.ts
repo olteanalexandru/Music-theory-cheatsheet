@@ -101,6 +101,28 @@ export function levelProgress(xp: number): LevelProgress {
     };
 }
 
+// Gives levels an identity beyond a bare number - shown next to the level
+// badge wherever it appears (GamificationPanel, Profile, Plan, Leaderboard).
+const LEVEL_TITLES: { minLevel: number; title: string }[] = [
+    { minLevel: 1, title: 'Listener' },
+    { minLevel: 3, title: 'Apprentice' },
+    { minLevel: 5, title: 'Practitioner' },
+    { minLevel: 8, title: 'Musician' },
+    { minLevel: 12, title: 'Soloist' },
+    { minLevel: 16, title: 'Virtuoso' },
+    { minLevel: 20, title: 'Maestro' },
+    { minLevel: 25, title: 'Legend' },
+];
+
+export function levelTitle(level: number): string {
+    let title = LEVEL_TITLES[0].title;
+    for (const tier of LEVEL_TITLES) {
+        if (level >= tier.minLevel) title = tier.title;
+        else break;
+    }
+    return title;
+}
+
 export interface Achievement {
     id: string;
     title: string;

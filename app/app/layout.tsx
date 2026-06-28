@@ -31,7 +31,7 @@ function ToolNav() {
                     key={link.href}
                     href={link.href}
                     className={`px-3 py-1.5 rounded-md text-sm font-medium whitespace-nowrap transition-colors ${
-                        pathname === link.href ? 'theme-accent-bg' : 'theme-muted-bg theme-secondary-text hover:opacity-90'
+                        pathname === link.href ? 'nav-link-active' : 'theme-muted-bg theme-secondary-text hover:opacity-90'
                     }`}
                 >
                     {link.label}

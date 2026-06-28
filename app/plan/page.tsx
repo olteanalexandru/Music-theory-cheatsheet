@@ -17,7 +17,7 @@ import {
     Trophy,
 } from 'lucide-react';
 import { ALL_LESSONS, CURRICULUM, getUnitForLesson, isLessonUnlocked, upcomingLessons } from '@/app/utils/curriculumData';
-import { completedLessonIds, loadCurriculum } from '@/app/utils/curriculumStore';
+import { completedLessonIds, loadCurriculum, type CurriculumStore } from '@/app/utils/curriculumStore';
 import { CATEGORIES, CATEGORY_LABELS, type Category } from '@/app/components/EarTraining';
 import {
     bestStreakAcrossCategories,
@@ -25,14 +25,34 @@ import {
     loadProgress,
     totalCorrectAnswers,
     totalQuestionsAnswered,
+    type ProgressStore,
 } from '@/app/utils/progressStore';
-import { closestAchievements, levelProgress, loadGamification } from '@/app/utils/gamificationStore';
+import {
+    closestAchievements,
+    levelProgress,
+    levelTitle,
+    loadGamification,
+    normalizeStore,
+    type GamificationStore,
+} from '@/app/utils/gamificationStore';
 import type { EarTrainingDifficulty } from '@/app/utils/earTrainingData';
+import LevelBadge from '@/app/components/LevelBadge';
 
 export default function PlanPage() {
-    const [curriculumStore] = useState(() => loadCurriculum());
-    const [progress] = useState(() => loadProgress());
-    const [gamification] = useState(() => loadGamification());
+    // These start from SSR-safe empty defaults and load the real localStorage
+    // value in an effect (not the initializer) so the client's first render
+    // matches what the server sent, avoiding a hydration mismatch.
+    const [curriculumStore, setCurriculumStore] = useState<CurriculumStore>({});
+    const [progress, setProgress] = useState<ProgressStore>({});
+    const [gamification, setGamification] = useState<GamificationStore>(() => normalizeStore(undefined));
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setCurriculumStore(loadCurriculum());
+            setProgress(loadProgress());
+            setGamification(loadGamification());
+        }, 0);
+        return () => clearTimeout(timer);
+    }, []);
 
     const completed = useMemo(() => completedLessonIds(curriculumStore), [curriculumStore]);
     const totalLessons = ALL_LESSONS.length;
@@ -94,11 +114,11 @@ export default function PlanPage() {
 
             <div className="theme-card rounded-xl shadow-lg p-5 mb-6 flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                    <div className="flex items-center justify-center w-12 h-12 rounded-full theme-accent-bg font-bold text-lg shrink-0">
-                        {level}
-                    </div>
+                    <LevelBadge level={level} />
                     <div>
-                        <p className="theme-text font-semibold">Level {level}</p>
+                        <p className="theme-text font-semibold">
+                            Level {level} <span className="theme-secondary-text font-normal">· {levelTitle(level)}</span>
+                        </p>
                         <div className="h-2 w-40 rounded-full theme-muted-bg overflow-hidden mt-1">
                             <div
                                 className="h-full theme-accent-bg transition-all"

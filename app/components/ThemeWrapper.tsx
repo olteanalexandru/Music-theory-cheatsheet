@@ -27,7 +27,7 @@ export default function ThemeWrapper({
   geistSansVariable: string;
   geistMonoVariable: string;
 }) {
-  const [theme, setTheme] = useState<AppTheme>("dark");
+  const [theme, setTheme] = useState<AppTheme>("light");
 
   return (
     <body
