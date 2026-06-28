@@ -429,8 +429,10 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
     // category/difficulty changes and by Practice Session's mixed-category draws.
     const buildQuestionForCategory = (cat: Category, diff: EarTrainingDifficulty): Question => {
         switch (cat) {
-            case 'notes':
-                return buildNotesQuestion(clef, selectedKeys, range);
+            case 'notes': {
+                const preset = NOTES_DIFFICULTY_PRESETS[diff];
+                return buildNotesQuestion(clef, preset.keys, preset.range);
+            }
             case 'keysig':
                 return buildKeySigQuestion(diff);
             case 'guitar':
@@ -465,6 +467,11 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
 
     const handleCategoryChange = (nextCategory: Category) => {
         applyCategory(nextCategory);
+        if (nextCategory === 'notes') {
+            const preset = NOTES_DIFFICULTY_PRESETS[difficulty];
+            setRange(preset.range);
+            setSelectedKeys(preset.keys);
+        }
         newQuestionForCategory(nextCategory, difficulty);
     };
 
@@ -525,6 +532,11 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
             applyCategory(nextCategory);
             setDifficulty(nextDifficulty);
             setSessionLength(length);
+            if (nextCategory === 'notes') {
+                const preset = NOTES_DIFFICULTY_PRESETS[nextDifficulty];
+                setRange(preset.range);
+                setSelectedKeys(preset.keys);
+            }
             activeChallengeId.current = challengeId;
             setQuestion(buildQuestionForCategory(nextCategory, nextDifficulty));
             resetAnswerState();
