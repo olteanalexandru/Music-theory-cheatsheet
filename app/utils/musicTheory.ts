@@ -1,11 +1,5 @@
 export const circleOfFifths = {
-    order: ['C', 'G', 'D', 'A', 'E', 'B', 'F#', 'C#', 'G#', 'D#', 'A#', 'F'],
-    numberOfSharps: {
-        'C': 0, 'G': 1, 'D': 2, 'A': 3, 'E': 4, 'B': 5, 'F#': 6, 'C#': 7,
-        'G#': 8, 'D#': 9, 'A#': 10, 'F': 11
-    },
-    sharpsOrder: ['F#', 'C#', 'G#', 'D#', 'A#', 'E#', 'B#'],
-    flatsOrder: ['Bb', 'Eb', 'Ab', 'Db', 'Gb', 'Cb', 'Fb'],
+    order: ['C', 'G', 'D', 'A', 'E', 'B', 'F#', 'C#', 'A♭', 'E♭', 'B♭', 'F'],
     scaleDegrees: {
         'C': ['C', 'D', 'E', 'F', 'G', 'A', 'B'],
         'G': ['G', 'A', 'B', 'C', 'D', 'E', 'F#'],
@@ -15,9 +9,6 @@ export const circleOfFifths = {
         'B': ['B', 'C#', 'D#', 'E', 'F#', 'G#', 'A#'],
         'F#': ['F#', 'G#', 'A#', 'B', 'C#', 'D#', 'E#'],
         'C#': ['C#', 'D#', 'E#', 'F#', 'G#', 'A#', 'B#'],
-        'G#': ['G#', 'A#', 'B#', 'C#', 'D#', 'E#', 'F##'],
-        'D#': ['D#', 'E#', 'F##', 'G#', 'A#', 'B#', 'C##'],
-        'A#': ['A#', 'B#', 'C##', 'D#', 'E#', 'F##', 'G##'],
         'F': ['F', 'G', 'A', 'Bb', 'C', 'D', 'E'],
         'B♭': ['Bb', 'C', 'D', 'Eb', 'F', 'G', 'A'],
         'E♭': ['Eb', 'F', 'G', 'Ab', 'Bb', 'C', 'D'],
@@ -28,7 +19,7 @@ export const circleOfFifths = {
     },
     relatives: {
         'C': 'Am', 'G': 'Em', 'D': 'Bm', 'A': 'F#m', 'E': 'C#m', 'B': 'G#m',
-        'F#': 'D#m', 'C#': 'A#m', 'G#': 'Fm', 'D#': 'Cm', 'A#': 'Gm', 'F': 'Dm'
+        'F#': 'D#m', 'C#': 'A#m', 'A♭': 'Fm', 'E♭': 'Cm', 'B♭': 'Gm', 'F': 'Dm'
     }
 };
 
