@@ -7,6 +7,7 @@ import { Bell, LogIn, LogOut, Music2, UserCircle, User as UserIcon } from 'lucid
 import { useAuth } from '@/app/utils/AuthContext';
 import { getSupabaseClient } from '@/app/utils/supabaseClient';
 import { fetchNotifications, fetchUnreadCount, markAllRead, type AppNotification } from '@/app/utils/notificationStore';
+import { fetchProfileByUserId } from '@/app/utils/profileStore';
 import AuthModal from '@/app/components/AuthModal';
 import ScrollHint from '@/app/components/ScrollHint';
 
@@ -21,8 +22,11 @@ const APP_NAV_LINKS = [
     { href: '/feed', label: 'Feed' },
     { href: '/challenges', label: 'Challenges' },
     { href: '/leaderboard', label: 'Leaderboard' },
+    { href: '/support', label: 'Support' },
     { href: '/profile', label: 'Profile' },
 ];
+
+const ADMIN_NAV_LINK = { href: '/admin/tickets', label: 'Admin' };
 
 const MARKETING_ROUTES = new Set(['/', '/features', '/community']);
 
@@ -40,6 +44,10 @@ function notificationText(n: AppNotification): string {
             return `${n.actorUsername} commented on your activity`;
         case 'reaction':
             return `${n.actorUsername} reacted to your activity`;
+        case 'ticket_reply':
+            return `Support replied to "${n.data.subject ?? 'your ticket'}"`;
+        case 'ticket_status':
+            return `Your ticket "${n.data.subject ?? ''}" is now ${n.data.status ?? 'updated'}`;
         default:
             return `${n.actorUsername} did something`;
     }
@@ -55,6 +63,9 @@ function notificationHref(n: AppNotification): string {
         case 'comment':
         case 'reaction':
             return '/feed';
+        case 'ticket_reply':
+        case 'ticket_status':
+            return '/support';
         default:
             return '/feed';
     }
@@ -79,8 +90,10 @@ const AppHeader: React.FC = () => {
     const [unreadCount, setUnreadCount] = useState(0);
     const [notifications, setNotifications] = useState<AppNotification[]>([]);
     const notificationsRef = useRef<HTMLDivElement | null>(null);
+    const [isAdmin, setIsAdmin] = useState(false);
     const pathname = usePathname();
     const isMarketing = MARKETING_ROUTES.has(pathname ?? '');
+    const navLinks = isAdmin ? [...APP_NAV_LINKS, ADMIN_NAV_LINK] : APP_NAV_LINKS;
 
     useEffect(() => {
         if (!showMenu) return;
@@ -104,6 +117,18 @@ const AppHeader: React.FC = () => {
         const supabase = getSupabaseClient();
         if (!supabase || !user) return;
         setUnreadCount(await fetchUnreadCount(supabase, user.id));
+    }, [user]);
+
+    useEffect(() => {
+        void (async () => {
+            const supabase = getSupabaseClient();
+            if (!supabase || !user) {
+                setIsAdmin(false);
+                return;
+            }
+            const profile = await fetchProfileByUserId(supabase, user.id);
+            setIsAdmin(!!profile?.isAdmin);
+        })();
     }, [user]);
 
     // Polling, not realtime, to match the rest of this app's pull-based cloud
@@ -178,7 +203,7 @@ const AppHeader: React.FC = () => {
                     </nav>
                 ) : (
                     <nav className="hidden sm:flex items-center gap-1">
-                        {APP_NAV_LINKS.map((link) => navLink(link.href, link.label))}
+                        {navLinks.map((link) => navLink(link.href, link.label))}
                     </nav>
                 )}
 
@@ -286,7 +311,7 @@ const AppHeader: React.FC = () => {
                 </ScrollHint>
             ) : (
                 <ScrollHint as="nav" className="flex sm:hidden items-center gap-1 pb-2 -mt-1">
-                    {APP_NAV_LINKS.map((link) => navLink(link.href, link.label))}
+                    {navLinks.map((link) => navLink(link.href, link.label))}
                 </ScrollHint>
             )}
 
