@@ -121,10 +121,14 @@ const RhythmNotation: React.FC<RhythmNotationProps> = ({ events, compact = false
     const width = PADDING * 2 + Math.max(totalBeats, 1) * pxPerBeat;
     const height = lineY + 24;
 
+    // Glyphs sit at the start of their duration column (true onset), not the
+    // center — the moving playhead and the tap-along grading engine both track
+    // onset time linearly, so centering would draw notes later than when
+    // they're actually due, making in-time taps register as early.
     const positions = events.reduce<{ cursor: number; xs: number[] }>(
         (acc, event) => {
             const eventWidth = event.beats * pxPerBeat;
-            return { cursor: acc.cursor + eventWidth, xs: [...acc.xs, acc.cursor + eventWidth / 2] };
+            return { cursor: acc.cursor + eventWidth, xs: [...acc.xs, acc.cursor] };
         },
         { cursor: PADDING, xs: [] }
     ).xs;
