@@ -16,6 +16,7 @@ const TOOL_LINKS = [
     { href: '/app/fretboard', label: 'Fretboard' },
     { href: '/app/circle-of-fifths', label: 'Circle of Fifths' },
     { href: '/app/staff', label: 'Staff' },
+    { href: '/app/clef-trainer', label: 'Clef Trainer' },
     { href: '/app/rhythm', label: 'Rhythm' },
     { href: '/app/ear-training', label: 'Ear Training' },
     { href: '/app/play-along', label: 'Play Along' },
