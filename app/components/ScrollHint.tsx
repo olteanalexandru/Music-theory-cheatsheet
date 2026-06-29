@@ -49,7 +49,7 @@ export default function ScrollHint({
     return (
         <Tag
             ref={ref as React.Ref<HTMLDivElement>}
-            className={`overflow-x-auto ${className}`}
+            className={`overflow-x-auto overflow-y-hidden ${className}`}
             style={mask ? { maskImage: mask, WebkitMaskImage: mask } : undefined}
         >
             {children}
