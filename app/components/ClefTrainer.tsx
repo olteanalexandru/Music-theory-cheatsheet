@@ -6,7 +6,7 @@ import GrandStaffPrompt from '@/app/components/GrandStaffPrompt';
 import ClefTrainerStats from '@/app/components/ClefTrainerStats';
 import PianoKeyboard from '@/app/components/PianoKeyboard';
 import { generateNoteQuestion, type ClefId, type NoteQuestion, type RangePreset } from '@/app/utils/staffLayout';
-import { KEY_NAMES } from '@/app/utils/keySignatures';
+import { FIXED_DO_SYLLABLES, KEY_NAMES, movableDoSyllable } from '@/app/utils/keySignatures';
 import {
     loadClefTrainerData,
     noteAccuracy,
@@ -28,6 +28,7 @@ interface ClefTrainerProps {
 type AnswerMode = 'choices' | 'midi';
 type AnswerStatus = 'idle' | 'correct' | 'incorrect';
 type TrainerMode = 'practice' | 'sprint';
+type NamingSystem = 'letters' | 'solfege-fixed' | 'solfege-movable';
 
 const NOTE_LETTERS = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
 
@@ -36,6 +37,21 @@ const CLEF_MODE_OPTIONS: { value: ClefMode; label: string }[] = [
     { value: 'bass', label: 'Bass' },
     { value: 'grand', label: 'Grand Staff' },
 ];
+
+const NAMING_SYSTEM_OPTIONS: { value: NamingSystem; label: string }[] = [
+    { value: 'letters', label: 'Letters' },
+    { value: 'solfege-fixed', label: 'Solfège (Fixed Do)' },
+    { value: 'solfege-movable', label: 'Solfège (Relative Do)' },
+];
+
+// Maps a question's natural letter to its display label under the active naming
+// system. Fixed-do is a constant per-letter lookup; movable/relative-do depends on
+// the question's key signature, since "Do" shifts to whichever note is the tonic.
+function noteLabel(namingSystem: NamingSystem, letter: string, keyName: string): string {
+    if (namingSystem === 'solfege-fixed') return FIXED_DO_SYLLABLES[letter];
+    if (namingSystem === 'solfege-movable') return movableDoSyllable(letter, keyName);
+    return letter;
+}
 
 const RANGE_OPTIONS: { value: RangePreset; label: string }[] = [
     { value: 'staff', label: 'Staff Only' },
@@ -73,6 +89,7 @@ const ClefTrainer: React.FC<ClefTrainerProps> = ({ synth, midi }) => {
     const [clefMode, setClefMode] = useState<ClefMode>('treble');
     const [range, setRange] = useState<RangePreset>('staff');
     const [selectedKeys, setSelectedKeys] = useState<string[]>(['C']);
+    const [namingSystem, setNamingSystem] = useState<NamingSystem>('letters');
     const [answerMode, setAnswerMode] = useState<AnswerMode>('choices');
     const [question, setQuestion] = useState<NoteQuestion | null>(null);
     const [choices, setChoices] = useState<string[]>(NOTE_LETTERS);
@@ -387,6 +404,22 @@ const ClefTrainer: React.FC<ClefTrainerProps> = ({ synth, midi }) => {
                 </div>
 
                 <div>
+                    <p className="theme-secondary-text text-xs font-semibold uppercase tracking-wide mb-1.5">Note Naming</p>
+                    <div className="flex flex-wrap gap-1.5">
+                        {NAMING_SYSTEM_OPTIONS.map((option) => (
+                            <button
+                                key={option.value}
+                                onClick={() => setNamingSystem(option.value)}
+                                disabled={sprintActive}
+                                className={`px-3 py-1.5 rounded-lg text-sm font-medium disabled:opacity-50 ${namingSystem === option.value ? 'theme-accent-bg' : 'theme-muted-bg theme-secondary-text hover:opacity-90'}`}
+                            >
+                                {option.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <div>
                     <p className="theme-secondary-text text-xs font-semibold uppercase tracking-wide mb-1.5">Answer With</p>
                     <div className="flex flex-wrap items-center gap-2">
                         <button
@@ -494,7 +527,7 @@ const ClefTrainer: React.FC<ClefTrainerProps> = ({ synth, midi }) => {
                                                 ? 'theme-muted-bg theme-secondary-text opacity-50'
                                                 : 'theme-muted-bg theme-secondary-text hover:opacity-90'}`}
                                     >
-                                        {letter}
+                                        {noteLabel(namingSystem, letter, question.keyName)}
                                     </button>
                                 );
                             })}
@@ -511,7 +544,11 @@ const ClefTrainer: React.FC<ClefTrainerProps> = ({ synth, midi }) => {
 
                     {status !== 'idle' && (
                         <p className={`mt-4 font-semibold ${status === 'correct' ? 'text-green-400' : 'text-red-400'}`}>
-                            {status === 'correct' ? 'Correct!' : `Not quite — that was ${question.displayName}${question.octave}.`}
+                            {status === 'correct'
+                                ? 'Correct!'
+                                : namingSystem === 'letters'
+                                ? `Not quite — that was ${question.displayName}${question.octave}.`
+                                : `Not quite — that was ${noteLabel(namingSystem, question.letter, question.keyName)} (${question.displayName}${question.octave}).`}
                         </p>
                     )}
                 </>

@@ -102,3 +102,18 @@ export function relativeMinorName(keyName: string): string {
     const scale = KEY_SIGNATURES[keyName] || KEY_SIGNATURES.C;
     return scale[5];
 }
+
+const SCALE_DEGREE_SYLLABLES = ['Do', 'Re', 'Mi', 'Fa', 'Sol', 'La', 'Ti'];
+
+// Fixed-do: every natural letter always maps to the same syllable, regardless of key.
+export const FIXED_DO_SYLLABLES: Record<string, string> = {
+    C: 'Do', D: 'Re', E: 'Mi', F: 'Fa', G: 'Sol', A: 'La', B: 'Ti',
+};
+
+// Movable/relative-do: the syllable is the note's scale degree within the given key,
+// e.g. movableDoSyllable('F', 'G') -> 'Ti' (F♯ is the 7th degree of G major).
+export function movableDoSyllable(letter: string, keyName: string): string {
+    const scale = KEY_SIGNATURES[keyName] || KEY_SIGNATURES.C;
+    const degree = scale.findIndex((entry) => entry[0] === letter);
+    return SCALE_DEGREE_SYLLABLES[degree === -1 ? 0 : degree];
+}
