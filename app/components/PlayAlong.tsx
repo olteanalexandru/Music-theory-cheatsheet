@@ -27,6 +27,7 @@ import ShareButton from '@/app/components/ShareButton';
 import { useAuth } from '@/app/utils/AuthContext';
 import { getSupabaseClient } from '@/app/utils/supabaseClient';
 import { listUserFiles, uploadUserFile, downloadUserFile, deleteUserFile, type UserFileRecord } from '@/app/utils/userFiles';
+import { useTranslations } from '@/app/utils/i18n/LocaleContext';
 
 interface PlayAlongProps {
     midi: MidiInputController;
@@ -72,6 +73,7 @@ function judgementColor(judgement: NoteJudgement): string {
 }
 
 const PlayAlong: React.FC<PlayAlongProps> = ({ midi, audio, synth }) => {
+    const t = useTranslations('playAlong');
     const [parsed, setParsed] = useState<ParsedScore | null>(null);
     const [fileKind, setFileKind] = useState<FileKind | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -1035,7 +1037,7 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, audio, synth }) => {
                         return (
                             <div className="flex flex-wrap items-end gap-4 mb-4 p-3 rounded-lg theme-secondary-bg">
                                 <label className="flex items-center gap-2 text-sm theme-secondary-text">
-                                    Instrument:
+                                    {t.tuningPanel.instrument}
                                     <select
                                         value={instrument}
                                         onChange={(e) => {
@@ -1045,13 +1047,13 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, audio, synth }) => {
                                         disabled={runState === 'running' || runState === 'paused'}
                                         className="theme-muted-bg theme-secondary-text px-2 py-1 rounded-lg text-sm"
                                     >
-                                        <option value="guitar">Guitar</option>
-                                        <option value="bass">Bass</option>
+                                        <option value="guitar">{t.tuningPanel.guitar}</option>
+                                        <option value="bass">{t.tuningPanel.bass}</option>
                                     </select>
                                 </label>
 
                                 <label className="flex items-center gap-2 text-sm theme-secondary-text">
-                                    Strings:
+                                    {t.tuningPanel.strings}
                                     <select
                                         value={tuningMidi.length}
                                         onChange={(e) => setTuningPreset(instrument, Number(e.target.value))}
@@ -1074,7 +1076,7 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, audio, synth }) => {
                                                 key={stringNum}
                                                 className="flex flex-col items-center gap-1 text-xs theme-secondary-text"
                                             >
-                                                String {stringNum}
+                                                {t.tuningPanel.stringNumber(stringNum)}
                                                 <div className="flex items-center gap-1">
                                                     <select
                                                         value={pitchClassFromMidi(pitch)}
