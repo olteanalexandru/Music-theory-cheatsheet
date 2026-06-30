@@ -1,5 +1,8 @@
+'use client';
+
 import React from 'react';
 import { guitarTunings } from '@/app/utils/guitarTunings';
+import { useTranslations } from '@/app/utils/i18n/LocaleContext';
 
 type PatternType = 'scales' | 'arpeggios' | 'chords';
 
@@ -53,15 +56,22 @@ const PatternControls: React.FC<PatternControlsProps> = ({
     selectedTuningName,
     setSelectedTuningName
 }) => {
+    const t = useTranslations('tools');
+
     const handleTuningChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         setSelectedTuningName(e.target.value);
     };
+
+    const patternLabel =
+        patternType === 'scales' ? t.fretboardPage.patternControls.scaleModeLabel
+        : patternType === 'arpeggios' ? t.fretboardPage.patternControls.arpeggioTypeLabel
+        : t.fretboardPage.patternControls.chordTypeLabel;
 
     return (
         <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Pattern Type Selection */}
             <div className="theme-card rounded-lg p-4">
-                <label className="theme-secondary-text text-sm mb-2 block">Pattern Type</label>
+                <label className="theme-secondary-text text-sm mb-2 block">{t.fretboardPage.patternControls.patternType}</label>
                 <div className="flex flex-wrap gap-2">
                     {Object.keys(patterns).map(option => (
                         <button
@@ -71,8 +81,8 @@ const PatternControls: React.FC<PatternControlsProps> = ({
                                 setSelectedPattern(null);
                             }}
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors
-                                ${patternType === option 
-                                    ? 'theme-accent-bg' 
+                                ${patternType === option
+                                    ? 'theme-accent-bg'
                                     : 'theme-muted-bg theme-secondary-text hover:opacity-90'}`}
                         >
                             {option.charAt(0).toUpperCase() + option.slice(1)}
@@ -83,15 +93,15 @@ const PatternControls: React.FC<PatternControlsProps> = ({
 
             {/* Root Note Selection */}
             <div className="theme-card rounded-lg p-4">
-                <label className="theme-secondary-text text-sm mb-2 block">Root Note</label>
+                <label className="theme-secondary-text text-sm mb-2 block">{t.fretboardPage.patternControls.rootNote}</label>
                 <div className="grid grid-cols-4 sm:grid-cols-6 gap-1">
                     {chromaticScale.flat().map(note => (
                         <button
                             key={note}
                             onClick={() => setSelectedRoot(note)}
                             className={`p-2 rounded text-sm font-medium transition-colors
-                                ${selectedRoot === note 
-                                    ? 'theme-accent-bg' 
+                                ${selectedRoot === note
+                                    ? 'theme-accent-bg'
                                     : 'theme-muted-bg theme-secondary-text hover:opacity-90'}`}
                         >
                             {note}
@@ -100,10 +110,10 @@ const PatternControls: React.FC<PatternControlsProps> = ({
                 </div>
             </div>
 
-            {/* Number of Chords Selection - Only show for bass */}
+            {/* Number of Strings Selection - Only show for bass */}
             {instrument === 'bass' && (
                 <div className="theme-card rounded-lg p-4">
-                    <label className="theme-secondary-text text-sm mb-2 block">Number of Strings</label>
+                    <label className="theme-secondary-text text-sm mb-2 block">{t.fretboardPage.patternControls.numStrings}</label>
                     <select
                         value={numChords}
                         onChange={(e) => setNumChords(Number(e.target.value))}
@@ -120,7 +130,7 @@ const PatternControls: React.FC<PatternControlsProps> = ({
 
             {/* Instrument Selection */}
             <div className="theme-card rounded-lg p-4">
-                <label className="theme-secondary-text text-sm mb-2 block">Instrument</label>
+                <label className="theme-secondary-text text-sm mb-2 block">{t.fretboardPage.patternControls.instrument}</label>
                 <select
                     value={instrument}
                     onChange={(e) => setInstrument(e.target.value as 'bass' | 'guitar')}
@@ -137,7 +147,7 @@ const PatternControls: React.FC<PatternControlsProps> = ({
             {/* Tuning Selection */}
             {instrument === 'guitar' && (
                 <div className="theme-card rounded-lg p-4">
-                    <label className="theme-secondary-text text-sm mb-2 block">Tuning</label>
+                    <label className="theme-secondary-text text-sm mb-2 block">{t.fretboardPage.patternControls.tuning}</label>
                     <select
                         value={selectedTuningName}
                         onChange={handleTuningChange}
@@ -155,7 +165,7 @@ const PatternControls: React.FC<PatternControlsProps> = ({
             {/* Pattern Selection */}
             <div className="theme-card rounded-lg p-4 col-span-2">
                 <label className="theme-secondary-text text-sm mb-2 block">
-                    {patternType === 'scales' ? 'Scale/Mode' : patternType === 'arpeggios' ? 'Arpeggio Type' : 'Chord Type'}
+                    {patternLabel}
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {Object.keys(patterns[patternType]).map(pattern => (
@@ -163,8 +173,8 @@ const PatternControls: React.FC<PatternControlsProps> = ({
                             key={pattern}
                             onClick={() => setSelectedPattern(pattern)}
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors
-                                ${selectedPattern === pattern 
-                                    ? 'theme-accent-bg' 
+                                ${selectedPattern === pattern
+                                    ? 'theme-accent-bg'
                                     : 'theme-muted-bg theme-secondary-text hover:opacity-90'}`}
                         >
                             {pattern}
@@ -175,18 +185,18 @@ const PatternControls: React.FC<PatternControlsProps> = ({
 
             {/* Display Mode Selection */}
             <div className="theme-card rounded-lg p-4">
-                <label className="theme-secondary-text text-sm mb-2 block">Display Mode</label>
+                <label className="theme-secondary-text text-sm mb-2 block">{t.fretboardPage.patternControls.displayMode}</label>
                 <button
                     onClick={() => setUseLandmarkNumbers(!useLandmarkNumbers)}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors w-full mb-2
-                        ${useLandmarkNumbers 
-                            ? 'theme-accent-bg' 
+                        ${useLandmarkNumbers
+                            ? 'theme-accent-bg'
                             : 'theme-muted-bg theme-secondary-text hover:opacity-90'}`}
                 >
-                    {useLandmarkNumbers ? 'Landmark Numbers' : 'Note System'}
+                    {useLandmarkNumbers ? t.fretboardPage.patternControls.landmarkNumbers : t.fretboardPage.patternControls.noteSystem}
                 </button>
                 {useLandmarkNumbers && !selectedRoot && (
-                    <p className="text-xs theme-warning-text mt-1">Select a root note to see landmark numbers.</p>
+                    <p className="text-xs theme-warning-text mt-1">{t.fretboardPage.patternControls.selectRootForLandmarks}</p>
                 )}
             </div>
         </div>

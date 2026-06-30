@@ -14,8 +14,10 @@ import {
 import ShareButton from '@/app/components/ShareButton';
 import { buildShareCardData, renderShareCard } from '@/app/utils/shareCard';
 import LevelBadge from '@/app/components/LevelBadge';
+import { useTranslations } from '@/app/utils/i18n/LocaleContext';
 
 const GamificationPanel: React.FC = () => {
+    const t = useTranslations('social');
     // Starts from the SSR-safe default and loads the real localStorage value
     // in an effect (not the initializer) so the client's first render matches
     // what the server sent, avoiding a hydration mismatch for returning users.
@@ -57,7 +59,7 @@ const GamificationPanel: React.FC = () => {
         <div className="relative mb-6 theme-card rounded-xl shadow-lg p-4 md:p-5">
             {leveledUpTo !== null && (
                 <div className="animate-level-up absolute -top-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 px-4 py-1.5 rounded-full theme-btn text-sm font-semibold shadow-lg whitespace-nowrap">
-                    <Sparkles size={14} /> Level Up! You&apos;re now Level {leveledUpTo}
+                    <Sparkles size={14} /> {t.gamification.levelUp(leveledUpTo)}
                 </div>
             )}
             <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
@@ -65,10 +67,10 @@ const GamificationPanel: React.FC = () => {
                     <LevelBadge level={level} />
                     <div>
                         <p className="theme-text font-semibold">
-                            Level {level} <span className="theme-secondary-text font-normal">· {levelTitle(level)}</span>
+                            {t.gamification.level(level)} <span className="theme-secondary-text font-normal">· {levelTitle(level)}</span>
                         </p>
                         <p className="theme-secondary-text text-xs">
-                            {xpIntoLevel} / {xpForNextLevel} XP to next level
+                            {t.gamification.xpToNextLevel(xpIntoLevel, xpForNextLevel)}
                         </p>
                     </div>
                 </div>
@@ -79,13 +81,13 @@ const GamificationPanel: React.FC = () => {
                         aria-expanded={showAchievements}
                     >
                         <Trophy size={16} />
-                        {unlockedCount} / {ACHIEVEMENTS.length} Achievements
+                        {t.gamification.achievementsCount(unlockedCount, ACHIEVEMENTS.length)}
                         {showAchievements ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                     </button>
                     <ShareButton
-                        title="Music Theory Cheatsheet"
-                        text={`I'm Level ${level} with ${unlockedCount}/${ACHIEVEMENTS.length} achievements unlocked on Music Theory Cheatsheet! 🎵`}
-                        label="Share progress"
+                        title={t.gamification.shareTitle}
+                        text={t.gamification.shareText(level, unlockedCount, ACHIEVEMENTS.length)}
+                        label={t.gamification.shareLabel}
                         canvasRenderer={() => renderShareCard(buildShareCardData(gamification))}
                     />
                 </div>

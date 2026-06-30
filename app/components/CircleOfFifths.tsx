@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { circleOfFifths } from '@/app/utils/musicTheory';
 import type { SynthController } from '@/app/utils/useSynth';
+import { useTranslations } from '@/app/utils/i18n/LocaleContext';
 
 interface CircleOfFifthsProps {
     initialSelectedRoot: string;
@@ -37,6 +38,7 @@ function chordNameToMidiNotes(chord: string): number[] {
 }
 
 export const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ initialSelectedRoot, mode, synth }) => {
+    const t = useTranslations('tools');
     const [prevInitialRoot, setPrevInitialRoot] = useState(initialSelectedRoot);
     const [selectedRoot, setSelectedRoot] = useState(initialSelectedRoot);
     const [showChords, setShowChords] = useState<boolean>(false);
@@ -55,11 +57,11 @@ export const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ initialSelectedR
         const scale = circleOfFifths.scaleDegrees[note];
         if (!scale) return 'Unknown key signature';
         const accidentals = Array.from(new Set(scale.filter((n) => /[#b]/.test(n))));
-        if (accidentals.length === 0) return 'No sharps or flats';
+        if (accidentals.length === 0) return t.circleOfFifths.noSharpsOrFlats;
         const type = accidentals.every((n) => n.includes('#'))
-            ? 'sharp'
+            ? t.circleOfFifths.sharpLabel
             : accidentals.every((n) => n.includes('b'))
-            ? 'flat'
+            ? t.circleOfFifths.flatLabel
             : 'accidental';
         return `${accidentals.length} ${type}${accidentals.length > 1 ? 's' : ''}: ${accidentals.join(', ')}`;
     };
@@ -123,12 +125,12 @@ export const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ initialSelectedR
             {/* Content container - ensure it's above the background */}
             <div className="relative z-10">
                 <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg md:text-xl font-bold theme-text">Circle of Fifths</h3>
+                    <h3 className="text-lg md:text-xl font-bold theme-text">{t.circleOfFifths.title}</h3>
                     <button
                         onClick={() => setShowChords(!showChords)}
                         className="px-4 py-2 theme-btn rounded-sm hover:opacity-90 z-20" // Added z-20
                     >
-                        {showChords ? 'Hide Chords' : 'Show Chords'}
+                        {showChords ? t.circleOfFifths.hideChords : t.circleOfFifths.showChords}
                     </button>
                 </div>
 
@@ -143,21 +145,21 @@ export const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ initialSelectedR
                 <div className="mt-6 theme-text space-y-4">
                     <div>
                         <div className="flex items-center gap-3">
-                            <h4 className="font-semibold mb-2">Selected Key: {selectedRoot}</h4>
+                            <h4 className="font-semibold mb-2">{t.circleOfFifths.selectedKey} {selectedRoot}</h4>
                             <button
                                 onClick={() => synth.playChord(chordNameToMidiNotes(selectedRoot))}
                                 className="px-3 py-1 theme-btn rounded-sm text-sm hover:opacity-90"
                             >
-                                ▶ Play
+                                {t.circleOfFifths.play}
                             </button>
                         </div>
-                        <p>Key Signature: {getKeySignature(selectedRoot as Note)}</p>
-                        <p>Relative Minor: {circleOfFifths.relatives[selectedRoot as Note]}</p>
+                        <p>{t.circleOfFifths.keySignature} {getKeySignature(selectedRoot as Note)}</p>
+                        <p>{t.circleOfFifths.relativeMinor} {circleOfFifths.relatives[selectedRoot as Note]}</p>
                     </div>
 
                     {showChords && (
                         <div>
-                            <h4 className="font-semibold mb-2">Primary Chords:</h4>
+                            <h4 className="font-semibold mb-2">{t.circleOfFifths.primaryChords}</h4>
                             <div className="grid grid-cols-3 gap-4">
                                 {Object.entries(getPrimaryChords(selectedRoot)).map(([roman, chord]) => (
                                     <div
@@ -171,7 +173,7 @@ export const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ initialSelectedR
                                 ))}
                             </div>
 
-                            <h4 className="font-semibold mt-4 mb-2">Derived Chords</h4>
+                            <h4 className="font-semibold mt-4 mb-2">{t.circleOfFifths.derivedChords}</h4>
                             <div className="grid grid-cols-4 gap-4">
                                 {Object.entries(getDerivedChords(selectedRoot)).map(([roman, chord]) => (
                                     <div
@@ -188,44 +190,44 @@ export const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ initialSelectedR
                     )}
 
                     <div>
-                        <h4 className="font-semibold mb-2">Key Relationships:</h4>
+                        <h4 className="font-semibold mb-2">{t.circleOfFifths.keyRelationships}</h4>
                         <ul className="list-disc list-inside space-y-1">
-                            <li>Moving clockwise: add one sharp</li>
-                            <li>Moving counterclockwise: add one flat</li>
-                            <li>Inner circle shows relative minor keys</li>
-                            <li>Adjacent keys are closely related</li>
+                            <li>{t.circleOfFifths.relMoveClockwise}</li>
+                            <li>{t.circleOfFifths.relMoveCounterclockwise}</li>
+                            <li>{t.circleOfFifths.relInnerCircle}</li>
+                            <li>{t.circleOfFifths.relAdjacentKeys}</li>
                         </ul>
                     </div>
                     <br/><br/>
-                    <h1>Finding Relatives Using the Circle of Fifths</h1>
+                    <h1>{t.circleOfFifths.findingRelativesTitle}</h1>
                     <ul>
                         <li>
-                            <p><strong>To find the 2nd degree (Dorian mode)</strong></p>
-                            <p>Count 2 notes to the right.<br/>
-                               Or, look below at the note on the left.</p>
+                            <p><strong>{t.circleOfFifths.degree2Title}</strong></p>
+                            <p>{t.circleOfFifths.degree2Line1}<br/>
+                               {t.circleOfFifths.degree2Line2}</p>
                         </li>
                         <li>
-                            <p><strong>To find the 3rd degree (Phrygian mode)</strong></p>
-                            <p>Count 4 notes to the right.<br/>
-                               Or, look below at the note on the right.</p>
+                            <p><strong>{t.circleOfFifths.degree3Title}</strong></p>
+                            <p>{t.circleOfFifths.degree3Line1}<br/>
+                               {t.circleOfFifths.degree3Line2}</p>
                         </li>
                         <li>
-                            <p><strong>To find the 4th degree (Lydian mode)</strong></p>
-                            <p>Count 1 note to the left.</p>
+                            <p><strong>{t.circleOfFifths.degree4Title}</strong></p>
+                            <p>{t.circleOfFifths.degree4Line1}</p>
                         </li>
                         <li>
-                            <p><strong>To find the 5th degree (Mixolydian mode)</strong></p>
-                            <p>Count 1 note to the right.</p>
+                            <p><strong>{t.circleOfFifths.degree5Title}</strong></p>
+                            <p>{t.circleOfFifths.degree5Line1}</p>
                         </li>
                         <li>
-                            <p><strong>To find the 6th degree (Aeolian mode/relative minor)</strong></p>
-                            <p>Count 3 notes to the right.<br/>
-                               Or, look below.</p>
+                            <p><strong>{t.circleOfFifths.degree6Title}</strong></p>
+                            <p>{t.circleOfFifths.degree6Line1}<br/>
+                               {t.circleOfFifths.degree6Line2}</p>
                         </li>
                         <li>
-                            <p><strong>To find the 7th degree (Locrian mode)</strong></p>
-                            <p>Count 5 notes to the right.<br/>
-                               Or, look below at the note on the right.</p>
+                            <p><strong>{t.circleOfFifths.degree7Title}</strong></p>
+                            <p>{t.circleOfFifths.degree7Line1}<br/>
+                               {t.circleOfFifths.degree7Line2}</p>
                         </li>
                     </ul>
                 </div>

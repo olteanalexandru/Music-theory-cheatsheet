@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslations } from '@/app/utils/i18n/LocaleContext';
 import type { SynthController } from '@/app/utils/useSynth';
 import {
     DIFFICULTY_LEVELS,
@@ -137,6 +138,11 @@ interface PracticeSession {
 
 const SESSION_LENGTHS = [10, 20, 50];
 
+export const CATEGORIES: Category[] = [...(Object.keys(EAR_TRAINING_DATA) as EarTrainingCategory[]), 'notes', 'keysig', 'guitar', 'rhythm', 'progressions'];
+
+// Static English exports used by other pages (challenges, plan, feed).
+// Inside EarTraining the locale-aware CATEGORY_LABELS / DIFFICULTY_LABELS
+// defined after `const t = useTranslations(…)` take precedence.
 export const CATEGORY_LABELS: Record<Category, string> = {
     intervals: 'Intervals',
     chords: 'Chords',
@@ -147,8 +153,6 @@ export const CATEGORY_LABELS: Record<Category, string> = {
     rhythm: 'Rhythm',
     progressions: 'Chord Progressions',
 };
-
-export const CATEGORIES: Category[] = [...(Object.keys(EAR_TRAINING_DATA) as EarTrainingCategory[]), 'notes', 'keysig', 'guitar', 'rhythm', 'progressions'];
 
 export const DIFFICULTY_LABELS: Record<EarTrainingDifficulty, string> = {
     easy: 'Easy',
@@ -161,11 +165,6 @@ const DEFAULT_DIFFICULTY: EarTrainingDifficulty = 'easy';
 
 const NOTE_LETTERS = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
 
-const RANGE_OPTIONS: { value: RangePreset; label: string }[] = [
-    { value: 'staff', label: 'Staff Only' },
-    { value: 'extended', label: '+ Ledger Lines' },
-    { value: 'wide', label: 'Wide Range' },
-];
 
 function shuffle<T>(items: T[]): T[] {
     const result = [...items];
@@ -216,17 +215,27 @@ function buildNotesQuestion(clef: ClefId, selectedKeys: string[], range: RangePr
     return { kind: 'notes', note, choices: shuffle(NOTE_LETTERS) };
 }
 
-function formatKeySignature(info: KeySignatureInfo): string {
-    if (info.count === 0) return 'No sharps or flats';
-    const noun = info.type === 'sharp' ? 'sharp' : 'flat';
-    return `${info.count} ${noun}${info.count > 1 ? 's' : ''} (${info.accidentals.join(', ')})`;
+type KeySigT = {
+    noSharpsOrFlats: string;
+    sharp: string;
+    sharps: string;
+    flat: string;
+    flats: string;
+};
+
+function formatKeySignature(info: KeySignatureInfo, keysigT: KeySigT): string {
+    if (info.count === 0) return keysigT.noSharpsOrFlats;
+    const noun = info.type === 'sharp'
+        ? (info.count > 1 ? keysigT.sharps : keysigT.sharp)
+        : (info.count > 1 ? keysigT.flats : keysigT.flat);
+    return `${info.count} ${noun} (${info.accidentals.join(', ')})`;
 }
 
-function buildKeySigQuestion(difficulty: EarTrainingDifficulty): KeySigQuestion {
+function buildKeySigQuestion(difficulty: EarTrainingDifficulty, keysigT: KeySigT): KeySigQuestion {
     const pool = keysForDifficulty(difficulty);
     const review = loadReview();
     const now = Date.now();
-    const weights = pool.map((key) => itemWeight(review, 'keysig', formatKeySignature(getKeySignatureInfo(key)), now));
+    const weights = pool.map((key) => itemWeight(review, 'keysig', formatKeySignature(getKeySignatureInfo(key), keysigT), now));
     const majorKeyName = pickWeighted(pool, weights);
     const info = getKeySignatureInfo(majorKeyName);
     // Expert tier drills the relative minor instead: same accidentals, different
@@ -236,8 +245,8 @@ function buildKeySigQuestion(difficulty: EarTrainingDifficulty): KeySigQuestion 
     const maxChoices = Math.min(6, pool.length);
     const distractorKeys = shuffle(pool.filter((key) => key !== majorKeyName)).slice(0, maxChoices - 1);
     const choices = shuffle([
-        formatKeySignature(info),
-        ...distractorKeys.map((key) => formatKeySignature(getKeySignatureInfo(key))),
+        formatKeySignature(info, keysigT),
+        ...distractorKeys.map((key) => formatKeySignature(getKeySignatureInfo(key), keysigT)),
     ]);
     return { kind: 'keysig', keyName, mode, info, choices };
 }
@@ -337,6 +346,32 @@ function notesMatchExpected(playedMidiNotes: Set<number>, expectedIntervals: num
 }
 
 const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
+    const t = useTranslations('earTraining');
+
+    const CATEGORY_LABELS: Record<Category, string> = {
+        intervals: t.categories.intervals,
+        chords: t.categories.chords,
+        scales: t.categories.scales,
+        notes: t.categories.notes,
+        keysig: t.categories.keysig,
+        guitar: t.categories.guitar,
+        rhythm: t.categories.rhythm,
+        progressions: t.categories.progressions,
+    };
+
+    const DIFFICULTY_LABELS: Record<EarTrainingDifficulty, string> = {
+        easy: t.difficulty.easy,
+        medium: t.difficulty.medium,
+        hard: t.difficulty.hard,
+        expert: t.difficulty.expert,
+    };
+
+    const RANGE_OPTIONS: { value: RangePreset; label: string }[] = [
+        { value: 'staff', label: t.notes.rangeStaffOnly },
+        { value: 'extended', label: t.notes.rangeExtended },
+        { value: 'wide', label: t.notes.rangeWide },
+    ];
+
     const [category, setCategory] = useState<Category>('intervals');
     const [difficulty, setDifficulty] = useState<EarTrainingDifficulty>(DEFAULT_DIFFICULTY);
     const [question, setQuestion] = useState<Question>(buildDefaultStandardQuestion);
@@ -434,7 +469,7 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
                 return buildNotesQuestion(clef, preset.keys, preset.range);
             }
             case 'keysig':
-                return buildKeySigQuestion(diff);
+                return buildKeySigQuestion(diff, t.keysig);
             case 'guitar':
                 return buildGuitarQuestion(diff);
             case 'rhythm':
@@ -592,7 +627,7 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
         : question.kind === 'guitar'
         ? question.fret.noteName
         : question.kind === 'keysig'
-        ? formatKeySignature(question.info)
+        ? formatKeySignature(question.info, t.keysig)
         : question.kind === 'rhythm'
         ? patternKey(question.pattern)
         : formatProgression(question.def.degrees);
@@ -603,7 +638,7 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
         : question.kind === 'guitar'
         ? question.fret.noteName
         : question.kind === 'keysig'
-        ? formatKeySignature(question.info)
+        ? formatKeySignature(question.info, t.keysig)
         : question.kind === 'rhythm'
         ? describePattern(question.pattern)
         : formatProgression(question.def.degrees);
@@ -711,7 +746,7 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
 
     return (
         <div id="ear-training-section" className="theme-card rounded-lg p-4 md:p-6 shadow-lg">
-            <h3 className="text-lg md:text-xl font-bold theme-text mb-4">Ear Training</h3>
+            <h3 className="text-lg md:text-xl font-bold theme-text mb-4">{t.title}</h3>
 
             <div className="flex flex-wrap gap-2 mb-4">
                 {CATEGORIES.map((cat) => (
@@ -730,7 +765,7 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
             </div>
 
             <div className="flex flex-wrap items-center gap-2 mb-4">
-                <span className="theme-secondary-text text-sm">Difficulty:</span>
+                <span className="theme-secondary-text text-sm">{t.difficulty.label}</span>
                 {DIFFICULTY_LEVELS.map((level) => (
                     <button
                         key={level}
@@ -746,12 +781,12 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
 
             <div className="mb-6 p-4 rounded-lg theme-secondary-bg">
                 <p className="theme-text font-semibold mb-3">
-                    {weakReviewMode && session ? 'Weak Areas Review' : 'Practice Session'}
+                    {weakReviewMode && session ? t.session.weakAreasReview : t.session.practiceSession}
                 </p>
                 {!session ? (
                     <div className="space-y-3">
                         <div className="flex flex-wrap items-center gap-2">
-                            <span className="theme-secondary-text text-sm">Length:</span>
+                            <span className="theme-secondary-text text-sm">{t.session.length}</span>
                             {SESSION_LENGTHS.map((len) => (
                                 <button
                                     key={len}
@@ -769,54 +804,53 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
                                 checked={mixedSession}
                                 onChange={(e) => setMixedSession(e.target.checked)}
                             />
-                            Mix all categories
+                            {t.session.mixAllCategories}
                         </label>
                         <button onClick={startSession} className="px-4 py-2 theme-btn rounded-lg hover:opacity-90">
-                            Start Session
+                            {t.session.startSession}
                         </button>
                     </div>
                 ) : session.finished ? (
                     <div className="space-y-3">
                         <p className="theme-text">
-                            Session complete: {session.correctCount} / {session.length} correct (
-                            {Math.round((session.correctCount / session.length) * 100)}%)
+                            {t.session.sessionComplete(session.correctCount, session.length, Math.round((session.correctCount / session.length) * 100))}
                         </p>
                         {session.missed.length > 0 ? (
                             <div>
-                                <p className="theme-secondary-text text-sm mb-1">Missed:</p>
+                                <p className="theme-secondary-text text-sm mb-1">{t.session.missed}</p>
                                 <ul className="text-sm theme-secondary-text list-disc list-inside space-y-0.5">
                                     {session.missed.map((m, i) => (
                                         <li key={i}>
-                                            {CATEGORY_LABELS[m.category]}: {m.correctAnswer}
+                                            {t.session.missedItem(CATEGORY_LABELS[m.category], m.correctAnswer)}
                                         </li>
                                     ))}
                                 </ul>
                             </div>
                         ) : (
-                            <p className="text-sm text-green-400">Perfect score — no missed questions!</p>
+                            <p className="text-sm text-green-400">{t.session.perfectScore}</p>
                         )}
                         <div className="flex flex-wrap gap-2">
                             <button onClick={() => beginSession(weakReviewMode)} className="px-4 py-2 theme-btn rounded-lg hover:opacity-90">
-                                Start New Session
+                                {t.session.startNewSession}
                             </button>
                             <button
                                 onClick={endSession}
                                 className="px-4 py-2 theme-muted-bg theme-secondary-text rounded-lg hover:opacity-90"
                             >
-                                Back to Free Practice
+                                {t.session.backToFreePractice}
                             </button>
                         </div>
                     </div>
                 ) : (
                     <div className="flex flex-wrap items-center justify-between gap-2">
                         <span className="theme-secondary-text text-sm">
-                            Question {session.index + 1} / {session.length} · {session.correctCount} correct
+                            {t.session.questionProgress(session.index + 1, session.length, session.correctCount)}
                         </span>
                         <button
                             onClick={endSession}
                             className="px-3 py-1.5 theme-muted-bg theme-secondary-text rounded-lg text-sm hover:opacity-90"
                         >
-                            End Session
+                            {t.session.endSession}
                         </button>
                     </div>
                 )}
@@ -824,20 +858,20 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
 
             {category !== 'keysig' && category !== 'rhythm' && category !== 'progressions' && (
                 <div className="flex flex-wrap items-center gap-2 mb-6">
-                    <span className="theme-secondary-text text-sm">Answer with:</span>
+                    <span className="theme-secondary-text text-sm">{t.answerMode.answerWith}</span>
                     <button
                         onClick={() => setAnswerMode('choices')}
                         className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors
                             ${answerMode === 'choices' ? 'theme-accent-bg' : 'theme-muted-bg theme-secondary-text hover:opacity-90'}`}
                     >
-                        Multiple Choice
+                        {t.answerMode.multipleChoice}
                     </button>
                     <button
                         onClick={() => setAnswerMode('midi')}
                         className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors
                             ${answerMode === 'midi' ? 'theme-accent-bg' : 'theme-muted-bg theme-secondary-text hover:opacity-90'}`}
                     >
-                        MIDI Keyboard
+                        {t.answerMode.midiKeyboard}
                     </button>
                 </div>
             )}
@@ -845,7 +879,7 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
             {category === 'notes' && (
                 <div className="mb-6 p-4 rounded-lg theme-secondary-bg space-y-3">
                     <div className="flex flex-wrap items-center gap-2">
-                        <span className="theme-secondary-text text-sm">Clef:</span>
+                        <span className="theme-secondary-text text-sm">{t.notes.clef}</span>
                         {(Object.keys(CLEFS) as ClefId[]).map((clefId) => (
                             <button
                                 key={clefId}
@@ -858,7 +892,7 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
                         ))}
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
-                        <span className="theme-secondary-text text-sm">Range:</span>
+                        <span className="theme-secondary-text text-sm">{t.notes.range}</span>
                         {RANGE_OPTIONS.map((option) => (
                             <button
                                 key={option.value}
@@ -871,7 +905,7 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
                         ))}
                     </div>
                     <div>
-                        <span className="theme-secondary-text text-sm block mb-2">Key signatures (select one or more):</span>
+                        <span className="theme-secondary-text text-sm block mb-2">{t.notes.keySignatures}</span>
                         <div className="flex flex-wrap gap-2">
                             {KEY_NAMES.map((key) => (
                                 <button
@@ -896,33 +930,33 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
                                 onClick={midi.connect}
                                 className="px-4 py-2 theme-btn rounded-lg hover:opacity-90"
                             >
-                                Connect MIDI Device
+                                {t.midi.connectMidiDevice}
                             </button>
                             {midi.permission === 'pending' && (
-                                <span className="theme-secondary-text text-sm">Requesting access…</span>
+                                <span className="theme-secondary-text text-sm">{t.midi.requestingAccess}</span>
                             )}
                             {midi.permission === 'unsupported' && (
                                 <span className="text-sm theme-warning-text">
-                                    Web MIDI isn&apos;t supported in this browser. Try Chrome or Edge.
+                                    {t.midi.midiUnsupported}
                                 </span>
                             )}
                             {midi.permission === 'denied' && (
                                 <span className="text-sm theme-warning-text">
-                                    {midi.error || 'MIDI access was denied.'}
+                                    {midi.error || t.midi.midiDenied}
                                 </span>
                             )}
-                            <span className="theme-secondary-text text-sm">Or just click the keys below.</span>
+                            <span className="theme-secondary-text text-sm">{t.midi.orClickKeys}</span>
                         </div>
                     ) : (
                         <>
                             <div className="flex flex-wrap items-center gap-3">
-                                <label className="theme-secondary-text text-sm">Device:</label>
+                                <label className="theme-secondary-text text-sm">{t.midi.device}</label>
                                 <select
                                     value={midi.selectedDeviceId ?? ''}
                                     onChange={(e) => midi.selectDevice(e.target.value || null)}
                                     className="theme-muted-bg theme-secondary-text px-3 py-1.5 rounded-lg text-sm"
                                 >
-                                    <option value="">All devices</option>
+                                    <option value="">{t.midi.allDevices}</option>
                                     {midi.devices.map((device) => (
                                         <option key={device.id} value={device.id}>
                                             {device.name}
@@ -930,11 +964,11 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
                                     ))}
                                 </select>
                                 {midi.devices.length === 0 && (
-                                    <span className="text-sm theme-warning-text">No MIDI devices detected.</span>
+                                    <span className="text-sm theme-warning-text">{t.midi.noMidiDevices}</span>
                                 )}
                             </div>
                             <p className="theme-secondary-text text-sm">
-                                Currently held: {heldNoteNames.length > 0 ? heldNoteNames.join(', ') : '—'}
+                                {heldNoteNames.length > 0 ? t.midi.currentlyHeld(heldNoteNames.join(', ')) : t.midi.currentlyHeld(t.midi.currentlyHeldNone)}
                             </p>
                         </>
                     )}
@@ -951,17 +985,17 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
             <div className="flex flex-wrap items-center gap-3 mb-6">
                 {category !== 'keysig' && (
                     <button onClick={handlePlay} className="px-4 py-2 theme-btn rounded-lg hover:opacity-90">
-                        ▶ Play
+                        {t.controls.play}
                     </button>
                 )}
                 <button
                     onClick={handleNewQuestion}
                     className="px-4 py-2 theme-muted-bg theme-secondary-text rounded-lg hover:opacity-90"
                 >
-                    New Question
+                    {t.controls.newQuestion}
                 </button>
                 <span className="theme-secondary-text text-sm ml-auto">
-                    Score: {score.correct} / {score.total}
+                    {t.controls.score(score.correct, score.total)}
                 </span>
             </div>
 
@@ -972,7 +1006,7 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
             {question.kind === 'notes' && (
                 <div className="mb-6">
                     <p className="theme-secondary-text text-sm mb-2 text-center">
-                        Key: {question.note.keyName} major
+                        {t.notes.keyMajor(question.note.keyName)}
                     </p>
                     <NoteStaffPrompt clef={question.note.clef} step={question.note.step} ledgerSteps={question.note.ledgerSteps} />
                 </div>
@@ -980,34 +1014,34 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
 
             {question.kind === 'guitar' && (
                 <div className="mb-6">
-                    <p className="theme-secondary-text text-sm mb-2 text-center">Standard tuning</p>
+                    <p className="theme-secondary-text text-sm mb-2 text-center">{t.guitar.standardTuning}</p>
                     <GuitarFretPrompt stringIndex={question.fret.stringIndex} fret={question.fret.fret} />
                 </div>
             )}
 
             {question.kind === 'keysig' && (
                 <div className="mb-6 text-center">
-                    <p className="theme-text text-2xl font-bold">{question.keyName} {question.mode}</p>
+                    <p className="theme-text text-2xl font-bold">{question.keyName} {question.mode === 'major' ? t.keysig.modeMajor : t.keysig.modeMinor}</p>
                     <p className="theme-secondary-text text-sm mt-2">
-                        How many sharps or flats does this key signature have?
+                        {t.keysig.howManyAccidentals}
                     </p>
                 </div>
             )}
 
             {question.kind === 'rhythm' && (
                 <div className="mb-6 text-center">
-                    <p className="theme-text text-xl font-bold">{TIME_SIGNATURES[question.timeSig].label} time</p>
+                    <p className="theme-text text-xl font-bold">{t.rhythm.timeLabel(TIME_SIGNATURES[question.timeSig].label)}</p>
                     <p className="theme-secondary-text text-sm mt-2">
-                        Listen and pick the rhythm pattern you heard.
+                        {t.rhythm.listenAndPick}
                     </p>
                 </div>
             )}
 
             {question.kind === 'progression' && (
                 <div className="mb-6 text-center">
-                    <p className="theme-secondary-text text-sm mb-2">Key: {question.keyName} major</p>
+                    <p className="theme-secondary-text text-sm mb-2">{t.progressions.keyMajor(question.keyName)}</p>
                     <p className="theme-secondary-text text-sm">
-                        Listen and identify the chord progression (Roman numeral analysis).
+                        {t.progressions.listenAndIdentify}
                     </p>
                 </div>
             )}
@@ -1045,23 +1079,23 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
                         disabled={status !== 'idle'}
                         className="px-4 py-2 theme-accent-bg rounded-lg hover:opacity-90 disabled:opacity-50"
                     >
-                        Check My Answer
+                        {t.controls.checkMyAnswer}
                     </button>
                     {status !== 'idle' && (
-                        <span className="theme-secondary-text text-sm">Answer: {correctAnswerDisplayName}</span>
+                        <span className="theme-secondary-text text-sm">{t.controls.answer(correctAnswerDisplayName)}</span>
                     )}
                 </div>
             )}
 
             {status !== 'idle' && (
                 <p className={`mt-4 font-semibold ${status === 'correct' ? 'text-green-400' : 'text-red-400'}`}>
-                    {status === 'correct' ? 'Correct!' : `Not quite — it was ${correctAnswerDisplayName}.`}
+                    {status === 'correct' ? t.feedback.correct : t.feedback.incorrect(correctAnswerDisplayName)}
                 </p>
             )}
 
             {status !== 'idle' && questionDescription && (
                 <div className="mt-3 p-3 rounded-lg theme-secondary-bg">
-                    <p className="theme-secondary-text text-xs font-semibold uppercase tracking-wide mb-1">Learn</p>
+                    <p className="theme-secondary-text text-xs font-semibold uppercase tracking-wide mb-1">{t.feedback.learn}</p>
                     <p className="theme-text text-sm">{questionDescription}</p>
                 </div>
             )}

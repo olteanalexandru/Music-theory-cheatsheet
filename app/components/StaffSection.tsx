@@ -5,6 +5,7 @@ import ScrollHint from '@/app/components/ScrollHint';
 import { accidentalShift } from '@/app/utils/keySignatures';
 import { CLEFS, getStaffPositions, noteMidi, type ClefId } from '@/app/utils/staffLayout';
 import type { SynthController } from '@/app/utils/useSynth';
+import { useTranslations } from '@/app/utils/i18n/LocaleContext';
 
 interface StaffSectionProps {
   chromaticScale: string[][];
@@ -16,6 +17,7 @@ interface StaffSectionProps {
 type DisplayMode = 'letters' | 'movable-do' | 'fixed-do';
 
 const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoot = 'C', setSelectedRoot, synth }) => {
+  const t = useTranslations('tools');
   const [displayMode, setDisplayMode] = useState<DisplayMode>('letters');
   const [clef, setClef] = useState<ClefId>('treble');
   const [selectedNote, setSelectedNote] = useState<string | null>(null);
@@ -80,8 +82,8 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
     const accidentals = activeScale.filter((note) => /[♯#♭b]/.test(note));
     const uniqueAccidentals = Array.from(new Set(accidentals.map((note) => normalizeNote(note))));
 
-    if (uniqueAccidentals.length === 0) return 'No sharps or flats';
-    const type = uniqueAccidentals.every((note) => note.includes('♯')) ? 'sharp' : 'flat';
+    if (uniqueAccidentals.length === 0) return t.staff.noSharpsOrFlats;
+    const type = uniqueAccidentals.every((note) => note.includes('♯')) ? t.staff.sharpLabel : t.staff.flatLabel;
     return `${uniqueAccidentals.length} ${type}${uniqueAccidentals.length > 1 ? 's' : ''}: ${uniqueAccidentals.join(', ')}`;
   };
 
@@ -171,13 +173,13 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
 
   return (
     <div className="mt-8 theme-card rounded-lg p-4 md:p-6 shadow-lg">
-      <h2 className="text-2xl font-bold theme-text mb-6">Interactive Staff</h2>
+      <h2 className="text-2xl font-bold theme-text mb-6">{t.staff.title}</h2>
 
       {/* Controls */}
       <div className="mb-8 flex flex-wrap gap-4 items-center">
         <div>
           <label className="theme-secondary-text mr-3 block md:inline-block mb-2 md:mb-0">
-            Display Mode:
+            {t.staff.displayMode}
           </label>
           <div className="flex flex-wrap gap-2">
             <button
@@ -188,7 +190,7 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
                   : 'bg-indigo-900/30 text-indigo-300 hover:bg-indigo-900/50'
               }`}
             >
-              Fixed Do (Solfège)
+              {t.staff.fixedDo}
             </button>
             <button
               onClick={() => setDisplayMode('movable-do')}
@@ -198,18 +200,18 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
                   : 'bg-indigo-900/30 text-indigo-300 hover:bg-indigo-900/50'
               }`}
             >
-              Movable Do (Root: {effectiveRoot})
+              {t.staff.movableDo(effectiveRoot)}
             </button>
           </div>
         </div>
         <div>
-          <p className="theme-secondary-text mb-2">Key Signature</p>
+          <p className="theme-secondary-text mb-2">{t.staff.keySignature}</p>
           <div className="px-4 py-2 rounded-lg bg-indigo-900/30 text-indigo-100 border border-indigo-700">
             {getKeySignatureSymbols()}
           </div>
         </div>
         <div>
-          <label className="theme-secondary-text block mb-2">Clef</label>
+          <label className="theme-secondary-text block mb-2">{t.staff.clef}</label>
           <div className="flex flex-wrap gap-2">
             {(Object.keys(CLEFS) as ClefId[]).map((id) => (
               <button
@@ -227,7 +229,7 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
           </div>
         </div>
         <div>
-          <label className="theme-secondary-text block mb-2">Select Key</label>
+          <label className="theme-secondary-text block mb-2">{t.staff.selectKey}</label>
           <select
             value={effectiveRoot}
             onChange={(event) => {
@@ -366,14 +368,14 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
       {/* Selected Note Display */}
       {selectedNote && (
         <div className="mt-6 p-4 bg-indigo-900/30 rounded-lg border border-indigo-500/50">
-          <h3 className="theme-text font-semibold mb-2">Selected Note: {selectedNote ? applyKeySignatureToNoteLetter(selectedNote) : ''}</h3>
+          <h3 className="theme-text font-semibold mb-2">{t.staff.selectedNote(selectedNote ? applyKeySignatureToNoteLetter(selectedNote) : '')}</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <p className="theme-secondary-text text-sm">Letter Name</p>
+              <p className="theme-secondary-text text-sm">{t.staff.letterName}</p>
               <p className="text-indigo-300 font-semibold text-lg">{applyKeySignatureToNoteLetter(selectedNote)}</p>
             </div>
             <div>
-              <p className="theme-secondary-text text-sm">Fixed Do (Letter + Syllable)</p>
+              <p className="theme-secondary-text text-sm">{t.staff.fixedDoLabel}</p>
               <p className="text-indigo-300 font-semibold text-lg">
                 {selectedNote
                   ? `${applyKeySignatureToNoteLetter(selectedNote)} / ${noteToFixedDo(applyKeySignatureToNoteLetter(selectedNote))}`
@@ -381,7 +383,7 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
               </p>
             </div>
             <div>
-              <p className="theme-secondary-text text-sm">Movable Do (Root: {effectiveRoot})</p>
+              <p className="theme-secondary-text text-sm">{t.staff.movableDoLabel(effectiveRoot)}</p>
               <p className="text-indigo-300 font-semibold text-lg">
                 {noteToMovableDo(selectedNote, effectiveRoot)}
               </p>
@@ -392,17 +394,17 @@ const StaffSection: React.FC<StaffSectionProps> = ({ chromaticScale, selectedRoo
 
       {/* Information */}
       <div className="mt-6 p-4 bg-indigo-900/20 rounded-lg">
-        <h4 className="theme-text font-semibold mb-2">How to use:</h4>
+        <h4 className="theme-text font-semibold mb-2">{t.staff.howToUse}</h4>
         <ul className="theme-secondary-text text-sm space-y-1 list-disc list-inside">
-          <li>Click on any note on the staff to select it</li>
+          <li>{t.staff.howToUseClick}</li>
           <li>
-            <strong>Letter Names:</strong> Display traditional musical note names (C, D, E, etc.)
+            <strong>{t.staff.howToUseLetterNames}</strong> {t.staff.howToUseLetterNamesDesc}
           </li>
           <li>
-            <strong>Fixed Do:</strong> Solfège syllables where C is always &quot;Do&quot;
+            <strong>{t.staff.howToUseFixedDo}</strong> {t.staff.howToUseFixedDoDesc}
           </li>
           <li>
-            <strong>Movable Do:</strong> Solfège syllables relative to the selected root note
+            <strong>{t.staff.howToUseMovableDo}</strong> {t.staff.howToUseMovableDoDesc}
           </li>
         </ul>
       </div>

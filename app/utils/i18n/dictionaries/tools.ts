@@ -96,6 +96,20 @@ export interface ToolsDict {
         benefitRecognize: string;
         benefitCommunicate: string;
         nashvilleExample: string;
+        patternControls: {
+            patternType: string;
+            rootNote: string;
+            numStrings: string;
+            instrument: string;
+            tuning: string;
+            scaleModeLabel: string;
+            arpeggioTypeLabel: string;
+            chordTypeLabel: string;
+            displayMode: string;
+            landmarkNumbers: string;
+            noteSystem: string;
+            selectRootForLandmarks: string;
+        };
     };
     circleOfFifths: {
         title: string;
@@ -281,6 +295,20 @@ export const en: ToolsDict = {
         benefitCommunicate: 'Communicate chord progressions efficiently',
         nashvilleExample:
             'For example, a I-IV-V progression in C would be C-F-G, but in G it would be G-C-D. The relationship between the chords remains the same, just starting from a different root note.',
+        patternControls: {
+            patternType: 'Pattern Type',
+            rootNote: 'Root Note',
+            numStrings: 'Number of Strings',
+            instrument: 'Instrument',
+            tuning: 'Tuning',
+            scaleModeLabel: 'Scale/Mode',
+            arpeggioTypeLabel: 'Arpeggio Type',
+            chordTypeLabel: 'Chord Type',
+            displayMode: 'Display Mode',
+            landmarkNumbers: 'Landmark Numbers',
+            noteSystem: 'Note System',
+            selectRootForLandmarks: 'Select a root note to see landmark numbers.',
+        },
     },
     circleOfFifths: {
         title: 'Circle of Fifths',
@@ -466,6 +494,20 @@ export const ro: ToolsDict = {
         benefitCommunicate: 'Să comunice eficient progresiile de acorduri',
         nashvilleExample:
             'De exemplu, o progresie I-IV-V în Do ar fi C-F-G, dar în Sol ar fi G-C-D. Relația dintre acorduri rămâne aceeași, doar punctul de plecare diferă.',
+        patternControls: {
+            patternType: 'Tip Pattern',
+            rootNote: 'Notă Fundamentală',
+            numStrings: 'Număr de Corzi',
+            instrument: 'Instrument',
+            tuning: 'Acordaj',
+            scaleModeLabel: 'Gamă/Mod',
+            arpeggioTypeLabel: 'Tip Arpegiu',
+            chordTypeLabel: 'Tip Acord',
+            displayMode: 'Mod de Afișare',
+            landmarkNumbers: 'Numere de Reper',
+            noteSystem: 'Sistem de Note',
+            selectRootForLandmarks: 'Selectează o notă fundamentală pentru a vedea numerele de reper.',
+        },
     },
     circleOfFifths: {
         title: 'Cercul Cvintelor',

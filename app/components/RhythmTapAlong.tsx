@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { SynthController } from '@/app/utils/useSynth';
 import type { MidiInputController } from '@/app/utils/useMidiInput';
 import type { AudioInputController } from '@/app/utils/useAudioInput';
+import { useTranslations } from '@/app/utils/i18n/LocaleContext';
 import { DIFFICULTY_LEVELS, type EarTrainingDifficulty } from '@/app/utils/earTrainingData';
 import {
     RHYTHM_BPM_BY_DIFFICULTY,
@@ -46,14 +47,15 @@ const HIT_WINDOW_MS_BY_DIFFICULTY: Record<EarTrainingDifficulty, number> = {
 const PROGRESS_CATEGORY = 'rhythm-tap';
 const ACCURACY_PASS_PCT = 80;
 
-function timingLabel(report: RhythmFollowReport): string | null {
+function timingLabel(report: RhythmFollowReport, tapAlong: { timingRightOnTime: string; timingRushing: string; timingDragging: string }): string | null {
     if (report.averageTimingErrorMs === null) return null;
     const abs = Math.abs(report.averageTimingErrorMs);
-    if (abs < 30) return 'Right on time!';
-    return report.averageTimingErrorMs < 0 ? 'You’re rushing slightly — try to relax into the beat.' : 'You’re dragging slightly — try to anticipate the beat.';
+    if (abs < 30) return tapAlong.timingRightOnTime;
+    return report.averageTimingErrorMs < 0 ? tapAlong.timingRushing : tapAlong.timingDragging;
 }
 
 const RhythmTapAlong: React.FC<RhythmTapAlongProps> = ({ synth, midi, audio }) => {
+    const t = useTranslations('rhythm');
     const [difficulty, setDifficulty] = useState<EarTrainingDifficulty>('easy');
     const [timeSig, setTimeSig] = useState<TimeSignatureName>('4/4');
     const [pattern, setPattern] = useState<RhythmEvent[]>(() => generateRhythmPattern('4/4', 'easy'));
@@ -242,21 +244,20 @@ const RhythmTapAlong: React.FC<RhythmTapAlongProps> = ({ synth, midi, audio }) =
     }, [gradedBeats]);
 
     const inputHints: string[] = [];
-    if (midi.permission === 'granted') inputHints.push('MIDI connected — tap any pad/key');
-    if (audio.permission === 'granted') inputHints.push('microphone connected — tap, clap, or play a note near it');
+    if (midi.permission === 'granted') inputHints.push(t.tapAlong.midiHint.midiConnected);
+    if (audio.permission === 'granted') inputHints.push(t.tapAlong.midiHint.microphoneConnected);
     const midiHint = inputHints.length > 0
-        ? `${inputHints.join(', or ')}, or use the button or spacebar below.`
-        : 'No MIDI device or microphone connected — use the button or spacebar below, or connect one via Display & Audio Settings above.';
+        ? `${inputHints.join(t.tapAlong.midiHint.joiner)}${t.tapAlong.midiHint.suffixWithInput}`
+        : t.tapAlong.midiHint.noInput;
 
     return (
         <div className="space-y-4">
             <p className="theme-secondary-text text-sm">
-                Listen to a one-measure pattern, then tap it back in time — on your MIDI device, the button, or the spacebar.
-                Graded on timing only; pitch doesn&apos;t matter.
+                {t.tapAlong.instructions}
             </p>
 
             <div className="flex flex-wrap items-center gap-2">
-                <span className="theme-secondary-text text-sm">Difficulty:</span>
+                <span className="theme-secondary-text text-sm">{t.tapAlong.difficultyLabel}</span>
                 {DIFFICULTY_LEVELS.map((level) => (
                     <button
                         key={level}
@@ -275,7 +276,7 @@ const RhythmTapAlong: React.FC<RhythmTapAlongProps> = ({ synth, midi, audio }) =
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-                <span className="theme-secondary-text text-sm">Time Signature:</span>
+                <span className="theme-secondary-text text-sm">{t.tapAlong.timeSignatureLabel}</span>
                 {RHYTHM_TIME_SIGNATURES_BY_DIFFICULTY[difficulty].map((name) => (
                     <button
                         key={name}
@@ -291,9 +292,9 @@ const RhythmTapAlong: React.FC<RhythmTapAlongProps> = ({ synth, midi, audio }) =
                     disabled={runState !== 'idle' && runState !== 'finished'}
                     className="px-3 py-1.5 theme-muted-bg theme-secondary-text rounded-lg text-sm hover:opacity-90 disabled:opacity-50"
                 >
-                    New Pattern
+                    {t.tapAlong.newPattern}
                 </button>
-                <span className="theme-secondary-text text-sm">{bpm} BPM</span>
+                <span className="theme-secondary-text text-sm">{t.tapAlong.bpm(bpm)}</span>
             </div>
 
             <div className="p-3 md:p-4 rounded-lg theme-secondary-bg">
@@ -309,12 +310,12 @@ const RhythmTapAlong: React.FC<RhythmTapAlongProps> = ({ synth, midi, audio }) =
             <div className="flex flex-wrap items-center gap-3">
                 {(runState === 'idle' || runState === 'finished') && (
                     <button onClick={start} className="px-4 py-2 theme-btn rounded-lg font-medium hover:opacity-90">
-                        ▶ {runState === 'finished' ? 'Try Again' : 'Start'}
+                        {runState === 'finished' ? t.tapAlong.tryAgain : t.tapAlong.start}
                     </button>
                 )}
-                {runState === 'demo' && <p className="theme-secondary-text text-sm font-medium">Listen…</p>}
+                {runState === 'demo' && <p className="theme-secondary-text text-sm font-medium">{t.tapAlong.listen}</p>}
                 {runState === 'counting-in' && (
-                    <p className="theme-text text-lg font-bold">{countInBeat} / {beatsPerMeasure}</p>
+                    <p className="theme-text text-lg font-bold">{t.tapAlong.countIn(countInBeat, beatsPerMeasure)}</p>
                 )}
                 {runState === 'listening' && (
                     <>
@@ -322,16 +323,16 @@ const RhythmTapAlong: React.FC<RhythmTapAlongProps> = ({ synth, midi, audio }) =
                             onPointerDown={() => handleTap(performance.now())}
                             className="px-8 py-4 theme-btn rounded-lg font-bold text-lg hover:opacity-90 active:opacity-75 select-none"
                         >
-                            TAP
+                            {t.tapAlong.tap}
                         </button>
                         <p className="theme-secondary-text text-sm">
-                            Hit: {liveCounts.hit} · Missed: {liveCounts.missed} / {gradedBeats.length}
+                            {t.tapAlong.liveCounts(liveCounts.hit, liveCounts.missed, gradedBeats.length)}
                         </p>
                     </>
                 )}
                 {(runState === 'demo' || runState === 'counting-in' || runState === 'listening') && (
                     <button onClick={stop} className="px-3 py-1.5 theme-muted-bg theme-secondary-text rounded-lg text-sm hover:opacity-90">
-                        Cancel
+                        {t.tapAlong.cancel}
                     </button>
                 )}
             </div>
@@ -339,9 +340,9 @@ const RhythmTapAlong: React.FC<RhythmTapAlongProps> = ({ synth, midi, audio }) =
             {report && (
                 <div className="p-3 md:p-4 rounded-lg theme-secondary-bg space-y-1">
                     <p className="theme-text font-semibold">
-                        {report.accuracyPct}% accuracy ({report.hit}/{report.total} hit, {report.missed} missed{report.extraTaps > 0 ? `, ${report.extraTaps} extra taps` : ''})
+                        {t.tapAlong.resultSummary(report.accuracyPct, report.hit, report.total, report.missed)}{report.extraTaps > 0 ? t.tapAlong.extraTaps(report.extraTaps) : ''})
                     </p>
-                    {timingLabel(report) && <p className="theme-secondary-text text-sm">{timingLabel(report)}</p>}
+                    {timingLabel(report, t.tapAlong) && <p className="theme-secondary-text text-sm">{timingLabel(report, t.tapAlong)}</p>}
                 </div>
             )}
         </div>
