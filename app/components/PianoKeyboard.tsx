@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import ScrollHint from '@/app/components/ScrollHint';
 
 export interface PianoKeyboardProps {
     activeNotes: Set<number>;
@@ -63,7 +64,7 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
     };
 
     return (
-        <div className="w-full overflow-x-auto">
+        <ScrollHint className="w-full">
             <svg
                 viewBox={`0 0 ${totalWidth} ${WHITE_HEIGHT}`}
                 style={{ minWidth: totalWidth, height: 'auto' }}
@@ -125,7 +126,7 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
                     );
                 })}
             </svg>
-        </div>
+        </ScrollHint>
     );
 };
 

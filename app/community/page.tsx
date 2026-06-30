@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
+import ScrollHint from '@/app/components/ScrollHint';
 
 const PILLARS: { index: string; title: string; description: string }[] = [
     {
@@ -68,14 +69,14 @@ export default function CommunityPage() {
                             leaderboard padding.
                         </p>
                     </div>
-                    <div className="theme-card rounded-lg shadow-lg overflow-hidden">
+                    <ScrollHint className="theme-card rounded-lg shadow-lg">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                             src="/screenshots/leaderboard.png"
                             alt="Leaderboard page with Global and Friends toggle"
-                            className="w-full h-auto block"
+                            className="min-w-[640px] w-full h-auto block"
                         />
-                    </div>
+                    </ScrollHint>
                 </div>
             </section>
 

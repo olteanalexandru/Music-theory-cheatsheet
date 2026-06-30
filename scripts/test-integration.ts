@@ -40,6 +40,8 @@ import {
 } from '../app/utils/activityStore';
 import { createChallenge, fetchChallenges, acceptChallenge, submitChallengeScore } from '../app/utils/challengeStore';
 import { fetchNotifications, fetchUnreadCount, markAllRead } from '../app/utils/notificationStore';
+import { createTicket, fetchTicket, fetchTicketMessages, fetchAllTickets, postTicketMessage, updateTicketStatus } from '../app/utils/ticketStore';
+import { subscribeToNewsletter, fetchSubscriberCount, fetchCampaigns } from '../app/utils/newsletterStore';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -296,6 +298,105 @@ async function main(): Promise<void> {
         await scenario('a user cannot insert a notification addressed from someone else', async () => {
             const { error } = await c.client.from('notifications').insert({ user_id: a.id, actor_id: b.id, type: 'follow', data: {} });
             assert.ok(error, 'expected an RLS error');
+        });
+
+        console.log('\nSupport tickets');
+        let ticketId = '';
+        await scenario('a user can open a ticket with an initial message', async () => {
+            const { ticket, error } = await createTicket(a.client, a.id, { subject: 'Cannot hear playback', category: 'bug', body: 'Audio does not play on Safari.' });
+            assert.equal(error, null);
+            assert.ok(ticket);
+            ticketId = ticket!.id;
+            const messages = await fetchTicketMessages(a.client, ticketId);
+            assert.equal(messages.length, 1);
+            assert.equal(messages[0].authorId, a.id);
+        });
+
+        await scenario('the owner can read their own ticket and thread; a stranger cannot', async () => {
+            assert.equal((await fetchTicket(a.client, ticketId))?.id, ticketId);
+            assert.equal(await fetchTicket(c.client, ticketId), null);
+            assert.equal((await fetchTicketMessages(c.client, ticketId)).length, 0);
+        });
+
+        await scenario('granting the is_admin flag (the manual dashboard step) lets a user read every ticket', async () => {
+            const { error } = await admin.from('profiles').update({ is_admin: true }).eq('user_id', c.id);
+            assert.equal(error, null);
+            const allTickets = await fetchAllTickets(c.client);
+            assert.ok(allTickets.some((t) => t.id === ticketId));
+        });
+
+        await scenario("a non-admin's status update is silently rejected by RLS", async () => {
+            const ticket = (await fetchTicket(a.client, ticketId))!;
+            await updateTicketStatus(b.client, b.id, ticket, 'closed');
+            assert.equal((await fetchTicket(a.client, ticketId))?.status, 'open');
+        });
+
+        await scenario('an admin can reply and change status, which notifies the owner', async () => {
+            const ticket = (await fetchTicket(c.client, ticketId))!;
+            assert.equal((await postTicketMessage(c.client, c.id, ticket, 'Looking into it now.')).error, null);
+            assert.equal((await updateTicketStatus(c.client, c.id, ticket, 'in_progress')).error, null);
+            const notes = await fetchNotifications(a.client, a.id);
+            assert.ok(notes.some((n) => n.type === 'ticket_reply' && n.actorId === c.id));
+            assert.ok(notes.some((n) => n.type === 'ticket_status' && n.actorId === c.id));
+        });
+
+        await scenario("the owner's own follow-up does not notify themselves", async () => {
+            const ticket = (await fetchTicket(a.client, ticketId))!;
+            assert.equal(ticket.status, 'in_progress');
+            assert.equal((await postTicketMessage(a.client, a.id, ticket, 'Thanks, still happening on Chrome too.')).error, null);
+            assert.equal((await fetchTicketMessages(a.client, ticketId)).length, 3);
+        });
+
+        await scenario('a stranger (non-admin) can no longer open the ticket either', async () => {
+            assert.equal(await fetchTicket(b.client, ticketId), null);
+        });
+
+        console.log('\nNewsletter (subscribers + campaigns)');
+        // send-newsletter is never invoked here - that would trigger a real
+        // outbound Resend email. The campaign-history scenario below inserts
+        // a row with the service-role client to simulate what that Edge
+        // Function does after a real send, without actually sending one.
+        const newsletterEmail = `itest-newsletter-${randomUUID().slice(0, 8)}@example.com`;
+        await scenario('anyone can subscribe to the newsletter', async () => {
+            const { error } = await subscribeToNewsletter(a.client, newsletterEmail);
+            assert.equal(error, null);
+        });
+
+        await scenario('an invalid email format is rejected by the check constraint', async () => {
+            const { error } = await subscribeToNewsletter(a.client, 'not-an-email');
+            assert.ok(error, 'expected a validation error');
+        });
+
+        await scenario('a duplicate email subscribe attempt returns a friendly error', async () => {
+            const { error } = await subscribeToNewsletter(b.client, newsletterEmail);
+            assert.equal(error, "You're already subscribed.");
+        });
+
+        await scenario('a non-admin cannot read the subscriber list', async () => {
+            assert.equal(await fetchSubscriberCount(b.client), 0);
+        });
+
+        await scenario('an admin can read the subscriber list', async () => {
+            // c was granted is_admin in the Support tickets section above.
+            assert.ok((await fetchSubscriberCount(c.client)) >= 1);
+        });
+
+        let campaignId = '';
+        await scenario('a sent campaign is recorded (simulated via service role)', async () => {
+            const { data, error } = await admin
+                .from('newsletter_campaigns')
+                .insert({ subject: 'Integration test campaign', html_body: '<p>test</p>', sent_by: c.id, recipient_count: 1 })
+                .select('id')
+                .single();
+            assert.equal(error, null);
+            campaignId = data!.id as string;
+        });
+
+        await scenario('only an admin can read campaign history', async () => {
+            const asAdmin = await fetchCampaigns(c.client);
+            assert.ok(asAdmin.some((camp) => camp.id === campaignId));
+            const asNonAdmin = await fetchCampaigns(a.client);
+            assert.ok(!asNonAdmin.some((camp) => camp.id === campaignId));
         });
 
         console.log('\nStorage (play-along-files bucket)');

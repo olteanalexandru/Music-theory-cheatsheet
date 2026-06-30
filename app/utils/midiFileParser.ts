@@ -96,7 +96,10 @@ function parseTrack(
 ): void {
     let tick = 0;
     let runningStatus = 0;
-    const openNotes = new Map<string, { startTick: number; velocity: number }>();
+    // A stack per channel:pitch key, not a single slot — a second Note-On for
+    // the same pitch before its matching Note-Off (overlapping/retriggered
+    // notes) must not silently clobber the still-open first note.
+    const openNotes = new Map<string, { startTick: number; velocity: number }[]>();
 
     while (reader.position < trackEnd) {
         tick += reader.readVarLength();
@@ -123,10 +126,14 @@ function parseTrack(
                 nameOut.name = reader.readString(length).trim();
             }
             reader.skip(dataStart + length - reader.position);
+            // Meta events cancel running status per the SMF spec.
+            runningStatus = 0;
         } else if (status === 0xf0 || status === 0xf7) {
             // SysEx event
             const length = reader.readVarLength();
             reader.skip(length);
+            // SysEx events cancel running status per the SMF spec.
+            runningStatus = 0;
         } else if (status >= 0x80 && status < 0xf0) {
             const command = status >> 4;
             const channel = status & 0x0f;
@@ -136,20 +143,21 @@ function parseTrack(
 
             const key = `${channel}:${data1}`;
             if (command === 0x9 && data2 > 0) {
-                openNotes.set(key, { startTick: tick, velocity: data2 });
+                const stack = openNotes.get(key);
+                if (stack) stack.push({ startTick: tick, velocity: data2 });
+                else openNotes.set(key, [{ startTick: tick, velocity: data2 }]);
             } else if (command === 0x8 || (command === 0x9 && data2 === 0)) {
-                const open = openNotes.get(key);
-                if (open) {
-                    openNotes.delete(key);
-                    if (tick > open.startTick) {
-                        notesOut.push({
-                            track: trackIndex,
-                            pitch: data1,
-                            velocity: open.velocity,
-                            startTick: open.startTick,
-                            endTick: tick,
-                        });
-                    }
+                const stack = openNotes.get(key);
+                const open = stack?.pop();
+                if (stack && stack.length === 0) openNotes.delete(key);
+                if (open && tick > open.startTick) {
+                    notesOut.push({
+                        track: trackIndex,
+                        pitch: data1,
+                        velocity: open.velocity,
+                        startTick: open.startTick,
+                        endTick: tick,
+                    });
                 }
             }
         } else {

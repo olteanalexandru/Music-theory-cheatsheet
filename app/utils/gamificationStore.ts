@@ -101,29 +101,87 @@ export function levelProgress(xp: number): LevelProgress {
     };
 }
 
+// Gives levels an identity beyond a bare number - shown next to the level
+// badge wherever it appears (GamificationPanel, Profile, Plan, Leaderboard).
+const LEVEL_TITLES: { minLevel: number; title: string }[] = [
+    { minLevel: 1, title: 'Listener' },
+    { minLevel: 3, title: 'Apprentice' },
+    { minLevel: 5, title: 'Practitioner' },
+    { minLevel: 8, title: 'Musician' },
+    { minLevel: 12, title: 'Soloist' },
+    { minLevel: 16, title: 'Virtuoso' },
+    { minLevel: 20, title: 'Maestro' },
+    { minLevel: 25, title: 'Legend' },
+];
+
+export function levelTitle(level: number): string {
+    let title = LEVEL_TITLES[0].title;
+    for (const tier of LEVEL_TITLES) {
+        if (level >= tier.minLevel) title = tier.title;
+        else break;
+    }
+    return title;
+}
+
 export interface Achievement {
     id: string;
     title: string;
     description: string;
+    // Numeric goal for achievements tied to a single growing counter (total
+    // correct answers or best streak) - lets the /plan page preview progress
+    // toward a still-locked achievement. Omitted for binary/event-based
+    // achievements (e.g. completing a session) where partial progress isn't
+    // a single meaningful number.
+    target?: number;
 }
 
 export const ACHIEVEMENTS: Achievement[] = [
-    { id: 'first_steps', title: 'First Steps', description: 'Answer your first ear-training question correctly.' },
-    { id: 'ten_correct', title: 'Getting the Hang of It', description: 'Answer 10 questions correctly.' },
-    { id: 'fifty_correct', title: 'Sharpening Up', description: 'Answer 50 questions correctly.' },
-    { id: 'hundred_correct', title: 'Century Club', description: 'Answer 100 questions correctly.' },
-    { id: 'streak_3', title: 'Building a Habit', description: 'Get a 3-answer streak in one category.' },
-    { id: 'streak_7', title: 'One Week Strong', description: 'Get a 7-answer streak in one category.' },
-    { id: 'streak_30', title: 'Dedicated', description: 'Get a 30-answer streak in one category.' },
+    { id: 'first_steps', title: 'First Steps', description: 'Answer your first ear-training question correctly.', target: 1 },
+    { id: 'ten_correct', title: 'Getting the Hang of It', description: 'Answer 10 questions correctly.', target: 10 },
+    { id: 'fifty_correct', title: 'Sharpening Up', description: 'Answer 50 questions correctly.', target: 50 },
+    { id: 'hundred_correct', title: 'Century Club', description: 'Answer 100 questions correctly.', target: 100 },
+    { id: 'streak_3', title: 'Building a Habit', description: 'Get a 3-answer streak in one category.', target: 3 },
+    { id: 'streak_7', title: 'One Week Strong', description: 'Get a 7-answer streak in one category.', target: 7 },
+    { id: 'streak_30', title: 'Dedicated', description: 'Get a 30-answer streak in one category.', target: 30 },
     { id: 'sharp_ear', title: 'Sharp Ear', description: 'Reach 90% accuracy in a category (15+ attempts).' },
     { id: 'session_finisher', title: 'Session Finisher', description: 'Complete a practice session.' },
     { id: 'marathon', title: 'Marathon', description: 'Complete a 50-question practice session.' },
     { id: 'weak_area_warrior', title: 'Weak Area Warrior', description: 'Complete a Weak Areas Review session.' },
-    { id: 'lesson_complete', title: 'Lesson Learned', description: 'Complete your first curriculum lesson.' },
+    { id: 'lesson_complete', title: 'Lesson Learned', description: 'Complete your first curriculum lesson.', target: 1 },
     { id: 'quiz_ace', title: 'Quiz Ace', description: 'Score 100% on a lesson quiz.' },
     { id: 'curriculum_unit', title: 'Unit Cleared', description: 'Complete every lesson in a curriculum unit.' },
     { id: 'curriculum_complete', title: 'Theory Graduate', description: 'Complete the entire curriculum.' },
 ];
+
+// The handful of achievements whose `target` is measured in total correct
+// answers, vs. best streak - used by closestAchievements() to pick the right
+// counter for each candidate.
+const TOTAL_CORRECT_ACHIEVEMENT_IDS = new Set(['first_steps', 'ten_correct', 'fifty_correct', 'hundred_correct']);
+const STREAK_ACHIEVEMENT_IDS = new Set(['streak_3', 'streak_7', 'streak_30']);
+
+export interface AchievementProgress {
+    achievement: Achievement;
+    current: number;
+}
+
+// Previews the still-locked achievements closest to unlocking, ranked by how
+// far along their counter is (current / target). Powers the /plan page's
+// "Almost There" section - lesson-completion progress is handled separately
+// since its target (total lesson count) lives in curriculumData, not here.
+export function closestAchievements(
+    store: GamificationStore,
+    totalCorrect: number,
+    bestStreak: number,
+    count: number
+): AchievementProgress[] {
+    return ACHIEVEMENTS.filter((a) => a.target && !store.achievements[a.id] && (TOTAL_CORRECT_ACHIEVEMENT_IDS.has(a.id) || STREAK_ACHIEVEMENT_IDS.has(a.id)))
+        .map((achievement) => ({
+            achievement,
+            current: Math.min(achievement.target!, TOTAL_CORRECT_ACHIEVEMENT_IDS.has(achievement.id) ? totalCorrect : bestStreak),
+        }))
+        .sort((a, b) => b.current / b.achievement.target! - a.current / a.achievement.target!)
+        .slice(0, count);
+}
 
 export interface AchievementContext {
     totalCorrect?: number;

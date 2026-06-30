@@ -8,6 +8,7 @@ export interface Profile {
     displayName: string | null;
     bio: string | null;
     isPublic: boolean;
+    isAdmin: boolean;
     createdAt: string;
 }
 
@@ -17,6 +18,7 @@ interface ProfileRow {
     display_name: string | null;
     bio: string | null;
     is_public: boolean;
+    is_admin: boolean;
     created_at: string;
 }
 
@@ -27,6 +29,7 @@ function toProfile(row: ProfileRow): Profile {
         displayName: row.display_name,
         bio: row.bio,
         isPublic: row.is_public,
+        isAdmin: row.is_admin,
         createdAt: row.created_at,
     };
 }

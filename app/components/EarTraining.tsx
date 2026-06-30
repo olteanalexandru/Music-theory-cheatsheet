@@ -42,10 +42,10 @@ import {
     loadProgress,
     saveProgress,
     categoryWeaknessScore,
+    nextCategoryStats,
     totalCorrectAnswers,
     bestStreakAcrossCategories,
     bestCategoryAccuracy,
-    type CategoryStats,
     type ProgressStore,
 } from '@/app/utils/progressStore';
 import { loadReview, saveReview, applyReviewResult, itemWeight, type ReviewStore } from '@/app/utils/reviewStore';
@@ -197,17 +197,6 @@ function weightedPickCategory(categories: Category[], progress: ProgressStore): 
     return pickWeighted(categories, weights);
 }
 
-function nextCategoryStats(stats: CategoryStats, correct: boolean): CategoryStats {
-    const nextStreak = correct ? stats.currentStreak + 1 : 0;
-    return {
-        correct: stats.correct + (correct ? 1 : 0),
-        total: stats.total + 1,
-        currentStreak: nextStreak,
-        bestStreak: Math.max(stats.bestStreak, nextStreak),
-        lastPracticed: Date.now(),
-    };
-}
-
 function buildStandardQuestion(category: EarTrainingCategory, difficulty: EarTrainingDifficulty): StandardQuestion {
     const pool = poolForDifficulty(category, difficulty);
     const review = loadReview();
@@ -295,6 +284,45 @@ function buildProgressionQuestion(difficulty: EarTrainingDifficulty): Progressio
     return { kind: 'progression', def, chords, keyName, choices };
 }
 
+// Sizes the on-screen answer keyboard to just the current question's note(s)
+// plus an octave of headroom either side - narrow enough to avoid horizontal
+// scrolling on mobile for most questions, while still always including
+// whichever exact note(s) MIDI mode needs to match (unlike a fixed range,
+// which can't cover every category/difficulty/clef combination at once).
+const KEYBOARD_PADDING_SEMITONES = 12;
+
+function keyboardRangeForQuestion(question: Question): { startMidi: number; endMidi: number } {
+    const notes = question.kind === 'standard'
+        ? question.notes
+        : question.kind === 'notes'
+        ? [question.note.midi]
+        : question.kind === 'guitar'
+        ? [question.fret.midi]
+        : null;
+    if (!notes || notes.length === 0) return { startMidi: 36, endMidi: 96 };
+    const min = Math.min(...notes);
+    const max = Math.max(...notes);
+    return {
+        startMidi: Math.max(0, min - KEYBOARD_PADDING_SEMITONES),
+        endMidi: Math.min(127, max + KEYBOARD_PADDING_SEMITONES),
+    };
+}
+
+// A fixed, non-random initial question, used only for the first render so
+// server and client markup match. buildStandardQuestion calls Math.random()
+// (via pickWeighted/shuffle), so calling it directly in a useState
+// initializer would render a different question - and a different
+// multiple-choice button order - on the server vs. the client's first
+// render, triggering a hydration mismatch.
+function buildDefaultStandardQuestion(): StandardQuestion {
+    const pool = poolForDifficulty('intervals', DEFAULT_DIFFICULTY);
+    const item = pool[0];
+    const root = 60;
+    const notes = item.intervals.map((interval) => root + interval);
+    const choices = pool.slice(0, Math.min(6, pool.length)).map((entry) => entry.name);
+    return { kind: 'standard', item, notes, choices };
+}
+
 function notesMatchExpected(playedMidiNotes: Set<number>, expectedIntervals: number[]): boolean {
     if (playedMidiNotes.size === 0) return false;
     const sorted = Array.from(playedMidiNotes).sort((a, b) => a - b);
@@ -311,7 +339,7 @@ function notesMatchExpected(playedMidiNotes: Set<number>, expectedIntervals: num
 const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
     const [category, setCategory] = useState<Category>('intervals');
     const [difficulty, setDifficulty] = useState<EarTrainingDifficulty>(DEFAULT_DIFFICULTY);
-    const [question, setQuestion] = useState<Question>(() => buildStandardQuestion('intervals', DEFAULT_DIFFICULTY));
+    const [question, setQuestion] = useState<Question>(buildDefaultStandardQuestion);
     const [answerMode, setAnswerMode] = useState<AnswerMode>('choices');
     const [status, setStatus] = useState<AnswerStatus>('idle');
     const [score, setScore] = useState({ correct: 0, total: 0 });
@@ -327,6 +355,13 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
     const [weakReviewMode, setWeakReviewMode] = useState(false);
     const activeChallengeId = useRef<string | null>(null);
     const attemptNotesRef = useRef<Set<number>>(new Set());
+
+    // Swaps in the actual randomized first question after mount, once the
+    // server-matching deterministic initial render has already committed.
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setQuestion(buildStandardQuestion('intervals', DEFAULT_DIFFICULTY));
+    }, []);
 
     // Track every note pressed during the current attempt, even after it's
     // released, so a played-and-released chord/scale can still be graded.
@@ -394,8 +429,10 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
     // category/difficulty changes and by Practice Session's mixed-category draws.
     const buildQuestionForCategory = (cat: Category, diff: EarTrainingDifficulty): Question => {
         switch (cat) {
-            case 'notes':
-                return buildNotesQuestion(clef, selectedKeys, range);
+            case 'notes': {
+                const preset = NOTES_DIFFICULTY_PRESETS[diff];
+                return buildNotesQuestion(clef, preset.keys, preset.range);
+            }
             case 'keysig':
                 return buildKeySigQuestion(diff);
             case 'guitar':
@@ -430,6 +467,11 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
 
     const handleCategoryChange = (nextCategory: Category) => {
         applyCategory(nextCategory);
+        if (nextCategory === 'notes') {
+            const preset = NOTES_DIFFICULTY_PRESETS[difficulty];
+            setRange(preset.range);
+            setSelectedKeys(preset.keys);
+        }
         newQuestionForCategory(nextCategory, difficulty);
     };
 
@@ -490,6 +532,11 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
             applyCategory(nextCategory);
             setDifficulty(nextDifficulty);
             setSessionLength(length);
+            if (nextCategory === 'notes') {
+                const preset = NOTES_DIFFICULTY_PRESETS[nextDifficulty];
+                setRange(preset.range);
+                setSelectedKeys(preset.keys);
+            }
             activeChallengeId.current = challengeId;
             setQuestion(buildQuestionForCategory(nextCategory, nextDifficulty));
             resetAnswerState();
@@ -655,6 +702,8 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
         () => Array.from(displayActiveNotes).sort((a, b) => a - b).map(noteNameFromMidi),
         [displayActiveNotes]
     );
+
+    const keyboardRange = useMemo(() => keyboardRangeForQuestion(question), [question]);
 
     // Category/difficulty are locked while a fixed-length session is running so
     // its category pool and level stay consistent question-to-question.
@@ -893,6 +942,8 @@ const EarTraining: React.FC<EarTrainingProps> = ({ midi, synth }) => {
                         activeNotes={displayActiveNotes}
                         onNoteOn={handleKeyboardNoteOn}
                         onNoteOff={handleKeyboardNoteOff}
+                        startMidi={keyboardRange.startMidi}
+                        endMidi={keyboardRange.endMidi}
                     />
                 </div>
             )}

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { ArrowRight, BookOpen, CheckCircle2, ChevronDown, ChevronRight, Circle, Lock, Sparkles } from 'lucide-react';
 import {
     ALL_LESSONS,
@@ -12,11 +13,11 @@ import {
     type Lesson,
 } from '@/app/utils/curriculumData';
 import { completedLessonIds, loadCurriculum, markLessonComplete, saveCurriculum, type CurriculumStore } from '@/app/utils/curriculumStore';
-import { requestPracticeFocus } from '@/app/utils/practiceFocusBus';
 import { applyXpAndAchievements, XP_LESSON_COMPLETE, XP_QUIZ_PERFECT_BONUS } from '@/app/utils/gamificationStore';
 import LessonQuiz from '@/app/components/LessonQuiz';
 
 const Curriculum: React.FC = () => {
+    const router = useRouter();
     const [store, setStore] = useState<CurriculumStore>(() => loadCurriculum());
     const completed = useMemo(() => completedLessonIds(store), [store]);
 
@@ -46,25 +47,27 @@ const Curriculum: React.FC = () => {
     };
 
     const handleQuizComplete = (score: number) => {
-        markLessonComplete(selectedLessonId, score);
+        const { isNewCompletion, isNewPerfect } = markLessonComplete(selectedLessonId, score);
         const updatedStore = loadCurriculum();
         setStore(updatedStore);
 
+        // Only award XP/achievement progress for genuinely new milestones - otherwise
+        // retaking an already-completed lesson's quiz would farm XP indefinitely.
+        if (!isNewCompletion && !isNewPerfect) return;
+
         const completedIds = completedLessonIds(updatedStore);
         const unit = getUnitForLesson(selectedLessonId);
-        const quizPerfect = score >= 1;
-        applyXpAndAchievements(XP_LESSON_COMPLETE + (quizPerfect ? XP_QUIZ_PERFECT_BONUS : 0), {
-            lessonCompleted: true,
-            quizPerfect,
-            curriculumUnitCompleted: !!unit && unit.lessons.every((lesson) => completedIds.has(lesson.id)),
-            curriculumAllCompleted: completedIds.size >= ALL_LESSONS.length,
+        applyXpAndAchievements((isNewCompletion ? XP_LESSON_COMPLETE : 0) + (isNewPerfect ? XP_QUIZ_PERFECT_BONUS : 0), {
+            lessonCompleted: isNewCompletion,
+            quizPerfect: isNewPerfect,
+            curriculumUnitCompleted: isNewCompletion && !!unit && unit.lessons.every((lesson) => completedIds.has(lesson.id)),
+            curriculumAllCompleted: isNewCompletion && completedIds.size >= ALL_LESSONS.length,
         });
     };
 
     const handlePracticeClick = () => {
         if (!selectedLesson?.practice) return;
-        requestPracticeFocus({ category: selectedLesson.practice.category, difficulty: selectedLesson.practice.difficulty });
-        document.getElementById('ear-training-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        router.push(`/app/ear-training?focus=${selectedLesson.practice.category}&difficulty=${selectedLesson.practice.difficulty}`);
     };
 
     const goToNextLesson = () => {

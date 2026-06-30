@@ -18,8 +18,9 @@ import {
     unfollowUser,
     type Profile,
 } from '@/app/utils/profileStore';
-import { ACHIEVEMENTS, levelProgress } from '@/app/utils/gamificationStore';
+import { ACHIEVEMENTS, levelProgress, levelTitle } from '@/app/utils/gamificationStore';
 import { bestStreakAcrossCategories, loadProgress } from '@/app/utils/progressStore';
+import LevelBadge from '@/app/components/LevelBadge';
 
 function Centered({ children }: { children: React.ReactNode }) {
     return <div className="max-w-xl mx-auto px-4 py-24 text-center theme-secondary-text">{children}</div>;
@@ -309,11 +310,11 @@ function ProfileContent() {
 
             <div className="theme-card rounded-xl shadow-lg p-6">
                 <div className="flex items-center gap-3 mb-4">
-                    <div className="flex items-center justify-center w-12 h-12 rounded-full theme-accent-bg font-bold text-lg shrink-0">
-                        {level}
-                    </div>
+                    <LevelBadge level={level} />
                     <div>
-                        <p className="theme-text font-semibold">Level {level}</p>
+                        <p className="theme-text font-semibold">
+                            Level {level} <span className="theme-secondary-text font-normal">· {levelTitle(level)}</span>
+                        </p>
                         <p className="theme-secondary-text text-xs">
                             {xpIntoLevel} / {xpForNextLevel} XP to next level
                         </p>

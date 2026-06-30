@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
+import ScrollHint from '@/app/components/ScrollHint';
 
 const FEATURE_ROWS: {
     eyebrow: string;
@@ -118,10 +119,10 @@ export default function FeaturesPage() {
                             </h2>
                             <p className="theme-secondary-text max-w-md">{row.description}</p>
                         </div>
-                        <div className="theme-card rounded-lg shadow-lg overflow-hidden md:[direction:ltr]">
+                        <ScrollHint className="theme-card rounded-lg shadow-lg md:[direction:ltr]">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={row.image} alt={row.imageAlt} className="w-full h-auto block" />
-                        </div>
+                            <img src={row.image} alt={row.imageAlt} className="min-w-[640px] w-full h-auto block" />
+                        </ScrollHint>
                     </div>
                 ))}
             </section>

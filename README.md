@@ -12,6 +12,7 @@ An interactive, all-in-one music theory practice platform: an explorable fretboa
 - [Project Structure](#project-structure)
 - [Getting Started](#getting-started)
 - [Cloud Sync Setup (Optional)](#cloud-sync-setup-optional)
+- [Newsletter Setup (Optional)](#newsletter-setup-optional)
 - [Integration Testing](#integration-testing)
 - [Learn More](#learn-more)
 - [Deploy on Vercel](#deploy-on-vercel)
@@ -59,6 +60,10 @@ A personal `/plan` page combining **Up Next** (the next unfinished curriculum le
 
 Sign in with email/password, a magic link, or Google to sync practice progress, curriculum/review state, gamification, profiles, and saved Play Along files across devices — see [Cloud Sync Setup](#cloud-sync-setup-optional). Without it configured, everything above still works fully as a guest, `localStorage`-only experience.
 
+### Newsletter & legal
+
+A single opt-in email newsletter signup in the footer (just an email address, one-click unsubscribe in every email) and a rich-text admin composer at `/admin/newsletter` for sending formatted announcements to subscribers — see [Newsletter Setup](#newsletter-setup-optional). Plus `/terms` and `/privacy` pages covering data collection, the newsletter, and GDPR-style data rights.
+
 ### Themes & marketing site
 
 A light/dark/psychedelic 3-way theme selector (the psychedelic theme adds subtle animated background mushrooms), plus a small marketing site (`/`, `/features`, `/community`) introducing the app and its social features.
@@ -90,23 +95,30 @@ A light/dark/psychedelic 3-way theme selector (the psychedelic theme adds subtle
 app/
   page.tsx                 marketing home (/)
   features/, community/    marketing pages
+  terms/page.tsx, privacy/page.tsx   legal pages
   app/page.tsx              the practice app shell (/app)
   plan/page.tsx              Learning Plan page
   feed/page.tsx               activity feed
   challenges/page.tsx          friend challenges
   leaderboard/page.tsx          leaderboard
   profile/page.tsx                profile page
+  support/page.tsx                 support ticket inbox (user-facing)
+  unsubscribe/page.tsx              newsletter unsubscribe (token-gated, public)
+  admin/tickets/page.tsx            admin support ticket inbox
+  admin/newsletter/page.tsx          admin newsletter composer (rich text)
   components/                shared UI: EarTraining, Curriculum, PlayAlong, ScoreNotation,
                               NoteHighway, Fretboard, CircleOfFifths, StaffSection, PianoKeyboard,
                               RhythmSection, GamificationPanel, ProgressPanel, ReviewPanel,
                               AppHeader, AuthModal, Footer, ThemeWrapper, Mushrooms, ShareButton
   utils/                     localStorage-backed stores (progressStore, curriculumStore,
                               reviewStore, gamificationStore), Supabase-aware stores
-                              (profileStore, activityStore, challengeStore, notificationStore),
-                              pub/sub buses (practiceFocusBus, activityBus, challengeBus),
-                              audio (audioSynth, useSynth, useMidiInput), file parsers
-                              (midiFileParser, guitarProParser), and music-theory data/helpers
+                              (profileStore, activityStore, challengeStore, notificationStore,
+                              ticketStore, newsletterStore), pub/sub buses (practiceFocusBus,
+                              activityBus, challengeBus), audio (audioSynth, useSynth,
+                              useMidiInput), file parsers (midiFileParser, guitarProParser),
+                              and music-theory data/helpers
 supabase/schema.sql         full Postgres schema + RLS policies for every Supabase table
+supabase/functions/         Edge Functions: send-newsletter, newsletter-unsubscribe
 scripts/test-integration.ts Supabase data-layer integration test suite (see below)
 ```
 
@@ -139,7 +151,7 @@ npm run test:integration   # Supabase data-layer integration tests, see below
 Sign-in, practice progress sync, and saved Play Along files are powered by [Supabase](https://supabase.com). Without it configured, the app works fully as a guest-only, localStorage-only experience — the "Sign in" button stays disabled with an explanatory note. To turn cloud sync on:
 
 1. **Create a Supabase project** at [supabase.com](https://supabase.com) (the free tier is enough).
-2. **Run the schema migration**: open your project's *SQL Editor* and run the contents of [`supabase/schema.sql`](./supabase/schema.sql). This creates the `progress`, `curriculum_progress`, `review_progress`, `gamification`, `uploaded_files`, `profiles`, `follows`, `activity_events`, `activity_comments`, `activity_reactions`, `challenges`, and `notifications` tables (with row-level security so each user can only see their own data, except `profiles` rows marked public and their related rows — `gamification`, activity feed events, etc. — which are readable by anyone for the leaderboard/profile/feed pages) and a private `play-along-files` storage bucket for saved Guitar Pro / MIDI files.
+2. **Run the schema migration**: open your project's *SQL Editor* and run the contents of [`supabase/schema.sql`](./supabase/schema.sql). This creates the `progress`, `curriculum_progress`, `review_progress`, `gamification`, `uploaded_files`, `profiles`, `follows`, `activity_events`, `activity_comments`, `activity_reactions`, `challenges`, `notifications`, `support_tickets`, `support_ticket_messages`, `newsletter_subscribers`, and `newsletter_campaigns` tables (with row-level security so each user can only see their own data, except `profiles` rows marked public and their related rows — `gamification`, activity feed events, etc. — which are readable by anyone for the leaderboard/profile/feed pages, support tickets and newsletter data, which only admins can read, and `newsletter_subscribers`, which anyone can insert into but nobody can read directly — see [Newsletter Setup](#newsletter-setup-optional)) and a private `play-along-files` storage bucket for saved Guitar Pro / MIDI files.
 3. **Copy your API credentials**: in *Project Settings -> API*, copy the *Project URL* and the *anon public* key.
 4. **Set environment variables**: copy `.env.example` to `.env.local` and fill in:
    ```
@@ -157,6 +169,42 @@ Once configured, signing in will automatically merge any existing localStorage p
 
 **Troubleshooting a 403 on `uploaded_files` or `play-along-files`**: this happens if `schema.sql` was run more than once before its policies were idempotent — an early `CREATE POLICY` would fail with "policy already exists" and abort the script before reaching the `uploaded_files` table or storage bucket policies near the end. The script now drops each policy before recreating it, so just re-run the current [`supabase/schema.sql`](./supabase/schema.sql) in the SQL Editor again to fix it.
 
+### Granting admin access (Support inbox & newsletter composer)
+
+The Support feature (`/support`) lets any signed-in user open a ticket. Replying to tickets and changing their status from the admin inbox at `/admin/tickets`, and composing/sending newsletters from `/admin/newsletter`, both require the `is_admin` flag on a user's `profiles` row, which is `false` by default for everyone and has no in-app UI to grant it. To make an account an admin, run this once in the SQL Editor (replacing the email):
+
+```sql
+update public.profiles
+set is_admin = true
+where user_id = (select id from auth.users where email = 'you@example.com');
+```
+
+## Newsletter Setup (Optional)
+
+The footer's newsletter signup and the `/admin/newsletter` composer both work once [Cloud Sync](#cloud-sync-setup-optional) is configured, but actually *sending* email additionally requires a [Resend](https://resend.com) account and two Supabase Edge Functions, since this app has no Next.js server to hold an API key (`next.config.ts` sets `output: 'export'`). Without this section configured, visitors can still subscribe (their email is stored), but clicking "Send" in the composer will fail until the Edge Function is deployed.
+
+1. **Create a Resend account** at [resend.com](https://resend.com) and verify a sending domain (or use their test domain while developing). Create an API key.
+2. **Install the Supabase CLI** if you haven't already ([instructions](https://supabase.com/docs/guides/cli)), then log in and link it to your project:
+   ```bash
+   supabase login
+   supabase link --project-ref your-project-ref
+   ```
+3. **Set the Edge Function secrets** (these are server-side only — never exposed to the browser, and separate from the `NEXT_PUBLIC_*` variables in `.env.local`):
+   ```bash
+   supabase secrets set RESEND_API_KEY=re_your_key_here
+   supabase secrets set RESEND_FROM_EMAIL="Music Theory Cheatsheet <newsletter@yourdomain.com>"
+   supabase secrets set PUBLIC_SITE_URL=https://your-deployed-app-url
+   ```
+   `PUBLIC_SITE_URL` is used to build each recipient's personalized one-click unsubscribe link.
+4. **Deploy both Edge Functions**:
+   ```bash
+   supabase functions deploy send-newsletter
+   supabase functions deploy newsletter-unsubscribe
+   ```
+5. **Send a newsletter**: sign in as an admin (see [Granting admin access](#granting-admin-access-support-inbox--newsletter-composer) above), go to `/admin/newsletter`, write a subject and formatted body, and send. `send-newsletter` re-verifies you're an admin server-side before sending anything — it never trusts the client. Recipients are batched at 100 per Resend API call, and a row is recorded in `newsletter_campaigns` once the send completes.
+
+Unsubscribing never requires login: `newsletter-unsubscribe` is a public, token-gated function that deletes the subscriber row by their unique `unsubscribe_token`, reached via the link in every newsletter email (`/unsubscribe?token=...`).
+
 ## Integration Testing
 
 `npm run test:integration` runs [`scripts/test-integration.ts`](./scripts/test-integration.ts), which exercises the Supabase data layer end-to-end against a real Supabase project — the same store functions (`profileStore.ts`, `activityStore.ts`, `challengeStore.ts`, `notificationStore.ts`, etc.) the browser app calls. Since this app has no Next.js API routes (`next.config.ts` sets `output: 'export'`), this is the closest equivalent to an "API route test suite": it signs in as disposable test accounts with the anon key and asserts on real row-level-security behavior, rather than bypassing it.
@@ -167,7 +215,7 @@ To run it:
 2. Add one more variable: `SUPABASE_SERVICE_ROLE_KEY` (from *Project Settings -> API -> service_role*). This key is **test-only** — it's used solely by this script to create and delete disposable test accounts, and is never read by the Next.js app itself. Never commit a real value for it.
 3. Run `npm run test:integration`.
 
-The script creates a few throwaway accounts, runs through profile/follow/gamification/sync-table/leaderboard/activity-feed/challenge/notification/storage scenarios (covering both allowed access and expected RLS denials), prints a PASS/FAIL line per scenario, deletes the test accounts again, and exits non-zero if anything failed.
+The script creates a few throwaway accounts, runs through profile/follow/gamification/sync-table/leaderboard/activity-feed/challenge/notification/support-ticket/newsletter/storage scenarios (covering both allowed access and expected RLS denials), prints a PASS/FAIL line per scenario, deletes the test accounts again, and exits non-zero if anything failed. The newsletter scenarios cover subscribing, duplicate/invalid-email handling, and admin-only read access on `newsletter_subscribers`/`newsletter_campaigns` — they never invoke the real `send-newsletter` Edge Function, so no actual email is sent during a test run.
 
 ⚠️ Run this only against a project you're comfortable seeding with test data — it's safe to run repeatedly (test users are cleaned up automatically), but it does write real rows during the run, and a crash before the `finally` cleanup block would leave the disposable users behind for manual deletion.
 

@@ -1,6 +1,13 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-export type NotificationType = 'follow' | 'challenge_invite' | 'challenge_result' | 'comment' | 'reaction';
+export type NotificationType =
+    | 'follow'
+    | 'challenge_invite'
+    | 'challenge_result'
+    | 'comment'
+    | 'reaction'
+    | 'ticket_reply'
+    | 'ticket_status';
 
 export interface AppNotification {
     id: string;

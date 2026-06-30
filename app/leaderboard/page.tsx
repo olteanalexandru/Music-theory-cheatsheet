@@ -6,7 +6,7 @@ import { Crown, Loader2, Trophy } from 'lucide-react';
 import { useAuth } from '@/app/utils/AuthContext';
 import { getSupabaseClient } from '@/app/utils/supabaseClient';
 import { fetchFollowingIds } from '@/app/utils/profileStore';
-import { levelFromXp } from '@/app/utils/gamificationStore';
+import { levelFromXp, levelTitle } from '@/app/utils/gamificationStore';
 
 type Scope = 'global' | 'friends';
 
@@ -144,7 +144,7 @@ export default function LeaderboardPage() {
                                         {isMe && <span className="theme-secondary-text font-normal"> (you)</span>}
                                     </span>
                                     <span className="theme-secondary-text text-sm whitespace-nowrap">
-                                        Level {levelFromXp(entry.xp)} · {entry.xp} XP
+                                        Level {levelFromXp(entry.xp)} · {levelTitle(levelFromXp(entry.xp))} · {entry.xp} XP
                                     </span>
                                 </Link>
                             </li>

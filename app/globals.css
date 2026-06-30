@@ -43,6 +43,8 @@
   --warning-fg: #facc15; /* Bright yellow reads fine on dark backgrounds */
   --warning-bg: rgba(250, 204, 21, 0.08);
   --warning-border: rgba(234, 179, 8, 0.3);
+  --accent-gradient: linear-gradient(135deg, #5b5fee, #9b6bf3);
+  --accent-soft-bg: rgba(91, 95, 238, 0.16);
 }
 
 .light-mode {
@@ -65,6 +67,8 @@
   --warning-fg: #92400e; /* Dark amber keeps contrast on light backgrounds */
   --warning-bg: #fef3c7;
   --warning-border: #fde68a;
+  --accent-gradient: linear-gradient(135deg, #5b5fee, #8b6df0);
+  --accent-soft-bg: rgba(91, 95, 238, 0.1);
 }
 
 .psychedelic-mode {
@@ -86,6 +90,8 @@
   --warning-fg: #fde047;
   --warning-bg: rgba(249, 115, 22, 0.15);
   --warning-border: rgba(249, 115, 22, 0.45);
+  --accent-gradient: linear-gradient(135deg, #ec4899, #f97316, #06b6d4);
+  --accent-soft-bg: rgba(249, 115, 22, 0.2);
 }
 
 /* Apply background and foreground variables to the root elements */
@@ -158,15 +164,88 @@ a:hover {
   background-color: var(--card-background);
   color: var(--card-foreground);
   border: 1px solid var(--card-border);
+  position: relative;
+}
+
+/* A short accent bar inset from the corners signals "this app has a design
+   system" rather than a stock card - kept inset so it never collides with
+   whatever border-radius a given usage applies. */
+.theme-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 1.25rem;
+  right: 1.25rem;
+  height: 2px;
+  background: var(--accent-gradient);
+  opacity: 0.55;
+  border-radius: 0 0 2px 2px;
+  pointer-events: none;
 }
 
 .theme-btn {
-  background-color: var(--button-background);
+  background: var(--accent-gradient);
   color: var(--button-foreground);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
 }
 
 .theme-btn:hover {
-  background-color: var(--hover-bg);
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+}
+
+.theme-btn:active {
+  transform: translateY(0);
+  filter: brightness(0.96);
+}
+
+.theme-accent-soft-bg {
+  background-color: var(--accent-soft-bg);
+}
+
+/* Wayfinding indicator for the current nav link - an underline accent rather
+   than a flat fill, so "where am I" reads distinctly from "this is selected"
+   (segmented controls like the waveform/scope toggles keep the flat fill). */
+.nav-link-active {
+  position: relative;
+  background-color: var(--accent-soft-bg);
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.nav-link-active::after {
+  content: '';
+  position: absolute;
+  left: 0.65rem;
+  right: 0.65rem;
+  bottom: -1px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--accent-gradient);
+}
+
+/* Lift-on-hover for cards that are themselves navigation (e.g. the Practice
+   Tools hub) - distinct from .theme-card, which is also used for static
+   panels that aren't clickable. */
+.tool-card {
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.tool-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.16);
+  border-color: var(--accent-bg);
+}
+
+@keyframes level-up-pop {
+  0% { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  60% { opacity: 1; transform: translateY(0) scale(1.01); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.animate-level-up {
+  animation: level-up-pop 0.4s ease;
 }
 
 .theme-secondary-bg {

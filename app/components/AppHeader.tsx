@@ -3,11 +3,13 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Bell, LogIn, LogOut, UserCircle, User as UserIcon } from 'lucide-react';
+import { Bell, LogIn, LogOut, Music2, UserCircle, User as UserIcon } from 'lucide-react';
 import { useAuth } from '@/app/utils/AuthContext';
 import { getSupabaseClient } from '@/app/utils/supabaseClient';
 import { fetchNotifications, fetchUnreadCount, markAllRead, type AppNotification } from '@/app/utils/notificationStore';
+import { fetchProfileByUserId } from '@/app/utils/profileStore';
 import AuthModal from '@/app/components/AuthModal';
+import ScrollHint from '@/app/components/ScrollHint';
 
 const MARKETING_NAV_LINKS = [
     { href: '/features', label: 'Features' },
@@ -20,7 +22,13 @@ const APP_NAV_LINKS = [
     { href: '/feed', label: 'Feed' },
     { href: '/challenges', label: 'Challenges' },
     { href: '/leaderboard', label: 'Leaderboard' },
+    { href: '/support', label: 'Support' },
     { href: '/profile', label: 'Profile' },
+];
+
+const ADMIN_NAV_LINKS = [
+    { href: '/admin/tickets', label: 'Admin' },
+    { href: '/admin/newsletter', label: 'Newsletter' },
 ];
 
 const MARKETING_ROUTES = new Set(['/', '/features', '/community']);
@@ -39,6 +47,10 @@ function notificationText(n: AppNotification): string {
             return `${n.actorUsername} commented on your activity`;
         case 'reaction':
             return `${n.actorUsername} reacted to your activity`;
+        case 'ticket_reply':
+            return `Support replied to "${n.data.subject ?? 'your ticket'}"`;
+        case 'ticket_status':
+            return `Your ticket "${n.data.subject ?? ''}" is now ${n.data.status ?? 'updated'}`;
         default:
             return `${n.actorUsername} did something`;
     }
@@ -54,6 +66,9 @@ function notificationHref(n: AppNotification): string {
         case 'comment':
         case 'reaction':
             return '/feed';
+        case 'ticket_reply':
+        case 'ticket_status':
+            return '/support';
         default:
             return '/feed';
     }
@@ -78,8 +93,10 @@ const AppHeader: React.FC = () => {
     const [unreadCount, setUnreadCount] = useState(0);
     const [notifications, setNotifications] = useState<AppNotification[]>([]);
     const notificationsRef = useRef<HTMLDivElement | null>(null);
+    const [isAdmin, setIsAdmin] = useState(false);
     const pathname = usePathname();
     const isMarketing = MARKETING_ROUTES.has(pathname ?? '');
+    const navLinks = isAdmin ? [...APP_NAV_LINKS, ...ADMIN_NAV_LINKS] : APP_NAV_LINKS;
 
     useEffect(() => {
         if (!showMenu) return;
@@ -103,6 +120,18 @@ const AppHeader: React.FC = () => {
         const supabase = getSupabaseClient();
         if (!supabase || !user) return;
         setUnreadCount(await fetchUnreadCount(supabase, user.id));
+    }, [user]);
+
+    useEffect(() => {
+        void (async () => {
+            const supabase = getSupabaseClient();
+            if (!supabase || !user) {
+                setIsAdmin(false);
+                return;
+            }
+            const profile = await fetchProfileByUserId(supabase, user.id);
+            setIsAdmin(!!profile?.isAdmin);
+        })();
     }, [user]);
 
     // Polling, not realtime, to match the rest of this app's pull-based cloud
@@ -137,7 +166,7 @@ const AppHeader: React.FC = () => {
             key={href}
             href={href}
             className={`px-3 py-1.5 rounded-md text-sm font-medium whitespace-nowrap transition-colors ${
-                pathname === href ? 'theme-accent-bg' : 'theme-secondary-text hover:opacity-90'
+                pathname === href ? 'nav-link-active' : 'theme-secondary-text hover:opacity-90'
             }`}
         >
             {label}
@@ -165,7 +194,9 @@ const AppHeader: React.FC = () => {
                     href={isMarketing ? '/' : '/app'}
                     className="flex items-center gap-2 truncate font-bold tracking-tight theme-text"
                 >
-                    <span className="inline-block h-2.5 w-2.5 shrink-0 theme-accent-bg" aria-hidden="true" />
+                    <span className="flex items-center justify-center h-7 w-7 shrink-0 rounded-lg theme-btn" aria-hidden="true">
+                        <Music2 size={15} />
+                    </span>
                     Music Theory
                 </Link>
 
@@ -175,7 +206,7 @@ const AppHeader: React.FC = () => {
                     </nav>
                 ) : (
                     <nav className="hidden sm:flex items-center gap-1">
-                        {APP_NAV_LINKS.map((link) => navLink(link.href, link.label))}
+                        {navLinks.map((link) => navLink(link.href, link.label))}
                     </nav>
                 )}
 
@@ -260,7 +291,7 @@ const AppHeader: React.FC = () => {
                             ) : isMarketing ? (
                                 <button
                                     onClick={() => setShowAuthModal(true)}
-                                    className="text-sm font-medium theme-secondary-text hover:theme-text"
+                                    className="rounded-md px-3 py-2 text-sm font-medium theme-secondary-text hover:theme-text"
                                 >
                                     Log in
                                 </button>
@@ -278,13 +309,13 @@ const AppHeader: React.FC = () => {
             </div>
 
             {isMarketing ? (
-                <nav className="flex sm:hidden items-center gap-4 pb-2 -mt-1 overflow-x-auto">
+                <ScrollHint as="nav" className="flex sm:hidden items-center gap-4 pb-2 -mt-1">
                     {MARKETING_NAV_LINKS.map((link) => marketingNavLink(link.href, link.label))}
-                </nav>
+                </ScrollHint>
             ) : (
-                <nav className="flex sm:hidden items-center gap-1 pb-2 -mt-1 overflow-x-auto">
-                    {APP_NAV_LINKS.map((link) => navLink(link.href, link.label))}
-                </nav>
+                <ScrollHint as="nav" className="flex sm:hidden items-center gap-1 pb-2 -mt-1">
+                    {navLinks.map((link) => navLink(link.href, link.label))}
+                </ScrollHint>
             )}
 
             {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}

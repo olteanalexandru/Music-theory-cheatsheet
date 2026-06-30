@@ -66,10 +66,16 @@ export function mergeCurriculum(local: CurriculumStore, cloud: CurriculumStore):
     return merged;
 }
 
-export function markLessonComplete(lessonId: string, quizScore: number): void {
+export interface MarkLessonCompleteResult {
+    isNewCompletion: boolean;
+    isNewPerfect: boolean;
+}
+
+export function markLessonComplete(lessonId: string, quizScore: number): MarkLessonCompleteResult {
     const store = loadCurriculum();
     const existing = store[lessonId];
     const isNewCompletion = !existing?.completed;
+    const isNewPerfect = quizScore >= 1 && (existing?.quizBestScore ?? 0) < 1;
     store[lessonId] = {
         completed: true,
         quizBestScore: Math.max(existing?.quizBestScore ?? 0, quizScore),
@@ -79,6 +85,7 @@ export function markLessonComplete(lessonId: string, quizScore: number): void {
     if (isNewCompletion) {
         emitActivityEvent({ type: 'lesson_complete', data: { lessonId, quizScore } });
     }
+    return { isNewCompletion, isNewPerfect };
 }
 
 export function completedLessonIds(store: CurriculumStore): Set<string> {

@@ -118,7 +118,7 @@ export const CURRICULUM: Unit[] = [
                 summary: 'Practical tricks for recognizing intervals by sound.',
                 content: [
                     'Reading interval names is one thing; recognizing them by ear is the real skill. The fastest way in is to anchor each interval to a melody you already know that starts with that exact leap.',
-                    'A few common anchors: minor 2nd sounds like the "Jaws" theme; major 2nd opens "Happy Birthday"; minor 3rd opens "Greensleeves"; major 3rd opens "Kumbaya"; perfect 4th opens "Here Comes the Bride" or the "Star Wars" main theme leap; perfect 5th opens the "Star Wars" fanfare\'s first two notes; major 6th opens "My Bonnie Lies Over the Ocean"; major 7th has a wide, reaching quality found in the theme to "Take On Me".',
+                    'A few common anchors: minor 2nd sounds like the "Jaws" theme; major 2nd opens "Happy Birthday"; minor 3rd opens "Greensleeves"; major 3rd opens "Kumbaya"; perfect 4th opens "Here Comes the Bride" and "Amazing Grace"; perfect 5th opens the "Star Wars" main theme fanfare and "Twinkle, Twinkle, Little Star"; major 6th opens "My Bonnie Lies Over the Ocean"; major 7th has a wide, reaching quality found in the theme to "Take On Me".',
                     'When you hear two notes in the Ear Training drill below, try singing the gap back to yourself and matching it to one of these reference tunes before checking the answer choices.',
                 ],
                 practice: { category: 'intervals', difficulty: 'medium', label: 'Intervals · Medium' },
@@ -396,6 +396,63 @@ export const CURRICULUM: Unit[] = [
                     },
                 ],
             },
+            {
+                id: 'harmonic-melodic-minor',
+                title: 'Harmonic & Melodic Minor',
+                summary: 'Why natural minor gets "fixed" for cadences and melodies.',
+                content: [
+                    'Natural minor has a problem: its 7th scale degree sits a whole step below the tonic, not a half step, so it has no leading tone. In A natural minor (A-B-C-D-E-F-G), the triad built on the 5th degree is E-G-B — E minor — and a minor v chord doesn\'t pull toward the tonic nearly as strongly as a major V does in a major key.',
+                    'Harmonic minor fixes this by raising the 7th degree a semitone: A-B-C-D-E-F-G♯. Now the triad on the 5th degree is E-G♯-B, a major V, complete with a real leading tone (G♯, a half step below A) — giving minor keys the same strong V-i authentic cadence that major keys get from V-I. The tradeoff is a melodic one: the gap between the now-unraised 6th and the raised 7th (F to G♯) is a stretched-out augmented 2nd, which gives harmonic minor its distinctive exotic, Middle-Eastern-tinged sound when played as a straight scale.',
+                    'Melodic minor smooths that gap back out for stepwise melodies by raising both the 6th and 7th degrees when ascending: A-B-C-D-E-F♯-G♯-A, removing the awkward leap entirely. Classically, the descending form reverts to natural minor (lowered 6th and 7th), since the leading-tone pull matters most on the way up to the tonic; modern jazz typically just uses the same raised-6th-and-7th form both ways, sometimes called the "jazz minor" scale.',
+                ],
+                practice: { category: 'scales', difficulty: 'medium', label: 'Scales · Medium' },
+                quiz: [
+                    {
+                        question: 'Why can\'t natural minor produce a strong, V-to-i authentic cadence the way major keys can?',
+                        choices: [
+                            'Natural minor has too many flats',
+                            'Its 7th degree sits a whole step below the tonic, so the triad built there is minor (v), not major (V)',
+                            'Minor keys are not allowed to cadence',
+                            'Natural minor has no 5th degree at all',
+                        ],
+                        correctIndex: 1,
+                        explanation: 'Without a leading tone a half step below the tonic, the chord built on the 5th degree comes out minor, lacking the strong pull a major V chord provides.',
+                    },
+                    {
+                        question: 'What does harmonic minor change compared to natural minor?',
+                        choices: [
+                            'It raises the 7th degree by a semitone, creating a leading tone',
+                            'It lowers the 2nd degree',
+                            'It raises every degree by a semitone',
+                            'It removes the 3rd degree',
+                        ],
+                        correctIndex: 0,
+                        explanation: 'Raising just the 7th degree turns the minor v chord into a major V, restoring a true leading tone and a strong cadence.',
+                    },
+                    {
+                        question: 'What melodic side effect does harmonic minor\'s raised 7th create?',
+                        choices: [
+                            'A smoother, more major-sounding scale overall',
+                            'An augmented 2nd gap between the (unraised) 6th and (raised) 7th degrees',
+                            'No audible effect',
+                            'It removes the leading tone it just created',
+                        ],
+                        correctIndex: 1,
+                        explanation: 'With only the 7th raised, the distance from the 6th to the 7th degree stretches to three semitones — an augmented 2nd, giving harmonic minor its exotic character.',
+                    },
+                    {
+                        question: 'How does the (classical) ascending melodic minor scale avoid that augmented-2nd gap?',
+                        choices: [
+                            'It raises both the 6th and 7th degrees, closing the gap',
+                            'It lowers the 7th degree further',
+                            'It is identical to harmonic minor',
+                            'It removes the 6th degree entirely',
+                        ],
+                        correctIndex: 0,
+                        explanation: 'Raising the 6th degree too restores a normal whole-step spacing between the 6th and 7th, smoothing out the line on the way up to the tonic.',
+                    },
+                ],
+            },
         ],
     },
     {
@@ -503,6 +560,58 @@ export const CURRICULUM: Unit[] = [
                 ],
             },
             {
+                id: 'chord-inversions',
+                title: 'Chord Inversions & Slash Chords',
+                summary: 'Same chord tones, different note in the bass.',
+                content: [
+                    'A chord is in root position when its root is the lowest-sounding note. Putting any other chord tone on the bottom instead — without changing which notes are in the chord — is called an inversion. A C major triad (C-E-G) in root position has C on the bottom; put E on the bottom instead (E-G-C) and it\'s in first inversion; put G on the bottom (G-C-E) and it\'s in second inversion. It\'s still a C major chord throughout — only the bass note moved.',
+                    'Seventh chords have one more inversion available, since they have one more note to put in the bass: a third inversion puts the chord\'s 7th on the bottom. For a G7 chord (G-B-D-F), that gives root position (G bass), first inversion (B bass), second inversion (D bass), and third inversion (F bass).',
+                    'Inversions are usually written with slash-chord notation: "C/E" means a C major chord with E in the bass. Arrangers and bass players reach for inversions constantly to build smoother, more stepwise bass lines — for example, C, G/B, Am moves the bass C-B-A in tidy steps, instead of leaping a 5th down from C to G the way a root-position G chord would.',
+                ],
+                practice: { category: 'chords', difficulty: 'medium', label: 'Chords · Medium' },
+                quiz: [
+                    {
+                        question: 'What defines a chord inversion?',
+                        choices: [
+                            'A chord tone other than the root is the lowest-sounding note, while the chord\'s notes stay the same',
+                            'One or more notes are added to the chord',
+                            'The chord\'s quality changes from major to minor',
+                            'The chord is played in a different key',
+                        ],
+                        correctIndex: 0,
+                        explanation: 'Inversion only changes which chord tone sits in the bass — the chord is still built from the same notes.',
+                    },
+                    {
+                        question: 'In a C major triad (C-E-G), which note is in the bass in first inversion?',
+                        choices: ['C', 'E', 'G', 'B'],
+                        correctIndex: 1,
+                        explanation: 'First inversion puts the 3rd (E) in the bass; root position has C, second inversion has G (the 5th).',
+                    },
+                    {
+                        question: 'Why do seventh chords have a third inversion, when triads only go up to second inversion?',
+                        choices: [
+                            'Triads have three notes (root, 3rd, 5th) and so two possible non-root basses; a 7th chord\'s extra note (the 7th) creates a third option',
+                            '7th chords are not actually invertible',
+                            'Triads can be inverted four times too',
+                            'There is no real difference between them',
+                        ],
+                        correctIndex: 0,
+                        explanation: 'Each chord tone besides the root can become the bass note — a 4-note 7th chord has one more of those than a 3-note triad.',
+                    },
+                    {
+                        question: 'What does the chord symbol "C/E" mean?',
+                        choices: [
+                            'A C major chord with E in the bass',
+                            'Play C, then play E',
+                            'A C chord with the E removed',
+                            'A typo for "C7"',
+                        ],
+                        correctIndex: 0,
+                        explanation: 'Slash-chord notation reads as "[chord]/[bass note]" — C/E is a C major chord, first inversion, with E on the bottom.',
+                    },
+                ],
+            },
+            {
                 id: 'diatonic-harmony',
                 title: 'Diatonic Harmony & Roman Numerals',
                 summary: 'Building a chord on every degree of a major scale.',
@@ -551,6 +660,7 @@ export const CURRICULUM: Unit[] = [
                 content: [
                     'Diatonic chords group into three functions. Tonic (I, vi) feels like home — stable, resolved, a place to rest. Subdominant (ii, IV) feels like movement away from home, building anticipation. Dominant (V, vii°) feels like maximum tension, demanding a return to the tonic.',
                     'A cadence is a chord move that closes a musical phrase. The strongest is the authentic cadence, V-I (or V7-I) — dominant resolving straight to tonic. The plagal cadence, IV-I, is gentler and is sometimes nicknamed the "Amen cadence" from its use in hymns.',
+                    'Not every phrase resolves all the way home. A half cadence ends on V instead of I — it sounds "open," like a question rather than a full stop, which is why it\'s so common at the end of a phrase that expects another phrase to answer it. A deceptive cadence sets up that same expectation but resolves V to vi instead of I — the ear hears the dominant pull toward "home" and gets redirected somewhere else at the last moment, a classic way to extend a phrase or add a surprise before the real ending arrives.',
                     'Knowing these functions lets you predict, and write, progressions that feel purposeful: most progressions are some path through subdominant, to dominant, and back to tonic — T-S-D-T is the basic skeleton underneath an enormous amount of music.',
                 ],
                 practice: { category: 'progressions', difficulty: 'medium', label: 'Chord Progressions · Medium' },
@@ -578,6 +688,17 @@ export const CURRICULUM: Unit[] = [
                         choices: ['Dominant only', 'Tonic - Subdominant - Dominant - Tonic', 'Subdominant only', 'Random chord order'],
                         correctIndex: 1,
                         explanation: 'T-S-D-T (leave home, build tension, resolve back) underlies a huge share of common-practice and popular music progressions.',
+                    },
+                    {
+                        question: 'What distinguishes a half cadence from a deceptive cadence?',
+                        choices: [
+                            'A half cadence ends on V (sounding "open"); a deceptive cadence resolves V to vi instead of the expected I',
+                            'They are two names for the same cadence',
+                            'A half cadence always ends on I',
+                            'A deceptive cadence only happens in minor keys',
+                        ],
+                        correctIndex: 0,
+                        explanation: 'Half cadence = phrase pauses on V itself. Deceptive cadence = the dominant resolves, but to vi instead of the expected I, redirecting the ear at the last moment.',
                     },
                 ],
             },
@@ -642,7 +763,7 @@ export const CURRICULUM: Unit[] = [
                 content: [
                     'The ii-V-I progression is the single most common cadence in jazz: a subdominant chord (ii), moving to a dominant chord (V), resolving to the tonic (I). Each step increases tension until the final resolution.',
                     'Real jazz tunes often chain several ii-V pairs together before the final resolution, or insert extra diatonic chords along the way — for example, vi-ii-V-I adds a minor-key-flavored run-up before the cadence.',
-                    'Taken to its logical extreme, you get the full circle-of-fifths progression: I-IV-vii°-iii-vi-ii-V-I, visiting every diatonic chord by descending in fifths before returning home. It\'s a miniature tour of the entire key.',
+                    'Taken to its logical extreme, you get the full circle-of-fifths progression: I-IV-vii°-iii-vi-ii-V-I, visiting every diatonic chord on the way back home. Six of those seven moves are true descending fifths — the one exception is IV to vii° (F to B in C major), which is a tritone, not a fifth, because the diatonic major scale only contains six notes in a row of real perfect fifths (F-C-G-D-A-E-B). That one "odd" interval is baked into every major scale.',
                 ],
                 practice: { category: 'progressions', difficulty: 'hard', label: 'Chord Progressions · Hard' },
                 quiz: [
@@ -677,7 +798,7 @@ export const CURRICULUM: Unit[] = [
                             'Chromatic half-steps only',
                         ],
                         correctIndex: 1,
-                        explanation: 'Each chord in that chain is a fifth below (or a fourth above) the previous one, visiting every diatonic chord on the way back to I.',
+                        explanation: 'Six of the seven moves are a fifth below (or a fourth above) the previous chord. The one exception is IV to vii° (a tritone, not a fifth) — the scale\'s only non-perfect-fifth relationship.',
                     },
                     {
                         question: 'Why is ii-V-I considered the backbone of jazz harmony?',
@@ -1236,6 +1357,13 @@ export function isLessonUnlocked(lessonId: string, completedLessonIds: ReadonlyS
     return completedLessonIds.has(ALL_LESSONS[index - 1].id);
 }
 
+// Returns the next `count` not-yet-completed lessons in curriculum order,
+// starting with the very next one - powers both nextIncompleteLesson() below
+// and the /plan page's multi-lesson lookahead preview.
+export function upcomingLessons(completedLessonIds: ReadonlySet<string>, count: number): Lesson[] {
+    return ALL_LESSONS.filter((lesson) => !completedLessonIds.has(lesson.id)).slice(0, count);
+}
+
 export function nextIncompleteLesson(completedLessonIds: ReadonlySet<string>): Lesson | null {
-    return ALL_LESSONS.find((lesson) => !completedLessonIds.has(lesson.id)) ?? null;
+    return upcomingLessons(completedLessonIds, 1)[0] ?? null;
 }

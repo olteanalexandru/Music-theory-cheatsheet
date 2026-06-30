@@ -37,8 +37,18 @@ export const NOTES_DIFFICULTY_PRESETS: Record<EarTrainingDifficulty, { range: Ra
 const LETTER_ORDER = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
 const NATURAL_SEMITONES: Record<string, number> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
 
-function diatonicIndex(letter: string, octave: number): number {
+export function diatonicIndex(letter: string, octave: number): number {
     return octave * 7 + LETTER_ORDER.indexOf(letter);
+}
+
+// How many diatonic steps a clef's bottom staff line sits above (+) or below
+// (-) middle C (C4). Lets a Grand Staff renderer place a treble-clef note and
+// a bass-clef note on one continuous vertical scale: y(step + offset) is
+// consistent across both clefs because middle C (step 0 here) lands in the
+// same spot regardless of which clef the note was read in.
+export function clefOffsetFromMiddleC(clef: ClefId): number {
+    const config = CLEFS[clef];
+    return diatonicIndex(config.bottomLetter, config.bottomOctave) - diatonicIndex('C', 4);
 }
 
 export function noteMidi(letter: string, octave: number, shift: number): number {
