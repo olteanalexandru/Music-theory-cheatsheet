@@ -10,49 +10,31 @@ import { fetchNotifications, fetchUnreadCount, markAllRead, type AppNotification
 import { fetchProfileByUserId } from '@/app/utils/profileStore';
 import AuthModal from '@/app/components/AuthModal';
 import ScrollHint from '@/app/components/ScrollHint';
-
-const MARKETING_NAV_LINKS = [
-    { href: '/features', label: 'Features' },
-    { href: '/community', label: 'Community' },
-];
-
-const APP_NAV_LINKS = [
-    { href: '/app', label: 'Practice' },
-    { href: '/plan', label: 'Plan' },
-    { href: '/feed', label: 'Feed' },
-    { href: '/challenges', label: 'Challenges' },
-    { href: '/leaderboard', label: 'Leaderboard' },
-    { href: '/support', label: 'Support' },
-    { href: '/profile', label: 'Profile' },
-];
-
-const ADMIN_NAV_LINKS = [
-    { href: '/admin/tickets', label: 'Admin' },
-    { href: '/admin/newsletter', label: 'Newsletter' },
-];
+import { useTranslations } from '@/app/utils/i18n/LocaleContext';
+import type { CommonDict } from '@/app/utils/i18n/dictionaries/common';
 
 const MARKETING_ROUTES = new Set(['/', '/features', '/community']);
 
 const NOTIFICATION_POLL_MS = 60_000;
 
-function notificationText(n: AppNotification): string {
+function notificationText(n: AppNotification, t: CommonDict): string {
     switch (n.type) {
         case 'follow':
-            return `${n.actorUsername} started following you`;
+            return t.notifications.follow(n.actorUsername);
         case 'challenge_invite':
-            return `${n.actorUsername} challenged you`;
+            return t.notifications.challengeInvite(n.actorUsername);
         case 'challenge_result':
-            return `Your challenge with ${n.actorUsername} is finished`;
+            return t.notifications.challengeResult(n.actorUsername);
         case 'comment':
-            return `${n.actorUsername} commented on your activity`;
+            return t.notifications.comment(n.actorUsername);
         case 'reaction':
-            return `${n.actorUsername} reacted to your activity`;
+            return t.notifications.reaction(n.actorUsername);
         case 'ticket_reply':
-            return `Support replied to "${n.data.subject ?? 'your ticket'}"`;
+            return t.notifications.ticketReply(String(n.data.subject ?? 'your ticket'));
         case 'ticket_status':
-            return `Your ticket "${n.data.subject ?? ''}" is now ${n.data.status ?? 'updated'}`;
+            return t.notifications.ticketStatus(String(n.data.subject ?? ''), String(n.data.status ?? 'updated'));
         default:
-            return `${n.actorUsername} did something`;
+            return t.notifications.fallback(n.actorUsername);
     }
 }
 
@@ -74,18 +56,19 @@ function notificationHref(n: AppNotification): string {
     }
 }
 
-function notificationTimeAgo(iso: string): string {
+function notificationTimeAgo(iso: string, t: CommonDict): string {
     const seconds = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
-    if (seconds < 60) return 'just now';
+    if (seconds < 60) return t.notifications.justNow;
     const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m ago`;
+    if (minutes < 60) return t.notifications.minutesAgo(minutes);
     const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours}h ago`;
-    return `${Math.floor(hours / 24)}d ago`;
+    if (hours < 24) return t.notifications.hoursAgo(hours);
+    return t.notifications.daysAgo(Math.floor(hours / 24));
 }
 
 const AppHeader: React.FC = () => {
     const { user, loading, signOut } = useAuth();
+    const t = useTranslations('common');
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
     const menuRef = useRef<HTMLDivElement | null>(null);
@@ -96,7 +79,25 @@ const AppHeader: React.FC = () => {
     const [isAdmin, setIsAdmin] = useState(false);
     const pathname = usePathname();
     const isMarketing = MARKETING_ROUTES.has(pathname ?? '');
-    const navLinks = isAdmin ? [...APP_NAV_LINKS, ...ADMIN_NAV_LINKS] : APP_NAV_LINKS;
+
+    const marketingNavLinks = [
+        { href: '/features', label: t.nav.features },
+        { href: '/community', label: t.nav.community },
+    ];
+    const appNavLinks = [
+        { href: '/app', label: t.nav.practice },
+        { href: '/plan', label: t.nav.plan },
+        { href: '/feed', label: t.nav.feed },
+        { href: '/challenges', label: t.nav.challenges },
+        { href: '/leaderboard', label: t.nav.leaderboard },
+        { href: '/support', label: t.nav.support },
+        { href: '/profile', label: t.nav.profile },
+    ];
+    const adminNavLinks = [
+        { href: '/admin/tickets', label: t.nav.admin },
+        { href: '/admin/newsletter', label: t.nav.newsletter },
+    ];
+    const navLinks = isAdmin ? [...appNavLinks, ...adminNavLinks] : appNavLinks;
 
     useEffect(() => {
         if (!showMenu) return;
@@ -197,12 +198,12 @@ const AppHeader: React.FC = () => {
                     <span className="flex items-center justify-center h-7 w-7 shrink-0 rounded-lg theme-btn" aria-hidden="true">
                         <Music2 size={15} />
                     </span>
-                    Music Theory
+                    {t.brand}
                 </Link>
 
                 {isMarketing ? (
                     <nav className="hidden sm:flex items-center gap-6">
-                        {MARKETING_NAV_LINKS.map((link) => marketingNavLink(link.href, link.label))}
+                        {marketingNavLinks.map((link) => marketingNavLink(link.href, link.label))}
                     </nav>
                 ) : (
                     <nav className="hidden sm:flex items-center gap-1">
@@ -213,7 +214,7 @@ const AppHeader: React.FC = () => {
                 <div className="flex items-center gap-3">
                     {isMarketing && (
                         <Link href="/app" className="px-4 py-1.5 theme-btn rounded-md text-sm font-semibold hover:opacity-90">
-                            Get Started
+                            {t.header.getStarted}
                         </Link>
                     )}
 
@@ -222,7 +223,7 @@ const AppHeader: React.FC = () => {
                             <button
                                 onClick={() => void handleToggleNotifications()}
                                 className="relative flex items-center justify-center rounded-md theme-muted-bg theme-text p-2 hover:opacity-90"
-                                aria-label="Notifications"
+                                aria-label={t.header.notifications}
                             >
                                 <Bell size={16} />
                                 {unreadCount > 0 && (
@@ -235,7 +236,7 @@ const AppHeader: React.FC = () => {
                                 <div className="absolute right-0 mt-2 w-72 overflow-hidden rounded-md theme-card shadow-xl">
                                     <div className="max-h-96 overflow-y-auto">
                                         {notifications.length === 0 ? (
-                                            <p className="px-4 py-6 text-center text-sm theme-secondary-text">No notifications yet.</p>
+                                            <p className="px-4 py-6 text-center text-sm theme-secondary-text">{t.header.noNotifications}</p>
                                         ) : (
                                             notifications.map((n) => (
                                                 <Link
@@ -244,8 +245,8 @@ const AppHeader: React.FC = () => {
                                                     onClick={() => setShowNotifications(false)}
                                                     className="block border-b border-white/10 px-4 py-2.5 text-sm theme-text last:border-b-0 hover:theme-muted-bg"
                                                 >
-                                                    <p>{notificationText(n)}</p>
-                                                    <p className="mt-0.5 text-xs theme-secondary-text">{notificationTimeAgo(n.createdAt)}</p>
+                                                    <p>{notificationText(n, t)}</p>
+                                                    <p className="mt-0.5 text-xs theme-secondary-text">{notificationTimeAgo(n.createdAt, t)}</p>
                                                 </Link>
                                             ))
                                         )}
@@ -274,7 +275,7 @@ const AppHeader: React.FC = () => {
                                                 onClick={() => setShowMenu(false)}
                                                 className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm theme-text hover:theme-muted-bg"
                                             >
-                                                <UserCircle size={16} /> My Profile
+                                                <UserCircle size={16} /> {t.header.myProfile}
                                             </Link>
                                             <button
                                                 onClick={() => {
@@ -283,7 +284,7 @@ const AppHeader: React.FC = () => {
                                                 }}
                                                 className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm theme-text hover:theme-muted-bg"
                                             >
-                                                <LogOut size={16} /> Sign out
+                                                <LogOut size={16} /> {t.header.signOut}
                                             </button>
                                         </div>
                                     )}
@@ -293,14 +294,14 @@ const AppHeader: React.FC = () => {
                                     onClick={() => setShowAuthModal(true)}
                                     className="rounded-md px-3 py-2 text-sm font-medium theme-secondary-text hover:theme-text"
                                 >
-                                    Log in
+                                    {t.header.logIn}
                                 </button>
                             ) : (
                                 <button
                                     onClick={() => setShowAuthModal(true)}
                                     className="flex items-center gap-2 rounded-md theme-btn px-3 py-1.5 text-sm hover:opacity-90"
                                 >
-                                    <LogIn size={16} /> Sign in
+                                    <LogIn size={16} /> {t.header.signIn}
                                 </button>
                             )}
                         </>
@@ -310,7 +311,7 @@ const AppHeader: React.FC = () => {
 
             {isMarketing ? (
                 <ScrollHint as="nav" className="flex sm:hidden items-center gap-4 pb-2 -mt-1">
-                    {MARKETING_NAV_LINKS.map((link) => marketingNavLink(link.href, link.label))}
+                    {marketingNavLinks.map((link) => marketingNavLink(link.href, link.label))}
                 </ScrollHint>
             ) : (
                 <ScrollHint as="nav" className="flex sm:hidden items-center gap-1 pb-2 -mt-1">
