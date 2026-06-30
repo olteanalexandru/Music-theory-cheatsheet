@@ -6,7 +6,6 @@ import type { MidiInputController } from '@/app/utils/useMidiInput';
 import type { AudioInputController } from '@/app/utils/useAudioInput';
 import {
     DURATION_NAMES,
-    DURATION_LABELS,
     TIME_SIGNATURE_NAMES,
     TIME_SIGNATURES,
     generateRhythmPattern,
@@ -126,7 +125,7 @@ const RhythmSection: React.FC<RhythmSectionProps> = ({ synth, midi, audio }) => 
                         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                             {DURATION_NAMES.map((duration) => (
                                 <div key={duration} className="p-3 rounded-lg theme-secondary-bg">
-                                    <p className="theme-secondary-text text-xs mb-1">{DURATION_LABELS[duration]}</p>
+                                    <p className="theme-secondary-text text-xs mb-1">{t.section.reference.durationLabels[duration]}</p>
                                     <RhythmNotation events={[{ type: 'note', duration, beats: 1 }]} compact />
                                 </div>
                             ))}

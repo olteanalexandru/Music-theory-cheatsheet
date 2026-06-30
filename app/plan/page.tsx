@@ -16,7 +16,7 @@ import {
     Target,
     Trophy,
 } from 'lucide-react';
-import { ALL_LESSONS, CURRICULUM, getUnitForLesson, isLessonUnlocked, upcomingLessons } from '@/app/utils/curriculumData';
+import { getCurriculum, getAllLessons, isLessonUnlocked } from '@/app/utils/curriculumData';
 import { completedLessonIds, loadCurriculum, type CurriculumStore } from '@/app/utils/curriculumStore';
 import { CATEGORIES, CATEGORY_LABELS, type Category } from '@/app/components/EarTraining';
 import {
@@ -37,10 +37,13 @@ import {
 } from '@/app/utils/gamificationStore';
 import type { EarTrainingDifficulty } from '@/app/utils/earTrainingData';
 import LevelBadge from '@/app/components/LevelBadge';
-import { useTranslations } from '@/app/utils/i18n/LocaleContext';
+import { useLocale, useTranslations } from '@/app/utils/i18n/LocaleContext';
 
 export default function PlanPage() {
     const t = useTranslations('social');
+    const { locale } = useLocale();
+    const curriculum = getCurriculum(locale);
+    const allLessons = getAllLessons(locale);
     // These start from SSR-safe empty defaults and load the real localStorage
     // value in an effect (not the initializer) so the client's first render
     // matches what the server sent, avoiding a hydration mismatch.
@@ -57,13 +60,16 @@ export default function PlanPage() {
     }, []);
 
     const completed = useMemo(() => completedLessonIds(curriculumStore), [curriculumStore]);
-    const totalLessons = ALL_LESSONS.length;
+    const totalLessons = allLessons.length;
     const completedCount = completed.size;
 
-    const upcoming = useMemo(() => upcomingLessons(completed, 3), [completed]);
+    const upcoming = useMemo(
+        () => allLessons.filter((l) => !completed.has(l.id)).slice(0, 3),
+        [completed, allLessons]
+    );
     const upNext = upcoming[0] ?? null;
     const laterLessons = upcoming.slice(1);
-    const upNextUnit = upNext ? getUnitForLesson(upNext.id) : undefined;
+    const upNextUnit = upNext ? curriculum.find((u) => u.lessons.some((l) => l.id === upNext.id)) : undefined;
 
     const totalCorrect = useMemo(() => totalCorrectAnswers(progress), [progress]);
     const totalAnswered = useMemo(() => totalQuestionsAnswered(progress), [progress]);
@@ -259,7 +265,7 @@ export default function PlanPage() {
                     <BookOpen size={20} /> {t.plan.roadmap}
                 </h2>
                 <div className="space-y-4">
-                    {CURRICULUM.map((unit) => {
+                    {curriculum.map((unit) => {
                         const unitCompletedCount = unit.lessons.filter((lesson) => completed.has(lesson.id)).length;
                         const unitDone = unitCompletedCount === unit.lessons.length;
                         return (

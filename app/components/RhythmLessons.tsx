@@ -2,9 +2,9 @@
 
 import React, { useState } from 'react';
 import type { SynthController } from '@/app/utils/useSynth';
-import { RHYTHM_LESSONS } from '@/app/utils/rhythmLessons';
+import { getRhythmLessons } from '@/app/utils/rhythmLessons';
 import RhythmNotation from '@/app/components/RhythmNotation';
-import { useTranslations } from '@/app/utils/i18n/LocaleContext';
+import { useLocale, useTranslations } from '@/app/utils/i18n/LocaleContext';
 
 interface RhythmLessonsProps {
     synth: SynthController;
@@ -19,14 +19,16 @@ type SpeedKey = keyof typeof SPEEDS;
 // before attempting the graded Tap-Along tab.
 const RhythmLessons: React.FC<RhythmLessonsProps> = ({ synth }) => {
     const t = useTranslations('rhythm');
+    const { locale } = useLocale();
+    const rhythmLessons = getRhythmLessons(locale);
     const [lessonIndex, setLessonIndex] = useState(0);
     const [speed, setSpeed] = useState<SpeedKey>('normal');
-    const lesson = RHYTHM_LESSONS[lessonIndex];
+    const lesson = rhythmLessons[lessonIndex];
 
     return (
         <div className="space-y-4">
             <div className="flex flex-wrap gap-2">
-                {RHYTHM_LESSONS.map((l, i) => (
+                {rhythmLessons.map((l, i) => (
                     <button
                         key={l.id}
                         onClick={() => setLessonIndex(i)}
@@ -90,10 +92,10 @@ const RhythmLessons: React.FC<RhythmLessonsProps> = ({ synth }) => {
                 >
                     {t.lessons.previous}
                 </button>
-                <span className="theme-secondary-text text-xs">{t.lessons.progress(lessonIndex + 1, RHYTHM_LESSONS.length)}</span>
+                <span className="theme-secondary-text text-xs">{t.lessons.progress(lessonIndex + 1, rhythmLessons.length)}</span>
                 <button
-                    onClick={() => setLessonIndex((i) => Math.min(RHYTHM_LESSONS.length - 1, i + 1))}
-                    disabled={lessonIndex === RHYTHM_LESSONS.length - 1}
+                    onClick={() => setLessonIndex((i) => Math.min(rhythmLessons.length - 1, i + 1))}
+                    disabled={lessonIndex === rhythmLessons.length - 1}
                     className="px-3 py-1.5 theme-muted-bg theme-secondary-text rounded-lg text-sm hover:opacity-90 disabled:opacity-50"
                 >
                     {t.lessons.next}

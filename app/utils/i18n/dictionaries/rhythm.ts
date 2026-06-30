@@ -13,6 +13,7 @@ export interface RhythmDict {
             tempo: (bpm: number) => string;
             start: string;
             stop: string;
+            durationLabels: Record<string, string>;
         };
     };
     lessons: {
@@ -80,6 +81,17 @@ export const en: RhythmDict = {
             tempo: (bpm) => `Tempo: ${bpm} BPM`,
             start: '▶ Start',
             stop: '■ Stop',
+            durationLabels: {
+                'whole': 'Whole note',
+                'dotted-half': 'Dotted half note',
+                'half': 'Half note',
+                'dotted-quarter': 'Dotted quarter note',
+                'quarter': 'Quarter note',
+                'dotted-eighth': 'Dotted eighth note',
+                'eighth': 'Eighth note',
+                'triplet-eighth': 'Eighth note triplet',
+                'sixteenth': 'Sixteenth note',
+            },
         },
     },
     lessons: {
@@ -148,6 +160,17 @@ export const ro: RhythmDict = {
             tempo: (bpm) => `Tempo: ${bpm} BPM`,
             start: '▶ Pornește',
             stop: '■ Oprește',
+            durationLabels: {
+                'whole': 'Notă întreagă',
+                'dotted-half': 'Notă de jumătate cu punct',
+                'half': 'Notă de jumătate',
+                'dotted-quarter': 'Pătrime cu punct',
+                'quarter': 'Pătrime',
+                'dotted-eighth': 'Optime cu punct',
+                'eighth': 'Optime',
+                'triplet-eighth': 'Triolă de optimi',
+                'sixteenth': 'Șaisprezecime',
+            },
         },
     },
     lessons: {

@@ -1,5 +1,6 @@
 import type { EarTrainingDifficulty } from '@/app/utils/earTrainingData';
 import type { Category as PracticeCategory } from '@/app/components/EarTraining';
+import { CURRICULUM_RO } from '@/app/utils/curriculumData.ro';
 
 export interface QuizQuestion {
     question: string;
@@ -1366,4 +1367,12 @@ export function upcomingLessons(completedLessonIds: ReadonlySet<string>, count: 
 
 export function nextIncompleteLesson(completedLessonIds: ReadonlySet<string>): Lesson | null {
     return upcomingLessons(completedLessonIds, 1)[0] ?? null;
+}
+
+export function getCurriculum(locale: string): Unit[] {
+    return locale === 'ro' ? CURRICULUM_RO : CURRICULUM;
+}
+
+export function getAllLessons(locale: string): Lesson[] {
+    return getCurriculum(locale).flatMap((unit) => unit.lessons);
 }
