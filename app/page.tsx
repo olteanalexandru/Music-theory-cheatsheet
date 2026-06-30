@@ -1,80 +1,80 @@
+'use client';
+
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import ScrollHint from '@/app/components/ScrollHint';
-
-const STATS: { value: string; label: string }[] = [
-    { value: '8', label: 'Practice tools, one app' },
-    { value: '2', label: 'File formats Play Along reads — MIDI & Guitar Pro' },
-    { value: '0', label: 'Signups needed to start practicing' },
-];
-
-const FEATURE_ROWS: {
-    eyebrow: string;
-    title: string;
-    description: string;
-    image: string;
-    imageAlt: string;
-    reverse?: boolean;
-}[] = [
-    {
-        eyebrow: 'Fretboard Navigator',
-        title: 'See the scale before you play a note.',
-        description:
-            'Pick a root, a mode, a tuning. The fretboard lights up across as many strings and frets as your instrument has — guitar, bass, anything in between.',
-        image: '/screenshots/fretboard.png',
-        imageAlt: 'Fretboard Navigator showing a C Ionian scale pattern across a 4-string bass',
-    },
-    {
-        eyebrow: 'Ear Training',
-        title: "Train the part theory can't teach.",
-        description:
-            'Intervals, chords, scales, rhythm, key signatures, even fretboard recognition — drilled against a real synth engine, not a folder of static audio clips.',
-        image: '/screenshots/ear-training.png',
-        imageAlt: 'Ear training drill categories, difficulty controls, and a practice session',
-        reverse: true,
-    },
-    {
-        eyebrow: 'Progress & Achievements',
-        title: 'Practice that keeps score.',
-        description:
-            'XP, levels, and achievements track every session automatically. Share a progress card with one tap, or just watch the level counter move.',
-        image: '/screenshots/gamification.png',
-        imageAlt: 'Level, XP bar, and achievements panel',
-    },
-];
+import { useTranslations } from '@/app/utils/i18n/LocaleContext';
 
 export default function LandingPage() {
+    const t = useTranslations('marketing');
+
+    const STATS: { value: string; label: string }[] = [
+        { value: '8', label: t.home.stats.tools },
+        { value: '2', label: t.home.stats.formats },
+        { value: '0', label: t.home.stats.signups },
+    ];
+
+    const FEATURE_ROWS: {
+        eyebrow: string;
+        title: string;
+        description: string;
+        image: string;
+        imageAlt: string;
+        reverse?: boolean;
+    }[] = [
+        {
+            eyebrow: t.home.featureRows.fretboard.eyebrow,
+            title: t.home.featureRows.fretboard.title,
+            description: t.home.featureRows.fretboard.description,
+            image: '/screenshots/fretboard.png',
+            imageAlt: t.home.featureRows.fretboard.imageAlt,
+        },
+        {
+            eyebrow: t.home.featureRows.earTraining.eyebrow,
+            title: t.home.featureRows.earTraining.title,
+            description: t.home.featureRows.earTraining.description,
+            image: '/screenshots/ear-training.png',
+            imageAlt: t.home.featureRows.earTraining.imageAlt,
+            reverse: true,
+        },
+        {
+            eyebrow: t.home.featureRows.progress.eyebrow,
+            title: t.home.featureRows.progress.title,
+            description: t.home.featureRows.progress.description,
+            image: '/screenshots/gamification.png',
+            imageAlt: t.home.featureRows.progress.imageAlt,
+        },
+    ];
+
     return (
         <div className="theme-bg">
             <section className="max-w-7xl mx-auto px-4 md:px-8 pt-16 md:pt-24 pb-20 md:pb-28">
                 <div className="grid md:grid-cols-2 gap-12 md:gap-8 items-center">
                     <div>
                         <p className="text-xs font-semibold uppercase tracking-widest theme-secondary-text mb-6">
-                            Fretboard · Ear training · Notation · Curriculum
+                            {t.home.heroEyebrow}
                         </p>
                         <h1 className="text-5xl md:text-7xl font-bold theme-text tracking-tight leading-[1.05] mb-6">
-                            Music theory
+                            {t.home.heroTitleLine1}
                             <br />
-                            you can{' '}
-                            <span className="inline-block theme-accent-bg px-2">actually play.</span>
+                            {t.home.heroTitleLine2Prefix}{' '}
+                            <span className="inline-block theme-accent-bg px-2">{t.home.heroTitleHighlight}</span>
                         </h1>
                         <p className="text-lg theme-secondary-text max-w-lg mb-10">
-                            An interactive fretboard, ear trainer, and play-along tool for guitar and bass —
-                            built so the theory sticks because your hands learned it, not because you
-                            memorized a chart.
+                            {t.home.heroSubtitle}
                         </p>
                         <div className="flex flex-wrap items-center gap-6">
                             <Link
                                 href="/app"
                                 className="inline-flex items-center gap-2 px-6 py-3 theme-btn rounded-md font-semibold hover:opacity-90"
                             >
-                                Open the app <ArrowRight size={18} />
+                                {t.home.openApp} <ArrowRight size={18} />
                             </Link>
                             <Link
                                 href="/features"
                                 className="inline-flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide theme-secondary-text hover:theme-text"
                             >
-                                See every feature <ArrowRight size={14} />
+                                {t.home.seeEveryFeature} <ArrowRight size={14} />
                             </Link>
                         </div>
                     </div>
@@ -88,7 +88,7 @@ export default function LandingPage() {
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                                 src="/screenshots/hero-app.png"
-                                alt="The Music Theory practice app: fretboard navigator, gamification panel, and navigation"
+                                alt={t.home.heroImageAlt}
                                 className="min-w-[640px] w-full h-auto block"
                             />
                         </ScrollHint>
@@ -138,27 +138,26 @@ export default function LandingPage() {
                 <div className="grid md:grid-cols-2 gap-12 items-center">
                     <div>
                         <p className="text-xs font-semibold uppercase tracking-widest theme-secondary-text mb-4">
-                            Community
+                            {t.home.communityEyebrow}
                         </p>
                         <h2 className="text-3xl md:text-4xl font-bold theme-text tracking-tight mb-4">
-                            Practice sticks when it&apos;s social.
+                            {t.home.communityTitle}
                         </h2>
                         <p className="theme-secondary-text max-w-md mb-8">
-                            Build a public profile, follow other musicians, and compare levels and streaks
-                            on the leaderboard. Practicing alone is optional, not required.
+                            {t.home.communityDescription}
                         </p>
                         <Link
                             href="/community"
                             className="inline-flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide theme-secondary-text hover:theme-text"
                         >
-                            More on community <ArrowRight size={14} />
+                            {t.home.moreOnCommunity} <ArrowRight size={14} />
                         </Link>
                     </div>
                     <ScrollHint className="theme-card rounded-lg shadow-lg">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                             src="/screenshots/leaderboard.png"
-                            alt="Leaderboard page with Global and Friends toggle"
+                            alt={t.home.leaderboardImageAlt}
                             className="min-w-[640px] w-full h-auto block"
                         />
                     </ScrollHint>
@@ -168,13 +167,13 @@ export default function LandingPage() {
             <section className="theme-secondary-bg border-t border-white/10">
                 <div className="max-w-4xl mx-auto px-4 md:px-8 py-20 md:py-28 text-center">
                     <h2 className="text-4xl md:text-5xl font-bold theme-text tracking-tight mb-8">
-                        Pick a root note. Start playing.
+                        {t.home.ctaTitle}
                     </h2>
                     <Link
                         href="/app"
                         className="inline-flex items-center gap-2 px-7 py-3.5 theme-btn rounded-md font-semibold text-lg hover:opacity-90"
                     >
-                        Open the app <ArrowRight size={20} />
+                        {t.home.openApp} <ArrowRight size={20} />
                     </Link>
                 </div>
             </section>

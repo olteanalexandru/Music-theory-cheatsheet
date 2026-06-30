@@ -1,57 +1,62 @@
+'use client';
+
 import Link from 'next/link';
 import { ArrowRight, Guitar, Compass, Music, Drum, Ear, PlayCircle, BookOpen, type LucideIcon } from 'lucide-react';
-
-const TOOLS: { href: string; title: string; description: string; icon: LucideIcon }[] = [
-    {
-        href: '/app/fretboard',
-        title: 'Fretboard Navigator',
-        description: 'Explore modes, scales, arpeggios, and chords on bass or guitar.',
-        icon: Guitar,
-    },
-    {
-        href: '/app/circle-of-fifths',
-        title: 'Circle of Fifths',
-        description: 'Visualize key relationships and click around the circle to hear them.',
-        icon: Compass,
-    },
-    {
-        href: '/app/staff',
-        title: 'Interactive Staff',
-        description: 'Read and play notes on a standard staff in any key.',
-        icon: Music,
-    },
-    {
-        href: '/app/rhythm',
-        title: 'Rhythm Trainer',
-        description: 'Practice reading and counting rhythmic notation.',
-        icon: Drum,
-    },
-    {
-        href: '/app/ear-training',
-        title: 'Ear Training',
-        description: 'Drill intervals, chords, scales, and progressions by ear.',
-        icon: Ear,
-    },
-    {
-        href: '/app/play-along',
-        title: 'Play Along',
-        description: 'Load a MIDI or Guitar Pro file and play along with real-time feedback.',
-        icon: PlayCircle,
-    },
-    {
-        href: '/app/curriculum',
-        title: 'Curriculum',
-        description: 'Work through structured lessons and quizzes, from fundamentals to advanced harmony.',
-        icon: BookOpen,
-    },
-];
+import { useTranslations } from '@/app/utils/i18n/LocaleContext';
 
 export default function AppHubPage() {
+    const t = useTranslations('tools');
+
+    const TOOLS: { href: string; title: string; description: string; icon: LucideIcon }[] = [
+        {
+            href: '/app/fretboard',
+            title: t.hub.fretboard.title,
+            description: t.hub.fretboard.description,
+            icon: Guitar,
+        },
+        {
+            href: '/app/circle-of-fifths',
+            title: t.hub.circleOfFifths.title,
+            description: t.hub.circleOfFifths.description,
+            icon: Compass,
+        },
+        {
+            href: '/app/staff',
+            title: t.hub.staff.title,
+            description: t.hub.staff.description,
+            icon: Music,
+        },
+        {
+            href: '/app/rhythm',
+            title: t.hub.rhythm.title,
+            description: t.hub.rhythm.description,
+            icon: Drum,
+        },
+        {
+            href: '/app/ear-training',
+            title: t.hub.earTraining.title,
+            description: t.hub.earTraining.description,
+            icon: Ear,
+        },
+        {
+            href: '/app/play-along',
+            title: t.hub.playAlong.title,
+            description: t.hub.playAlong.description,
+            icon: PlayCircle,
+        },
+        {
+            href: '/app/curriculum',
+            title: t.hub.curriculum.title,
+            description: t.hub.curriculum.description,
+            icon: BookOpen,
+        },
+    ];
+
     return (
         <div>
             <div className="mb-8 text-center md:text-left">
-                <h1 className="text-2xl md:text-3xl font-bold theme-text mb-2">Practice Tools</h1>
-                <p className="theme-secondary-text">Pick a tool to start practicing. Your audio and MIDI settings carry over between them.</p>
+                <h1 className="text-2xl md:text-3xl font-bold theme-text mb-2">{t.hub.title}</h1>
+                <p className="theme-secondary-text">{t.hub.subtitle}</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

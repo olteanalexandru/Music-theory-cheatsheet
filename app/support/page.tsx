@@ -16,6 +16,7 @@ import {
     type TicketCategory,
     type TicketMessage,
 } from '@/app/utils/ticketStore';
+import { useTranslations } from '@/app/utils/i18n/LocaleContext';
 
 function Centered({ children }: { children: React.ReactNode }) {
     return <div className="max-w-xl mx-auto px-4 py-24 text-center theme-secondary-text">{children}</div>;
@@ -30,6 +31,7 @@ const STATUS_BADGE_CLASS: Record<string, string> = {
 
 export default function SupportPage() {
     const { user, loading: authLoading } = useAuth();
+    const t = useTranslations('social');
     const [loading, setLoading] = useState(true);
     const [tickets, setTickets] = useState<SupportTicket[]>([]);
     const [selected, setSelected] = useState<SupportTicket | null>(null);
@@ -81,7 +83,7 @@ export default function SupportPage() {
         const { ticket, error } = await createTicket(supabase, user.id, { subject, category, body });
         setCreating(false);
         if (error || !ticket) {
-            setCreateError(error ?? 'Could not create ticket');
+            setCreateError(error ?? t.support.couldNotCreate);
             return;
         }
         setShowNewTicket(false);
@@ -111,18 +113,18 @@ export default function SupportPage() {
     }
 
     if (!getSupabaseClient()) {
-        return <Centered>Support tickets require cloud sync, which isn&apos;t configured for this deployment.</Centered>;
+        return <Centered>{t.support.cloudSyncRequired}</Centered>;
     }
 
     if (!user) {
-        return <Centered>Sign in to contact support.</Centered>;
+        return <Centered>{t.support.signInToContact}</Centered>;
     }
 
     if (selected) {
         return (
             <div className="max-w-2xl mx-auto px-4 md:px-8 py-10">
                 <button onClick={() => setSelected(null)} className="flex items-center gap-1 text-sm theme-secondary-text hover:theme-text mb-4">
-                    <ArrowLeft size={14} /> Back to tickets
+                    <ArrowLeft size={14} /> {t.support.backToTickets}
                 </button>
                 <div className="theme-card rounded-xl shadow-lg p-6 mb-4">
                     <div className="flex items-center justify-between gap-4 mb-1">
@@ -141,7 +143,7 @@ export default function SupportPage() {
                         {messages.map((m) => (
                             <li key={m.id} className="theme-card rounded-xl p-4">
                                 <p className="text-xs theme-secondary-text mb-1">
-                                    {m.authorId === user.id ? 'You' : m.authorUsername} · {new Date(m.createdAt).toLocaleString()}
+                                    {m.authorId === user.id ? t.support.you : m.authorUsername} · {new Date(m.createdAt).toLocaleString()}
                                 </p>
                                 <p className="theme-text text-sm whitespace-pre-wrap">{m.body}</p>
                             </li>
@@ -153,7 +155,7 @@ export default function SupportPage() {
                     <input
                         value={reply}
                         onChange={(e) => setReply(e.target.value)}
-                        placeholder="Write a reply…"
+                        placeholder={t.support.replyPlaceholder}
                         className="flex-1 rounded-lg theme-muted-bg theme-text px-3 py-2 text-sm outline-none"
                     />
                     <button
@@ -161,7 +163,7 @@ export default function SupportPage() {
                         disabled={sending || !reply.trim()}
                         className="flex items-center gap-1 px-4 py-2 theme-btn rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50"
                     >
-                        <Send size={14} /> Send
+                        <Send size={14} /> {t.support.send}
                     </button>
                 </form>
             </div>
@@ -172,17 +174,17 @@ export default function SupportPage() {
         <div className="max-w-2xl mx-auto px-4 md:px-8 py-10">
             <div className="flex items-center justify-between gap-4 mb-6">
                 <h1 className="text-2xl font-bold theme-text flex items-center gap-2">
-                    <LifeBuoy size={24} /> Support
+                    <LifeBuoy size={24} /> {t.support.title}
                 </h1>
                 <button onClick={() => setShowNewTicket((v) => !v)} className="px-4 py-2 theme-btn rounded-lg text-sm font-medium hover:opacity-90">
-                    New Ticket
+                    {t.support.newTicket}
                 </button>
             </div>
 
             {showNewTicket && (
                 <form onSubmit={handleCreate} className="theme-card rounded-xl shadow-lg p-6 mb-6 space-y-3">
                     <div>
-                        <label className="block text-sm theme-secondary-text mb-1">Subject</label>
+                        <label className="block text-sm theme-secondary-text mb-1">{t.support.subject}</label>
                         <input
                             value={subject}
                             onChange={(e) => setSubject(e.target.value)}
@@ -192,7 +194,7 @@ export default function SupportPage() {
                         />
                     </div>
                     <div>
-                        <label className="block text-sm theme-secondary-text mb-1">Category</label>
+                        <label className="block text-sm theme-secondary-text mb-1">{t.support.category}</label>
                         <div className="flex flex-wrap gap-2">
                             {TICKET_CATEGORIES.map((cat) => (
                                 <button
@@ -209,7 +211,7 @@ export default function SupportPage() {
                         </div>
                     </div>
                     <div>
-                        <label className="block text-sm theme-secondary-text mb-1">How can we help?</label>
+                        <label className="block text-sm theme-secondary-text mb-1">{t.support.howCanWeHelp}</label>
                         <textarea
                             value={body}
                             onChange={(e) => setBody(e.target.value)}
@@ -225,13 +227,13 @@ export default function SupportPage() {
                         disabled={creating}
                         className="px-4 py-2 theme-btn rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50"
                     >
-                        {creating ? 'Sending…' : 'Submit Ticket'}
+                        {creating ? t.support.sending : t.support.submitTicket}
                     </button>
                 </form>
             )}
 
             {tickets.length === 0 ? (
-                <p className="theme-secondary-text text-center py-16">No tickets yet — open one above if you need help.</p>
+                <p className="theme-secondary-text text-center py-16">{t.support.noTicketsYet}</p>
             ) : (
                 <ul className="theme-card rounded-xl shadow-lg divide-y divide-white/10 overflow-hidden">
                     {tickets.map((ticket) => (
