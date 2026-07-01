@@ -3,10 +3,11 @@
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import ScrollHint from '@/app/components/ScrollHint';
-import { useTranslations } from '@/app/utils/i18n/LocaleContext';
+import { useTranslations, useLocale } from '@/app/utils/i18n/LocaleContext';
 
 export default function CommunityPage() {
     const t = useTranslations('marketing');
+    const { locale } = useLocale();
 
     const PILLARS: { index: string; title: string; description: string }[] = [
         { index: '01', title: t.community.pillars.profiles.title, description: t.community.pillars.profiles.description },
@@ -58,7 +59,7 @@ export default function CommunityPage() {
                     <ScrollHint className="theme-card rounded-lg shadow-lg">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                            src="/screenshots/leaderboard.png"
+                            src={locale === 'ro' ? '/screenshots/leaderboard-ro.png' : '/screenshots/leaderboard.png'}
                             alt={t.community.leaderboardImageAlt}
                             className="min-w-[640px] w-full h-auto block"
                         />

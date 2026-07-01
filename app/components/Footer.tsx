@@ -149,7 +149,9 @@ const Footer = ({ theme, setTheme }: FooterProps) => {
                   }`}
                 >
                   {option.icon}
-                  <span className="hidden sm:inline">{t.footer.themes[option.value]}</span>
+                  {option.value !== 'psychedelic' && (
+                    <span className="hidden sm:inline">{t.footer.themes[option.value]}</span>
+                  )}
                 </button>
               ))}
             </div>

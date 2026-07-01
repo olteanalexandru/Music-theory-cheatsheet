@@ -3,10 +3,12 @@
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import ScrollHint from '@/app/components/ScrollHint';
-import { useTranslations } from '@/app/utils/i18n/LocaleContext';
+import { useTranslations, useLocale } from '@/app/utils/i18n/LocaleContext';
 
 export default function LandingPage() {
     const t = useTranslations('marketing');
+    const { locale } = useLocale();
+    const img = (name: string) => locale === 'ro' ? `/screenshots/${name}-ro.png` : `/screenshots/${name}.png`;
 
     const STATS: { value: string; label: string }[] = [
         { value: '8', label: t.home.stats.tools },
@@ -26,14 +28,14 @@ export default function LandingPage() {
             eyebrow: t.home.featureRows.fretboard.eyebrow,
             title: t.home.featureRows.fretboard.title,
             description: t.home.featureRows.fretboard.description,
-            image: '/screenshots/fretboard.png',
+            image: img('fretboard'),
             imageAlt: t.home.featureRows.fretboard.imageAlt,
         },
         {
             eyebrow: t.home.featureRows.earTraining.eyebrow,
             title: t.home.featureRows.earTraining.title,
             description: t.home.featureRows.earTraining.description,
-            image: '/screenshots/ear-training.png',
+            image: img('ear-training'),
             imageAlt: t.home.featureRows.earTraining.imageAlt,
             reverse: true,
         },
@@ -41,7 +43,7 @@ export default function LandingPage() {
             eyebrow: t.home.featureRows.progress.eyebrow,
             title: t.home.featureRows.progress.title,
             description: t.home.featureRows.progress.description,
-            image: '/screenshots/gamification.png',
+            image: img('gamification'),
             imageAlt: t.home.featureRows.progress.imageAlt,
         },
     ];
@@ -87,7 +89,7 @@ export default function LandingPage() {
                         <ScrollHint className="relative theme-card rounded-lg shadow-2xl">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
-                                src="/screenshots/hero-app.png"
+                                src={img('hero-app')}
                                 alt={t.home.heroImageAlt}
                                 className="min-w-[640px] w-full h-auto block"
                             />
@@ -156,7 +158,7 @@ export default function LandingPage() {
                     <ScrollHint className="theme-card rounded-lg shadow-lg">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                            src="/screenshots/leaderboard.png"
+                            src={img('leaderboard')}
                             alt={t.home.leaderboardImageAlt}
                             className="min-w-[640px] w-full h-auto block"
                         />

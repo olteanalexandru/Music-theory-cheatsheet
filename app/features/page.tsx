@@ -3,10 +3,12 @@
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import ScrollHint from '@/app/components/ScrollHint';
-import { useTranslations } from '@/app/utils/i18n/LocaleContext';
+import { useTranslations, useLocale } from '@/app/utils/i18n/LocaleContext';
 
 export default function FeaturesPage() {
     const t = useTranslations('marketing');
+    const { locale } = useLocale();
+    const img = (name: string) => locale === 'ro' ? `/screenshots/${name}-ro.png` : `/screenshots/${name}.png`;
 
     const FEATURE_ROWS: {
         eyebrow: string;
@@ -20,14 +22,14 @@ export default function FeaturesPage() {
             eyebrow: t.features.rows.fretboard.eyebrow,
             title: t.features.rows.fretboard.title,
             description: t.features.rows.fretboard.description,
-            image: '/screenshots/fretboard.png',
+            image: img('fretboard'),
             imageAlt: t.features.rows.fretboard.imageAlt,
         },
         {
             eyebrow: t.features.rows.circleOfFifths.eyebrow,
             title: t.features.rows.circleOfFifths.title,
             description: t.features.rows.circleOfFifths.description,
-            image: '/screenshots/circle-of-fifths.png',
+            image: img('circle-of-fifths'),
             imageAlt: t.features.rows.circleOfFifths.imageAlt,
             reverse: true,
         },
@@ -35,14 +37,14 @@ export default function FeaturesPage() {
             eyebrow: t.features.rows.staff.eyebrow,
             title: t.features.rows.staff.title,
             description: t.features.rows.staff.description,
-            image: '/screenshots/staff-notation.png',
+            image: img('staff-notation'),
             imageAlt: t.features.rows.staff.imageAlt,
         },
         {
             eyebrow: t.features.rows.rhythm.eyebrow,
             title: t.features.rows.rhythm.title,
             description: t.features.rows.rhythm.description,
-            image: '/screenshots/rhythm.png',
+            image: img('rhythm'),
             imageAlt: t.features.rows.rhythm.imageAlt,
             reverse: true,
         },
@@ -50,14 +52,14 @@ export default function FeaturesPage() {
             eyebrow: t.features.rows.earTraining.eyebrow,
             title: t.features.rows.earTraining.title,
             description: t.features.rows.earTraining.description,
-            image: '/screenshots/ear-training.png',
+            image: img('ear-training'),
             imageAlt: t.features.rows.earTraining.imageAlt,
         },
         {
             eyebrow: t.features.rows.curriculum.eyebrow,
             title: t.features.rows.curriculum.title,
             description: t.features.rows.curriculum.description,
-            image: '/screenshots/curriculum.png',
+            image: img('curriculum'),
             imageAlt: t.features.rows.curriculum.imageAlt,
             reverse: true,
         },
@@ -65,14 +67,14 @@ export default function FeaturesPage() {
             eyebrow: t.features.rows.playAlong.eyebrow,
             title: t.features.rows.playAlong.title,
             description: t.features.rows.playAlong.description,
-            image: '/screenshots/play-along.png',
+            image: img('play-along'),
             imageAlt: t.features.rows.playAlong.imageAlt,
         },
         {
             eyebrow: t.features.rows.progress.eyebrow,
             title: t.features.rows.progress.title,
             description: t.features.rows.progress.description,
-            image: '/screenshots/gamification.png',
+            image: img('gamification'),
             imageAlt: t.features.rows.progress.imageAlt,
             reverse: true,
         },
