@@ -19,10 +19,16 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
     // Reads localStorage only after mount, matching this codebase's existing
     // hydration-safety convention (see Footer.tsx's star generation) so the
     // server-rendered/static-export markup always matches the initial client render.
+    // Falls back to the browser's preferred language when no stored preference exists.
     useEffect(() => {
         const stored = window.localStorage.getItem(STORAGE_KEY);
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        if (isLocale(stored)) setLocaleState(stored);
+        if (isLocale(stored)) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setLocaleState(stored);
+        } else {
+            const browserLang = (navigator.language ?? '').toLowerCase();
+            if (browserLang.startsWith('ro')) setLocaleState('ro');
+        }
     }, []);
 
     const setLocale = useCallback((next: Locale) => {

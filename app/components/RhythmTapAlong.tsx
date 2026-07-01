@@ -317,18 +317,21 @@ const RhythmTapAlong: React.FC<RhythmTapAlongProps> = ({ synth, midi, audio }) =
                 {runState === 'counting-in' && (
                     <p className="theme-text text-lg font-bold">{t.tapAlong.countIn(countInBeat, beatsPerMeasure)}</p>
                 )}
+                <button
+                    onPointerDown={runState === 'listening' ? () => handleTap(performance.now()) : undefined}
+                    disabled={runState !== 'listening'}
+                    className={`px-8 py-4 rounded-lg font-bold text-lg select-none transition-colors ${
+                        runState === 'listening'
+                            ? 'theme-btn hover:opacity-90 active:opacity-75'
+                            : 'theme-muted-bg theme-secondary-text opacity-40 cursor-not-allowed'
+                    }`}
+                >
+                    {t.tapAlong.tap}
+                </button>
                 {runState === 'listening' && (
-                    <>
-                        <button
-                            onPointerDown={() => handleTap(performance.now())}
-                            className="px-8 py-4 theme-btn rounded-lg font-bold text-lg hover:opacity-90 active:opacity-75 select-none"
-                        >
-                            {t.tapAlong.tap}
-                        </button>
-                        <p className="theme-secondary-text text-sm">
-                            {t.tapAlong.liveCounts(liveCounts.hit, liveCounts.missed, gradedBeats.length)}
-                        </p>
-                    </>
+                    <p className="theme-secondary-text text-sm">
+                        {t.tapAlong.liveCounts(liveCounts.hit, liveCounts.missed, gradedBeats.length)}
+                    </p>
                 )}
                 {(runState === 'demo' || runState === 'counting-in' || runState === 'listening') && (
                     <button onClick={stop} className="px-3 py-1.5 theme-muted-bg theme-secondary-text rounded-lg text-sm hover:opacity-90">

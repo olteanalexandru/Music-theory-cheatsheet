@@ -87,8 +87,10 @@ const AppHeader: React.FC = () => {
     const appNavLinks = [
         { href: '/app', label: t.nav.practice },
         { href: '/plan', label: t.nav.plan },
-        { href: '/feed', label: t.nav.feed },
-        { href: '/challenges', label: t.nav.challenges },
+        ...(user ? [
+            { href: '/feed', label: t.nav.feed },
+            { href: '/challenges', label: t.nav.challenges },
+        ] : []),
         { href: '/leaderboard', label: t.nav.leaderboard },
         { href: '/support', label: t.nav.support },
         { href: '/profile', label: t.nav.profile },
