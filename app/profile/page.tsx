@@ -21,6 +21,7 @@ import {
 import { ACHIEVEMENTS, levelProgress, levelTitle } from '@/app/utils/gamificationStore';
 import { bestStreakAcrossCategories, loadProgress } from '@/app/utils/progressStore';
 import LevelBadge from '@/app/components/LevelBadge';
+import { useTranslations } from '@/app/utils/i18n/LocaleContext';
 
 function Centered({ children }: { children: React.ReactNode }) {
     return <div className="max-w-xl mx-auto px-4 py-24 text-center theme-secondary-text">{children}</div>;
@@ -28,6 +29,7 @@ function Centered({ children }: { children: React.ReactNode }) {
 
 function ProfileContent() {
     const { user, loading: authLoading } = useAuth();
+    const t = useTranslations('social');
     const searchParams = useSearchParams();
     const requestedUsername = searchParams.get('u');
 
@@ -137,7 +139,7 @@ function ProfileContent() {
         const supabase = getSupabaseClient();
         if (!supabase || !user) return;
         if (!isValidUsername(editUsername)) {
-            setSaveError('Username must be 3-20 characters: lowercase letters, numbers, underscores.');
+            setSaveError(t.profile.usernameInvalid);
             return;
         }
         setSaving(true);
@@ -150,7 +152,7 @@ function ProfileContent() {
         });
         setSaving(false);
         if (result.error) {
-            setSaveError(result.error.toLowerCase().includes('duplicate') ? 'That username is already taken.' : result.error);
+            setSaveError(result.error.toLowerCase().includes('duplicate') ? t.profile.usernameTaken : result.error);
             return;
         }
         setEditing(false);
@@ -166,22 +168,22 @@ function ProfileContent() {
     }
 
     if (!getSupabaseClient()) {
-        return <Centered>Profiles require cloud sync, which isn&apos;t configured for this deployment.</Centered>;
+        return <Centered>{t.profile.cloudSyncRequired}</Centered>;
     }
 
     if (notFound) {
-        return <Centered>No profile found for that username.</Centered>;
+        return <Centered>{t.profile.notFound}</Centered>;
     }
 
     if (!requestedUsername && !user) {
-        return <Centered>Sign in to view your profile.</Centered>;
+        return <Centered>{t.profile.signInToView}</Centered>;
     }
 
     if (profile && !profile.isPublic && !isOwnProfile) {
         return (
             <Centered>
                 <Lock className="mx-auto mb-2" size={24} />
-                This profile is private.
+                {t.profile.privateProfile}
             </Centered>
         );
     }
@@ -190,20 +192,20 @@ function ProfileContent() {
         return (
             <div className="max-w-xl mx-auto px-4 md:px-8 py-10">
                 <div className="theme-card rounded-xl shadow-lg p-6">
-                    <h1 className="text-xl font-bold theme-text mb-4">{profile ? 'Edit profile' : 'Create your profile'}</h1>
+                    <h1 className="text-xl font-bold theme-text mb-4">{profile ? t.profile.editProfileTitle : t.profile.createProfileTitle}</h1>
                     <form onSubmit={handleSave} className="space-y-3">
                         <div>
-                            <label className="block text-sm theme-secondary-text mb-1">Username</label>
+                            <label className="block text-sm theme-secondary-text mb-1">{t.profile.usernameLabel}</label>
                             <input
                                 value={editUsername}
                                 onChange={(e) => setEditUsername(e.target.value.toLowerCase())}
-                                placeholder="lowercase_username"
+                                placeholder={t.profile.usernamePlaceholder}
                                 required
                                 className="w-full rounded-lg theme-muted-bg theme-text px-3 py-2 text-sm outline-none"
                             />
                         </div>
                         <div>
-                            <label className="block text-sm theme-secondary-text mb-1">Display name</label>
+                            <label className="block text-sm theme-secondary-text mb-1">{t.profile.displayNameLabel}</label>
                             <input
                                 value={editDisplayName}
                                 onChange={(e) => setEditDisplayName(e.target.value)}
@@ -211,7 +213,7 @@ function ProfileContent() {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm theme-secondary-text mb-1">Bio</label>
+                            <label className="block text-sm theme-secondary-text mb-1">{t.profile.bioLabel}</label>
                             <textarea
                                 value={editBio}
                                 onChange={(e) => setEditBio(e.target.value)}
@@ -221,7 +223,7 @@ function ProfileContent() {
                         </div>
                         <label className="flex items-center gap-2 text-sm theme-secondary-text">
                             <input type="checkbox" checked={editIsPublic} onChange={(e) => setEditIsPublic(e.target.checked)} />
-                            Public profile (visible on the leaderboard and to other users)
+                            {t.profile.publicProfileLabel}
                         </label>
                         {saveError && <p className="text-sm text-red-400">{saveError}</p>}
                         <div className="flex items-center gap-2 pt-2">
@@ -230,7 +232,7 @@ function ProfileContent() {
                                 disabled={saving}
                                 className="px-4 py-2 theme-btn rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50"
                             >
-                                {saving ? 'Saving…' : 'Save profile'}
+                                {saving ? t.profile.saving : t.profile.saveProfile}
                             </button>
                             {profile && (
                                 <button
@@ -238,7 +240,7 @@ function ProfileContent() {
                                     onClick={() => setEditing(false)}
                                     className="px-4 py-2 theme-muted-bg theme-secondary-text rounded-lg text-sm hover:opacity-90"
                                 >
-                                    Cancel
+                                    {t.profile.cancel}
                                 </button>
                             )}
                         </div>
@@ -268,7 +270,7 @@ function ProfileContent() {
                             onClick={() => setEditing(true)}
                             className="flex items-center gap-1.5 px-3 py-1.5 theme-muted-bg theme-secondary-text rounded-lg text-sm hover:opacity-90 shrink-0"
                         >
-                            <Pencil size={16} /> Edit profile
+                            <Pencil size={16} /> {t.profile.editProfile}
                         </button>
                     ) : (
                         user && (
@@ -279,11 +281,11 @@ function ProfileContent() {
                             >
                                 {following ? (
                                     <>
-                                        <UserMinus size={16} /> Unfollow
+                                        <UserMinus size={16} /> {t.profile.unfollow}
                                     </>
                                 ) : (
                                     <>
-                                        <UserPlus size={16} /> Follow
+                                        <UserPlus size={16} /> {t.profile.follow}
                                     </>
                                 )}
                             </button>
@@ -295,14 +297,14 @@ function ProfileContent() {
 
                 <div className="flex items-center gap-4 mt-4 text-sm theme-secondary-text">
                     <span>
-                        <strong className="theme-text">{followerCount}</strong> Followers
+                        <strong className="theme-text">{followerCount}</strong> {t.profile.followers}
                     </span>
                     <span>
-                        <strong className="theme-text">{followingCount}</strong> Following
+                        <strong className="theme-text">{followingCount}</strong> {t.profile.following}
                     </span>
                     {bestStreak !== null && (
                         <span>
-                            <strong className="theme-text">{bestStreak}</strong> Best Streak
+                            <strong className="theme-text">{bestStreak}</strong> {t.profile.bestStreak}
                         </span>
                     )}
                 </div>
@@ -313,10 +315,10 @@ function ProfileContent() {
                     <LevelBadge level={level} />
                     <div>
                         <p className="theme-text font-semibold">
-                            Level {level} <span className="theme-secondary-text font-normal">· {levelTitle(level)}</span>
+                            {t.profile.level(level)} <span className="theme-secondary-text font-normal">· {levelTitle(level)}</span>
                         </p>
                         <p className="theme-secondary-text text-xs">
-                            {xpIntoLevel} / {xpForNextLevel} XP to next level
+                            {t.profile.xpToNextLevel(xpIntoLevel, xpForNextLevel)}
                         </p>
                     </div>
                 </div>

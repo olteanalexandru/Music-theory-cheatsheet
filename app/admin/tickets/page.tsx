@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ArrowLeft, Loader2, Send, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/app/utils/AuthContext';
+import { useTranslations } from '@/app/utils/i18n/LocaleContext';
 import { getSupabaseClient } from '@/app/utils/supabaseClient';
 import { fetchProfileByUserId } from '@/app/utils/profileStore';
 import {
@@ -36,6 +37,7 @@ const STATUS_BADGE_CLASS: Record<string, string> = {
 };
 
 export default function AdminTicketsPage() {
+    const t = useTranslations('legal');
     const { user, loading: authLoading } = useAuth();
     const [checkingAdmin, setCheckingAdmin] = useState(true);
     const [isAdmin, setIsAdmin] = useState(false);
@@ -132,15 +134,15 @@ export default function AdminTicketsPage() {
     }
 
     if (!getSupabaseClient()) {
-        return <Centered>The admin inbox requires cloud sync, which isn&apos;t configured for this deployment.</Centered>;
+        return <Centered>{t.adminTickets.requiresCloudSync}</Centered>;
     }
 
     if (!user) {
-        return <Centered>Sign in to access the admin inbox.</Centered>;
+        return <Centered>{t.adminTickets.signInRequired}</Centered>;
     }
 
     if (!isAdmin) {
-        return <Centered>You don&apos;t have access to this page.</Centered>;
+        return <Centered>{t.adminTickets.noAccess}</Centered>;
     }
 
     if (selected) {
@@ -148,14 +150,14 @@ export default function AdminTicketsPage() {
         return (
             <div className="max-w-2xl mx-auto px-4 md:px-8 py-10">
                 <button onClick={() => setSelected(null)} className="flex items-center gap-1 text-sm theme-secondary-text hover:theme-text mb-4">
-                    <ArrowLeft size={14} /> Back to inbox
+                    <ArrowLeft size={14} /> {t.adminTickets.backToInbox}
                 </button>
                 <div className="theme-card rounded-xl shadow-lg p-6 mb-4">
                     <div className="flex items-center justify-between gap-4 mb-1">
                         <h1 className="text-xl font-bold theme-text">{selected.subject}</h1>
                     </div>
                     <p className="text-xs theme-secondary-text mb-3">
-                        {owner?.display_name || owner?.username || 'Unknown user'} · {TICKET_CATEGORY_LABELS[selected.category]}
+                        {owner?.display_name || owner?.username || t.adminTickets.unknownUser} · {TICKET_CATEGORY_LABELS[selected.category]}
                     </p>
                     <div className="flex flex-wrap gap-2">
                         {TICKET_STATUSES.map((status) => (
@@ -181,7 +183,7 @@ export default function AdminTicketsPage() {
                         {messages.map((m) => (
                             <li key={m.id} className="theme-card rounded-xl p-4">
                                 <p className="text-xs theme-secondary-text mb-1">
-                                    {m.authorId === user.id ? 'You' : m.authorUsername} · {new Date(m.createdAt).toLocaleString()}
+                                    {m.authorId === user.id ? t.adminTickets.you : m.authorUsername} · {new Date(m.createdAt).toLocaleString()}
                                 </p>
                                 <p className="theme-text text-sm whitespace-pre-wrap">{m.body}</p>
                             </li>
@@ -193,7 +195,7 @@ export default function AdminTicketsPage() {
                     <input
                         value={reply}
                         onChange={(e) => setReply(e.target.value)}
-                        placeholder="Write a reply…"
+                        placeholder={t.adminTickets.writeReply}
                         className="flex-1 rounded-lg theme-muted-bg theme-text px-3 py-2 text-sm outline-none"
                     />
                     <button
@@ -201,7 +203,7 @@ export default function AdminTicketsPage() {
                         disabled={sending || !reply.trim()}
                         className="flex items-center gap-1 px-4 py-2 theme-btn rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50"
                     >
-                        <Send size={14} /> Send
+                        <Send size={14} /> {t.adminTickets.send}
                     </button>
                 </form>
             </div>
@@ -211,11 +213,11 @@ export default function AdminTicketsPage() {
     return (
         <div className="max-w-3xl mx-auto px-4 md:px-8 py-10">
             <h1 className="text-2xl font-bold theme-text flex items-center gap-2 mb-6">
-                <ShieldCheck size={24} /> Support Inbox
+                <ShieldCheck size={24} /> {t.adminTickets.supportInbox}
             </h1>
 
             {tickets.length === 0 ? (
-                <p className="theme-secondary-text text-center py-16">No tickets yet.</p>
+                <p className="theme-secondary-text text-center py-16">{t.adminTickets.noTickets}</p>
             ) : (
                 <ul className="theme-card rounded-xl shadow-lg divide-y divide-white/10 overflow-hidden">
                     {tickets.map((ticket) => {
@@ -226,7 +228,7 @@ export default function AdminTicketsPage() {
                                     <div>
                                         <p className="theme-text font-medium">{ticket.subject}</p>
                                         <p className="theme-secondary-text text-xs">
-                                            {owner?.display_name || owner?.username || 'Unknown user'} · {TICKET_CATEGORY_LABELS[ticket.category]} ·{' '}
+                                            {owner?.display_name || owner?.username || t.adminTickets.unknownUser} · {TICKET_CATEGORY_LABELS[ticket.category]} ·{' '}
                                             {new Date(ticket.updatedAt).toLocaleDateString()}
                                         </p>
                                     </div>

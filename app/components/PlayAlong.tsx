@@ -24,9 +24,8 @@ import PianoKeyboard from '@/app/components/PianoKeyboard';
 import ScoreNotation, { type ClefOverride, type NoteLabelMode } from '@/app/components/ScoreNotation';
 import NoteHighway from '@/app/components/NoteHighway';
 import ShareButton from '@/app/components/ShareButton';
-import { useAuth } from '@/app/utils/AuthContext';
-import { getSupabaseClient } from '@/app/utils/supabaseClient';
-import { listUserFiles, uploadUserFile, downloadUserFile, deleteUserFile, type UserFileRecord } from '@/app/utils/userFiles';
+import { listDriveFiles, uploadDriveFile, downloadDriveFile, deleteDriveFile, requestGoogleDriveToken, type DriveFileRecord } from '@/app/utils/googleDriveStore';
+import { useTranslations } from '@/app/utils/i18n/LocaleContext';
 
 interface PlayAlongProps {
     midi: MidiInputController;
@@ -39,11 +38,7 @@ type RunState = 'idle' | 'running' | 'paused' | 'finished';
 type ViewMode = 'roll' | 'notation' | 'highway';
 
 const GUITAR_PRO_EXTENSIONS = new Set(['gp', 'gp3', 'gp4', 'gp5', 'gpx']);
-const STRICTNESS_OPTIONS: { label: string; hitWindowMs: number }[] = [
-    { label: 'Relaxed (±300ms)', hitWindowMs: 300 },
-    { label: 'Normal (±200ms)', hitWindowMs: 200 },
-    { label: 'Strict (±120ms)', hitWindowMs: 120 },
-];
+const PIANO_STRIP_WIDTH = 36;
 
 const PIXELS_PER_MS = 0.15;
 const PLAYHEAD_FRACTION = 0.18;
@@ -72,13 +67,14 @@ function judgementColor(judgement: NoteJudgement): string {
 }
 
 const PlayAlong: React.FC<PlayAlongProps> = ({ midi, audio, synth }) => {
+    const t = useTranslations('playAlong');
     const [parsed, setParsed] = useState<ParsedScore | null>(null);
     const [fileKind, setFileKind] = useState<FileKind | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [loadError, setLoadError] = useState<string | null>(null);
     const [selectedTrack, setSelectedTrack] = useState(0);
     const [speed, setSpeed] = useState(1);
-    const [hitWindowMs, setHitWindowMs] = useState(STRICTNESS_OPTIONS[1].hitWindowMs);
+    const [hitWindowMs, setHitWindowMs] = useState(200);
     const [runState, setRunState] = useState<RunState>('idle');
     const [report, setReport] = useState<ReturnType<ScoreFollowEngine['getReport']> | null>(null);
     const [gradedNotes, setGradedNotes] = useState<GradedNote[]>([]);
@@ -99,20 +95,47 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, audio, synth }) => {
     const [metronomeOn, setMetronomeOn] = useState(false);
     const [metronomeBpm, setMetronomeBpm] = useState(120);
 
-    const { user } = useAuth();
-    const supabase = useMemo(() => getSupabaseClient(), []);
-    const [myFiles, setMyFiles] = useState<UserFileRecord[]>([]);
+    const [myFiles, setMyFiles] = useState<DriveFileRecord[]>([]);
     const [showMyFiles, setShowMyFiles] = useState(false);
     const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+    const [driveToken, setDriveToken] = useState<string | null>(null);
+    const [gisLoaded, setGisLoaded] = useState(false);
 
-    const refreshMyFiles = useCallback(() => {
-        if (!supabase || !user) return;
-        void listUserFiles(supabase, user.id).then(setMyFiles);
-    }, [supabase, user]);
+    const driveEnabled = !!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
     useEffect(() => {
-        if (user) refreshMyFiles();
-    }, [user, refreshMyFiles]);
+        if (typeof window === 'undefined' || !driveEnabled) return;
+        const existing = document.getElementById('gis-script');
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        if (existing) { setGisLoaded(true); return; }
+        const script = document.createElement('script');
+        script.id = 'gis-script';
+        script.src = 'https://accounts.google.com/gsi/client';
+        script.onload = () => setGisLoaded(true);
+        document.head.appendChild(script);
+    }, [driveEnabled]);
+
+    const refreshMyFiles = useCallback(async () => {
+        if (!driveToken) return;
+        try {
+            setMyFiles(await listDriveFiles(driveToken));
+        } catch {
+            setDriveToken(null);
+        }
+    }, [driveToken]);
+
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        if (driveToken) void refreshMyFiles();
+    }, [driveToken, refreshMyFiles]);
+
+    const connectGoogleDrive = useCallback(async () => {
+        if (!gisLoaded) return;
+        try {
+            const token = await requestGoogleDriveToken();
+            setDriveToken(token);
+        } catch { /* user cancelled or error */ }
+    }, [gisLoaded]);
 
     const engineRef = useRef<ScoreFollowEngine | null>(null);
     const elapsedAtPauseRef = useRef(0);
@@ -369,10 +392,10 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, audio, synth }) => {
                 result = await parseGuitarProFile(buffer, file.name);
                 kind = 'gp';
             } else {
-                throw new Error('Unsupported file type. Use .gp, .gp3, .gp4, .gp5, .gpx, .mid, or .midi.');
+                throw new Error(t.upload.unsupportedFileType);
             }
             if (result.notes.length === 0) {
-                throw new Error('No playable notes were found in this file.');
+                throw new Error(t.upload.noPlayableNotes);
             }
             setParsed(result);
             setFileKind(kind);
@@ -387,12 +410,12 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, audio, synth }) => {
             setClefOverride('auto');
             setShowTab(kind !== 'midi');
 
-            if (!options?.skipSave && user && supabase) {
+            if (!options?.skipSave && driveToken) {
                 setSaveState('saving');
                 try {
-                    await uploadUserFile(supabase, user.id, file, kind);
+                    await uploadDriveFile(driveToken, file, kind);
                     setSaveState('saved');
-                    refreshMyFiles();
+                    void refreshMyFiles();
                 } catch {
                     setSaveState('error');
                 }
@@ -403,14 +426,14 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, audio, synth }) => {
             setParsed(null);
             setFileKind(null);
             if (err instanceof UnsupportedScoreFormatError) {
-                setLoadError(`Could not read this Guitar Pro file: ${err.message}`);
+                setLoadError(t.upload.couldNotReadGuitarPro(err.message));
             } else {
-                setLoadError(err instanceof Error ? err.message : 'Failed to load this file.');
+                setLoadError(err instanceof Error ? err.message : t.upload.failedToLoad);
             }
         } finally {
             setIsLoading(false);
         }
-    }, [user, supabase, refreshMyFiles]);
+    }, [driveToken, refreshMyFiles, t]);
 
     const onFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -419,29 +442,29 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, audio, synth }) => {
     };
 
     const openSavedFile = useCallback(
-        async (record: UserFileRecord) => {
-            if (!supabase) return;
+        async (record: DriveFileRecord) => {
+            if (!driveToken) return;
             setShowMyFiles(false);
             setIsLoading(true);
             try {
-                const file = await downloadUserFile(supabase, record);
+                const file = await downloadDriveFile(driveToken, record);
                 await handleFile(file, { skipSave: true });
             } catch {
-                setLoadError('Could not load this saved file.');
+                setLoadError(t.upload.couldNotLoadSaved);
                 setIsLoading(false);
             }
         },
-        [supabase, handleFile]
+        [driveToken, handleFile, t]
     );
 
     const removeSavedFile = useCallback(
-        async (record: UserFileRecord, e: React.MouseEvent) => {
+        async (record: DriveFileRecord, e: React.MouseEvent) => {
             e.stopPropagation();
-            if (!supabase) return;
-            await deleteUserFile(supabase, record);
-            refreshMyFiles();
+            if (!driveToken) return;
+            await deleteDriveFile(driveToken, record);
+            void refreshMyFiles();
         },
-        [supabase, refreshMyFiles]
+        [driveToken, refreshMyFiles]
     );
 
     const start = useCallback(() => {
@@ -547,7 +570,7 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, audio, synth }) => {
                     disabled={trackNotes.length === 0}
                     className="px-4 py-2 theme-btn rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
                 >
-                    ▶ Start
+                    {t.transport.start}
                 </button>
             )}
             {runState === 'running' && (
@@ -556,13 +579,13 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, audio, synth }) => {
                         onClick={pause}
                         className="px-4 py-2 theme-muted-bg theme-secondary-text rounded-lg font-medium hover:opacity-90"
                     >
-                        ⏸ Pause
+                        {t.transport.pause}
                     </button>
                     <button
                         onClick={stopEarly}
                         className="px-4 py-2 bg-red-500 text-white rounded-lg font-medium hover:opacity-90"
                     >
-                        ■ Stop
+                        {t.transport.stop}
                     </button>
                 </>
             )}
@@ -572,21 +595,21 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, audio, synth }) => {
                         onClick={resume}
                         className="px-4 py-2 theme-btn rounded-lg font-medium hover:opacity-90"
                     >
-                        ▶ Resume
+                        {t.transport.resume}
                     </button>
                     <button
                         onClick={stopEarly}
                         className="px-4 py-2 bg-red-500 text-white rounded-lg font-medium hover:opacity-90"
                     >
-                        ■ Stop
+                        {t.transport.stop}
                     </button>
                 </>
             )}
 
             {(runState === 'running' || runState === 'paused') && (
                 <span className="text-sm theme-secondary-text">
-                    Hit: <span className="text-green-400">{liveCounts.hit}</span> · Wrong:{' '}
-                    <span className="text-red-400">{liveCounts.wrong}</span> · Missed:{' '}
+                    {t.transport.hit} <span className="text-green-400">{liveCounts.hit}</span> · {t.transport.wrong}{' '}
+                    <span className="text-red-400">{liveCounts.wrong}</span> · {t.transport.missed}{' '}
                     <span className="text-slate-400">{liveCounts.missed}</span>
                 </span>
             )}
@@ -599,16 +622,16 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, audio, synth }) => {
     const vizLegend = (
         <div className="flex items-center gap-4 mb-2 text-xs theme-secondary-text flex-wrap">
             <span className="flex items-center gap-1">
-                <span className="inline-block w-3 h-3 rounded" style={{ backgroundColor: judgementColor('pending') }} /> Upcoming
+                <span className="inline-block w-3 h-3 rounded" style={{ backgroundColor: judgementColor('pending') }} /> {t.viz.legendUpcoming}
             </span>
             <span className="flex items-center gap-1">
-                <span className="inline-block w-3 h-3 rounded" style={{ backgroundColor: judgementColor('hit') }} /> Hit
+                <span className="inline-block w-3 h-3 rounded" style={{ backgroundColor: judgementColor('hit') }} /> {t.viz.legendHit}
             </span>
             <span className="flex items-center gap-1">
-                <span className="inline-block w-3 h-3 rounded" style={{ backgroundColor: judgementColor('wrong') }} /> Wrong note
+                <span className="inline-block w-3 h-3 rounded" style={{ backgroundColor: judgementColor('wrong') }} /> {t.viz.legendWrong}
             </span>
             <span className="flex items-center gap-1">
-                <span className="inline-block w-3 h-3 rounded" style={{ backgroundColor: judgementColor('missed') }} /> Missed
+                <span className="inline-block w-3 h-3 rounded" style={{ backgroundColor: judgementColor('missed') }} /> {t.viz.legendMissed}
             </span>
         </div>
     );
@@ -622,13 +645,9 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, audio, synth }) => {
             {octaveMarkers.map((m) => (
                 <div
                     key={m.pitch}
-                    className="absolute left-0 right-0 border-t border-white/10 pointer-events-none"
-                    style={{ top: m.top }}
-                >
-                    <span className="text-[10px] theme-secondary-text px-1 leading-none bg-black/30 rounded-sm">
-                        {m.label}
-                    </span>
-                </div>
+                    className="absolute right-0 border-t border-white/10 pointer-events-none"
+                    style={{ top: m.top, left: PIANO_STRIP_WIDTH }}
+                />
             ))}
             <div
                 className="absolute top-0 bottom-0 w-px bg-yellow-400 z-10"
@@ -651,6 +670,41 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, audio, synth }) => {
                         }}
                     />
                 ))}
+            </div>
+            {/* Vertical piano key strip — overlaid on the left edge, z-20 above the scroll layer */}
+            <div
+                className="absolute top-0 left-0 overflow-hidden z-20 pointer-events-none rounded-l-lg"
+                style={{ width: PIANO_STRIP_WIDTH, height: rollHeight }}
+            >
+                {Array.from({ length: pitchRange.max - pitchRange.min + 1 }, (_, i) => {
+                    const pitch = pitchRange.max - i;
+                    const pc = pitch % 12;
+                    const isBlack = [1, 3, 6, 8, 10].includes(pc);
+                    const isC = pc === 0;
+                    return (
+                        <div
+                            key={pitch}
+                            style={{
+                                position: 'absolute',
+                                top: pitchToTop(pitch),
+                                left: 0,
+                                right: 0,
+                                height: NOTE_ROW_HEIGHT,
+                                backgroundColor: isBlack ? '#1a1a2e' : '#2a2a42',
+                                borderBottom: '1px solid rgba(255,255,255,0.05)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'flex-end',
+                            }}
+                        >
+                            {isC && (
+                                <span style={{ fontSize: 7, color: '#94a3b8', paddingRight: 2, fontFamily: 'monospace', lineHeight: 1 }}>
+                                    {noteNameFromMidi(pitch)}{Math.floor(pitch / 12) - 1}
+                                </span>
+                            )}
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );
@@ -680,7 +734,7 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, audio, synth }) => {
                     effectiveViewMode === 'roll' ? 'theme-btn' : 'theme-muted-bg theme-secondary-text'
                 }`}
             >
-                Piano Roll
+                {t.viz.pianoRoll}
             </button>
             <button
                 onClick={() => selectViewMode('notation')}
@@ -688,7 +742,7 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, audio, synth }) => {
                     effectiveViewMode === 'notation' ? 'theme-btn' : 'theme-muted-bg theme-secondary-text'
                 }`}
             >
-                {fileKind === 'midi' ? 'Staff' : 'Staff + Tab'}
+                {fileKind === 'midi' ? t.viz.staff : t.viz.staffAndTab}
             </button>
             <button
                 onClick={() => selectViewMode('highway')}
@@ -696,7 +750,7 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, audio, synth }) => {
                     effectiveViewMode === 'highway' ? 'theme-btn' : 'theme-muted-bg theme-secondary-text'
                 }`}
             >
-                Note Highway
+                {t.viz.noteHighway}
             </button>
         </div>
     );
@@ -720,7 +774,7 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, audio, synth }) => {
             {(effectiveViewMode === 'roll' || effectiveViewMode === 'highway') && (
                 <div className="flex items-center justify-between px-1 pb-2 gap-2">
                     <span className="text-sm theme-secondary-text shrink-0">
-                        {effectiveViewMode === 'highway' ? 'Note Highway' : 'Piano Roll'}
+                        {effectiveViewMode === 'highway' ? t.viz.noteHighway : t.viz.pianoRoll}
                     </span>
                     {/* While full view is open, the regular mode switcher above is
                         covered by this fixed overlay - duplicate it here so the
@@ -730,7 +784,7 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, audio, synth }) => {
                         onClick={() => setVizFullView((cur) => !cur)}
                         className="px-3 py-1 rounded-lg text-sm theme-muted-bg theme-secondary-text hover:opacity-90 shrink-0"
                     >
-                        {vizFullView ? '✕ Exit Full View' : '⤢ Full View'}
+                        {vizFullView ? t.notation.fullViewExit : t.notation.fullViewEnter}
                     </button>
                 </div>
             )}
@@ -746,15 +800,14 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, audio, synth }) => {
 
     return (
         <div className="theme-card rounded-lg p-4 md:p-6 shadow-lg">
-            <h2 className="text-2xl font-bold theme-text mb-2">Play Along</h2>
+            <h2 className="text-2xl font-bold theme-text mb-2">{t.intro.title}</h2>
             <p className="theme-secondary-text text-sm mb-6">
-                Import a Guitar Pro or MIDI file, then play it back on your MIDI keyboard (or the on-screen
-                keyboard) in real time. Notes are graded live for pitch and rhythm accuracy as the playhead scrolls.
+                {t.intro.description}
             </p>
 
             <div className="flex flex-wrap items-center gap-3 mb-4">
                 <label className="px-3 py-1.5 theme-btn rounded-lg text-sm hover:opacity-90 cursor-pointer">
-                    {isLoading ? 'Loading…' : 'Choose File'}
+                    {isLoading ? t.upload.loading : t.upload.chooseFile}
                     <input
                         type="file"
                         accept=".gp,.gp3,.gp4,.gp5,.gpx,.mid,.midi"
@@ -764,60 +817,72 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, audio, synth }) => {
                     />
                 </label>
 
-                {user && (
+                {driveEnabled && (
                     <div className="relative">
-                        <button
-                            onClick={() => setShowMyFiles((v) => !v)}
-                            className="flex items-center gap-2 px-3 py-1.5 theme-muted-bg theme-secondary-text rounded-lg text-sm hover:opacity-90"
-                        >
-                            <FolderOpen size={16} /> My Files{myFiles.length > 0 ? ` (${myFiles.length})` : ''}
-                        </button>
-                        {showMyFiles && (
-                            <div className="absolute left-0 z-20 mt-2 w-72 max-h-80 overflow-y-auto rounded-lg theme-card shadow-xl">
-                                {myFiles.length === 0 ? (
-                                    <p className="px-4 py-3 text-sm theme-secondary-text">
-                                        Files you upload while signed in are saved here automatically.
-                                    </p>
-                                ) : (
-                                    myFiles.map((record) => (
-                                        <button
-                                            key={record.id}
-                                            onClick={() => openSavedFile(record)}
-                                            className="flex w-full items-center justify-between gap-2 px-4 py-2 text-left text-sm theme-text hover:theme-muted-bg"
-                                        >
-                                            <span className="truncate">
-                                                {record.fileName}
-                                                <span className="ml-1 theme-secondary-text">
-                                                    ({record.fileKind === 'gp' ? 'Guitar Pro' : 'MIDI'})
-                                                </span>
-                                            </span>
-                                            <Trash2
-                                                size={14}
-                                                className="shrink-0 theme-secondary-text hover:text-red-400"
-                                                onClick={(e) => removeSavedFile(record, e)}
-                                            />
-                                        </button>
-                                    ))
+                        {driveToken ? (
+                            <>
+                                <button
+                                    onClick={() => setShowMyFiles((v) => !v)}
+                                    className="flex items-center gap-2 px-3 py-1.5 theme-muted-bg theme-secondary-text rounded-lg text-sm hover:opacity-90"
+                                >
+                                    <FolderOpen size={16} /> {t.upload.myFiles}{myFiles.length > 0 ? t.upload.myFilesCount(myFiles.length) : ''}
+                                </button>
+                                {showMyFiles && (
+                                    <div className="absolute left-0 z-20 mt-2 w-72 max-h-80 overflow-y-auto rounded-lg theme-card shadow-xl">
+                                        {myFiles.length === 0 ? (
+                                            <p className="px-4 py-3 text-sm theme-secondary-text">
+                                                {t.upload.noSavedFiles}
+                                            </p>
+                                        ) : (
+                                            myFiles.map((record) => (
+                                                <button
+                                                    key={record.id}
+                                                    onClick={() => openSavedFile(record)}
+                                                    className="flex w-full items-center justify-between gap-2 px-4 py-2 text-left text-sm theme-text hover:theme-muted-bg"
+                                                >
+                                                    <span className="truncate">
+                                                        {record.fileName}
+                                                        <span className="ml-1 theme-secondary-text">
+                                                            ({record.fileKind === 'gp' ? t.upload.guitarPro : t.upload.midi})
+                                                        </span>
+                                                    </span>
+                                                    <Trash2
+                                                        size={14}
+                                                        className="shrink-0 theme-secondary-text hover:text-red-400"
+                                                        onClick={(e) => removeSavedFile(record, e)}
+                                                    />
+                                                </button>
+                                            ))
+                                        )}
+                                    </div>
                                 )}
-                            </div>
+                            </>
+                        ) : (
+                            <button
+                                onClick={() => void connectGoogleDrive()}
+                                disabled={!gisLoaded}
+                                className="flex items-center gap-2 px-3 py-1.5 theme-muted-bg theme-secondary-text rounded-lg text-sm hover:opacity-90 disabled:opacity-50"
+                            >
+                                <FolderOpen size={16} /> {t.upload.myFiles}
+                            </button>
                         )}
                     </div>
                 )}
 
                 {parsed && (
                     <span className="theme-secondary-text text-sm">
-                        {parsed.title} · {fileKind === 'gp' ? 'Guitar Pro' : 'MIDI'} · {trackNotes.length} notes
+                        {t.upload.fileSummary(parsed.title, fileKind === 'gp' ? t.upload.guitarPro : t.upload.midi, trackNotes.length)}
                     </span>
                 )}
 
-                {saveState === 'saving' && <span className="text-xs theme-secondary-text">Saving to your account…</span>}
-                {saveState === 'saved' && <span className="text-xs text-green-400">Saved to your account</span>}
-                {saveState === 'error' && <span className="text-xs text-red-400">Couldn&apos;t save to your account</span>}
+                {saveState === 'saving' && <span className="text-xs theme-secondary-text">{t.upload.savingToAccount}</span>}
+                {saveState === 'saved' && <span className="text-xs text-green-400">{t.upload.savedToAccount}</span>}
+                {saveState === 'error' && <span className="text-xs text-red-400">{t.upload.saveError}</span>}
             </div>
 
-            {!user && (
+            {!driveToken && driveEnabled && (
                 <p className="text-xs theme-secondary-text mb-4">
-                    Sign in to automatically save files you upload here and reopen them on any device.
+                    {t.upload.signInHint}
                 </p>
             )}
 
@@ -834,10 +899,10 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, audio, synth }) => {
                         metronomeOn ? 'bg-red-500 text-white hover:opacity-90' : 'theme-btn hover:opacity-90'
                     }`}
                 >
-                    {metronomeOn ? '■ Stop Metronome' : '▶ Metronome'}
+                    {metronomeOn ? t.metronome.stop : t.metronome.start}
                 </button>
                 <label className="flex items-center gap-3 text-sm theme-secondary-text">
-                    Tempo: {metronomeBpm} BPM
+                    {t.metronome.tempo(metronomeBpm)}
                     <input
                         type="range"
                         min={40}
@@ -854,7 +919,7 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, audio, synth }) => {
                 <>
                     <div className="flex flex-wrap items-center gap-3 mb-4 p-3 rounded-lg theme-secondary-bg">
                         <label className="flex items-center gap-2 text-sm theme-secondary-text">
-                            Track:
+                            {t.controls.track}
                             <select
                                 value={selectedTrack}
                                 onChange={(e) => setSelectedTrack(Number(e.target.value))}
@@ -863,42 +928,40 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, audio, synth }) => {
                             >
                                 {parsed.trackNames.map((name, i) => (
                                     <option key={i} value={i}>
-                                        {name} ({trackNoteCounts[i] ?? 0} notes)
+                                        {t.controls.trackOption(name, trackNoteCounts[i] ?? 0)}
                                     </option>
                                 ))}
                             </select>
                         </label>
 
                         <label className="flex items-center gap-2 text-sm theme-secondary-text">
-                            Strictness:
+                            {t.controls.strictness}
                             <select
                                 value={hitWindowMs}
                                 onChange={(e) => setHitWindowMs(Number(e.target.value))}
                                 disabled={runState === 'running' || runState === 'paused'}
                                 className="theme-muted-bg theme-secondary-text px-2 py-1 rounded-lg text-sm"
                             >
-                                {STRICTNESS_OPTIONS.map((opt) => (
-                                    <option key={opt.hitWindowMs} value={opt.hitWindowMs}>
-                                        {opt.label}
-                                    </option>
-                                ))}
+                                <option value={300}>{t.controls.strictnessRelaxed}</option>
+                                <option value={200}>{t.controls.strictnessNormal}</option>
+                                <option value={120}>{t.controls.strictnessStrict}</option>
                             </select>
                         </label>
 
                         <label className="flex items-center gap-2 text-sm theme-secondary-text">
-                            Transpose:
+                            {t.controls.transpose}
                             <button
-                                onClick={() => setTransposeSemitones((t) => Math.max(-12, t - 1))}
+                                onClick={() => setTransposeSemitones((s) => Math.max(-12, s - 1))}
                                 disabled={runState === 'running' || runState === 'paused'}
                                 className="theme-muted-bg theme-secondary-text px-2 py-1 rounded-lg text-sm disabled:opacity-50"
                             >
                                 −
                             </button>
                             <span className="tabular-nums w-12 text-center">
-                                {transposeSemitones > 0 ? `+${transposeSemitones}` : transposeSemitones} st
+                                {t.controls.semitones(transposeSemitones > 0 ? `+${transposeSemitones}` : String(transposeSemitones))}
                             </span>
                             <button
-                                onClick={() => setTransposeSemitones((t) => Math.min(12, t + 1))}
+                                onClick={() => setTransposeSemitones((s) => Math.min(12, s + 1))}
                                 disabled={runState === 'running' || runState === 'paused'}
                                 className="theme-muted-bg theme-secondary-text px-2 py-1 rounded-lg text-sm disabled:opacity-50"
                             >
@@ -912,12 +975,12 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, audio, synth }) => {
                                 disabled={runState === 'running' || runState === 'paused'}
                                 className="px-3 py-1.5 theme-muted-bg theme-secondary-text rounded-lg text-sm hover:opacity-90 disabled:opacity-50"
                             >
-                                Tuning{activeTuning ? ' •' : ''}
+                                {t.controls.tuning}{activeTuning ? ' •' : ''}
                             </button>
                         )}
 
                         <label className="flex items-center gap-2 text-sm theme-secondary-text">
-                            Speed: {Math.round(speed * 100)}%
+                            {t.controls.speed(Math.round(speed * 100))}
                             <input
                                 type="range"
                                 min={0.25}
@@ -931,7 +994,7 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, audio, synth }) => {
 
                         <label
                             className="flex items-center gap-2 text-sm theme-secondary-text"
-                            title="Pause on each note until you play the correct pitch, no rhythm penalty."
+                            title={t.controls.waitModeTooltip}
                         >
                             <input
                                 type="checkbox"
@@ -939,7 +1002,7 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, audio, synth }) => {
                                 onChange={(e) => setWaitMode(e.target.checked)}
                                 className="accent-indigo-500"
                             />
-                            Wait Mode
+                            {t.controls.waitModeLabel}
                         </label>
 
                         <label className="flex items-center gap-2 text-sm theme-secondary-text">
@@ -950,12 +1013,12 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, audio, synth }) => {
                                 disabled={runState === 'running' || runState === 'paused'}
                                 className="accent-indigo-500"
                             />
-                            Loop
+                            {t.controls.loopLabel}
                         </label>
                         {loopEnabled && (
                             <>
                                 <label className="flex items-center gap-1 text-sm theme-secondary-text">
-                                    From
+                                    {t.controls.loopFrom}
                                     <input
                                         type="number"
                                         min={0}
@@ -966,10 +1029,10 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, audio, synth }) => {
                                         disabled={runState === 'running' || runState === 'paused'}
                                         className="theme-muted-bg theme-secondary-text px-2 py-1 rounded-lg text-sm w-16"
                                     />
-                                    s
+                                    {t.controls.seconds}
                                 </label>
                                 <label className="flex items-center gap-1 text-sm theme-secondary-text">
-                                    To
+                                    {t.controls.loopTo}
                                     <input
                                         type="number"
                                         min={0}
@@ -980,7 +1043,7 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, audio, synth }) => {
                                         disabled={runState === 'running' || runState === 'paused'}
                                         className="theme-muted-bg theme-secondary-text px-2 py-1 rounded-lg text-sm w-16"
                                     />
-                                    s
+                                    {t.controls.seconds}
                                 </label>
                             </>
                         )}
@@ -991,7 +1054,7 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, audio, synth }) => {
 
                     {parsed.notation && effectiveViewMode === 'notation' && (
                         <div className="flex flex-wrap items-center gap-2 mb-4">
-                            <span className="text-sm theme-secondary-text">Clef:</span>
+                            <span className="text-sm theme-secondary-text">{t.notation.clef}</span>
                             {(['auto', 'treble', 'bass'] as ClefOverride[]).map((option) => (
                                 <button
                                     key={option}
@@ -1000,7 +1063,7 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, audio, synth }) => {
                                         clefOverride === option ? 'theme-btn' : 'theme-muted-bg theme-secondary-text'
                                     }`}
                                 >
-                                    {option === 'auto' ? 'Auto' : option === 'treble' ? 'Treble (G)' : 'Bass (F)'}
+                                    {option === 'auto' ? t.notation.clefAuto : option === 'treble' ? t.notation.clefTreble : t.notation.clefBass}
                                 </button>
                             ))}
 
@@ -1009,11 +1072,11 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, audio, synth }) => {
                                     onClick={() => setShowTab((cur) => !cur)}
                                     className="px-3 py-1 rounded-lg text-sm theme-muted-bg theme-secondary-text ml-2"
                                 >
-                                    {showTab ? 'Hide Tab' : 'Show Tab'}
+                                    {showTab ? t.notation.hideTab : t.notation.showTab}
                                 </button>
                             )}
 
-                            <span className="text-sm theme-secondary-text ml-2">Note Labels:</span>
+                            <span className="text-sm theme-secondary-text ml-2">{t.notation.noteLabels}</span>
                             {(['off', 'names', 'solfege'] as NoteLabelMode[]).map((option) => (
                                 <button
                                     key={option}
@@ -1022,7 +1085,7 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, audio, synth }) => {
                                         noteLabelMode === option ? 'theme-btn' : 'theme-muted-bg theme-secondary-text'
                                     }`}
                                 >
-                                    {option === 'off' ? 'Off' : option === 'names' ? 'Names' : 'Solfège'}
+                                    {option === 'off' ? t.notation.noteLabelsOff : option === 'names' ? t.notation.noteLabelsNames : t.notation.noteLabelsSolfege}
                                 </button>
                             ))}
                         </div>
@@ -1035,7 +1098,7 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, audio, synth }) => {
                         return (
                             <div className="flex flex-wrap items-end gap-4 mb-4 p-3 rounded-lg theme-secondary-bg">
                                 <label className="flex items-center gap-2 text-sm theme-secondary-text">
-                                    Instrument:
+                                    {t.tuningPanel.instrument}
                                     <select
                                         value={instrument}
                                         onChange={(e) => {
@@ -1045,13 +1108,13 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, audio, synth }) => {
                                         disabled={runState === 'running' || runState === 'paused'}
                                         className="theme-muted-bg theme-secondary-text px-2 py-1 rounded-lg text-sm"
                                     >
-                                        <option value="guitar">Guitar</option>
-                                        <option value="bass">Bass</option>
+                                        <option value="guitar">{t.tuningPanel.guitar}</option>
+                                        <option value="bass">{t.tuningPanel.bass}</option>
                                     </select>
                                 </label>
 
                                 <label className="flex items-center gap-2 text-sm theme-secondary-text">
-                                    Strings:
+                                    {t.tuningPanel.strings}
                                     <select
                                         value={tuningMidi.length}
                                         onChange={(e) => setTuningPreset(instrument, Number(e.target.value))}
@@ -1074,7 +1137,7 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, audio, synth }) => {
                                                 key={stringNum}
                                                 className="flex flex-col items-center gap-1 text-xs theme-secondary-text"
                                             >
-                                                String {stringNum}
+                                                {t.tuningPanel.stringNumber(stringNum)}
                                                 <div className="flex items-center gap-1">
                                                     <select
                                                         value={pitchClassFromMidi(pitch)}
@@ -1117,7 +1180,7 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, audio, synth }) => {
                                         disabled={runState === 'running' || runState === 'paused'}
                                         className="px-3 py-1.5 theme-muted-bg theme-secondary-text rounded-lg text-sm hover:opacity-90 disabled:opacity-50"
                                     >
-                                        Reset to file tuning
+                                        {t.tuningPanel.resetToFileTuning}
                                     </button>
                                 )}
                             </div>
@@ -1126,16 +1189,13 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, audio, synth }) => {
 
                     {parsed.notation && activeTuning && (
                         <p className="text-xs theme-secondary-text mb-3">
-                            Custom tuning changes what you play in the Piano Roll, Note Highway, and live grading,
-                            but the Staff + Tab view still shows the file&apos;s original tuning.
+                            {t.notation.customTuningNotice}
                         </p>
                     )}
 
                     {fileKind === 'midi' && parsed.notation && effectiveViewMode === 'notation' && (
                         <p className="text-xs theme-secondary-text mb-3">
-                            MIDI files carry no fret/string data, so only a standard notation staff (no tab) is
-                            shown — note positions are quantized to a sixteenth-note grid and may not exactly
-                            match the original rhythm.
+                            {t.notation.midiNotationNotice}
                         </p>
                     )}
 
@@ -1184,49 +1244,48 @@ const PlayAlong: React.FC<PlayAlongProps> = ({ midi, audio, synth }) => {
 
                     {midi.permission !== 'granted' && audio.permission !== 'granted' && (
                         <p className="mt-3 text-sm theme-warning-text">
-                            Connect a MIDI device or microphone from the panel above for hands-on grading, or use the
-                            on-screen keyboard.
+                            {t.viz.connectDevicePrompt}
                         </p>
                     )}
 
                     {report && runState === 'finished' && (
                         <div className="mt-6 p-4 rounded-lg theme-secondary-bg">
                             <div className="flex items-center justify-between gap-3 mb-3">
-                                <h3 className="theme-text font-semibold">Session Report</h3>
+                                <h3 className="theme-text font-semibold">{t.report.title}</h3>
                                 <ShareButton
                                     title="Music Theory Cheatsheet"
-                                    text={`I just scored ${report.accuracyPct}% accuracy (${report.hit} hit, ${report.wrong} wrong, ${report.missed} missed) on my Play Along session in Music Theory Cheatsheet! 🎸`}
-                                    label="Share results"
+                                    text={t.report.shareText(report.accuracyPct, report.hit, report.wrong, report.missed)}
+                                    label={t.report.shareLabel}
                                 />
                             </div>
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
                                 <div>
-                                    <p className="theme-secondary-text">Accuracy</p>
+                                    <p className="theme-secondary-text">{t.report.accuracy}</p>
                                     <p className="theme-text text-xl font-bold">{report.accuracyPct}%</p>
                                 </div>
                                 <div>
-                                    <p className="theme-secondary-text">Hit</p>
+                                    <p className="theme-secondary-text">{t.report.hit}</p>
                                     <p className="text-green-400 text-xl font-bold">{report.hit}</p>
                                 </div>
                                 <div>
-                                    <p className="theme-secondary-text">Wrong</p>
+                                    <p className="theme-secondary-text">{t.report.wrong}</p>
                                     <p className="text-red-400 text-xl font-bold">{report.wrong}</p>
                                 </div>
                                 <div>
-                                    <p className="theme-secondary-text">Missed</p>
+                                    <p className="theme-secondary-text">{t.report.missed}</p>
                                     <p className="text-slate-400 text-xl font-bold">{report.missed}</p>
                                 </div>
                             </div>
                             <p className="theme-secondary-text text-sm mt-3">
-                                Extra notes played: {report.extraNotes}
+                                {t.report.extraNotes(report.extraNotes)}
                                 {report.averageTimingErrorMs !== null && (
                                     <>
                                         {' · '}
-                                        Timing: {Math.abs(report.averageTimingErrorMs) < 15
-                                            ? 'right on time, on average'
-                                            : `${Math.abs(report.averageTimingErrorMs)}ms ${
-                                                  report.averageTimingErrorMs < 0 ? 'early on average (rushing)' : 'late on average (dragging)'
-                                              }`}
+                                        {Math.abs(report.averageTimingErrorMs) < 15
+                                            ? t.report.timingOnTime
+                                            : report.averageTimingErrorMs < 0
+                                                ? t.report.timingEarly(Math.abs(report.averageTimingErrorMs))
+                                                : t.report.timingLate(Math.abs(report.averageTimingErrorMs))}
                                     </>
                                 )}
                             </p>

@@ -16,7 +16,7 @@ import {
     Target,
     Trophy,
 } from 'lucide-react';
-import { ALL_LESSONS, CURRICULUM, getUnitForLesson, isLessonUnlocked, upcomingLessons } from '@/app/utils/curriculumData';
+import { getCurriculum, getAllLessons, isLessonUnlocked } from '@/app/utils/curriculumData';
 import { completedLessonIds, loadCurriculum, type CurriculumStore } from '@/app/utils/curriculumStore';
 import { CATEGORIES, CATEGORY_LABELS, type Category } from '@/app/components/EarTraining';
 import {
@@ -37,8 +37,13 @@ import {
 } from '@/app/utils/gamificationStore';
 import type { EarTrainingDifficulty } from '@/app/utils/earTrainingData';
 import LevelBadge from '@/app/components/LevelBadge';
+import { useLocale, useTranslations } from '@/app/utils/i18n/LocaleContext';
 
 export default function PlanPage() {
+    const t = useTranslations('social');
+    const { locale } = useLocale();
+    const curriculum = getCurriculum(locale);
+    const allLessons = getAllLessons(locale);
     // These start from SSR-safe empty defaults and load the real localStorage
     // value in an effect (not the initializer) so the client's first render
     // matches what the server sent, avoiding a hydration mismatch.
@@ -55,13 +60,16 @@ export default function PlanPage() {
     }, []);
 
     const completed = useMemo(() => completedLessonIds(curriculumStore), [curriculumStore]);
-    const totalLessons = ALL_LESSONS.length;
+    const totalLessons = allLessons.length;
     const completedCount = completed.size;
 
-    const upcoming = useMemo(() => upcomingLessons(completed, 3), [completed]);
+    const upcoming = useMemo(
+        () => allLessons.filter((l) => !completed.has(l.id)).slice(0, 3),
+        [completed, allLessons]
+    );
     const upNext = upcoming[0] ?? null;
     const laterLessons = upcoming.slice(1);
-    const upNextUnit = upNext ? getUnitForLesson(upNext.id) : undefined;
+    const upNextUnit = upNext ? curriculum.find((u) => u.lessons.some((l) => l.id === upNext.id)) : undefined;
 
     const totalCorrect = useMemo(() => totalCorrectAnswers(progress), [progress]);
     const totalAnswered = useMemo(() => totalQuestionsAnswered(progress), [progress]);
@@ -105,10 +113,10 @@ export default function PlanPage() {
         <div className="max-w-4xl mx-auto px-4 md:px-8 py-10">
             <div className="mb-8">
                 <h1 className="text-3xl font-bold theme-text flex items-center gap-2">
-                    <MapIcon size={28} /> Your Learning Plan
+                    <MapIcon size={28} /> {t.plan.title}
                 </h1>
                 <p className="theme-secondary-text mt-1">
-                    A roadmap through the curriculum, plus a daily practice session tuned to your weak spots.
+                    {t.plan.subtitle}
                 </p>
             </div>
 
@@ -117,7 +125,7 @@ export default function PlanPage() {
                     <LevelBadge level={level} />
                     <div>
                         <p className="theme-text font-semibold">
-                            Level {level} <span className="theme-secondary-text font-normal">· {levelTitle(level)}</span>
+                            {t.plan.level(level)} <span className="theme-secondary-text font-normal">· {levelTitle(level)}</span>
                         </p>
                         <div className="h-2 w-40 rounded-full theme-muted-bg overflow-hidden mt-1">
                             <div
@@ -128,32 +136,32 @@ export default function PlanPage() {
                     </div>
                 </div>
                 <div className="text-sm theme-secondary-text flex items-center gap-2">
-                    <Trophy size={16} /> {completedCount} / {totalLessons} lessons complete
+                    <Trophy size={16} /> {t.plan.lessonsComplete(completedCount, totalLessons)}
                 </div>
             </div>
 
             <section className="theme-card rounded-xl shadow-lg p-5 mb-6">
                 <h2 className="text-lg font-bold theme-text flex items-center gap-2 mb-3">
-                    <BarChart3 size={20} /> Your Stats
+                    <BarChart3 size={20} /> {t.plan.yourStats}
                 </h2>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <div className="theme-secondary-bg rounded-lg p-3">
-                        <p className="text-xs theme-secondary-text mb-1">Questions Answered</p>
+                        <p className="text-xs theme-secondary-text mb-1">{t.plan.questionsAnswered}</p>
                         <p className="text-xl font-bold theme-text">{totalAnswered}</p>
                     </div>
                     <div className="theme-secondary-bg rounded-lg p-3">
-                        <p className="text-xs theme-secondary-text mb-1">Correct Answers</p>
+                        <p className="text-xs theme-secondary-text mb-1">{t.plan.correctAnswers}</p>
                         <p className="text-xl font-bold theme-text">{totalCorrect}</p>
                     </div>
                     <div className="theme-secondary-bg rounded-lg p-3">
-                        <p className="text-xs theme-secondary-text mb-1">Overall Accuracy</p>
+                        <p className="text-xs theme-secondary-text mb-1">{t.plan.overallAccuracy}</p>
                         <p className="text-xl font-bold theme-text">
                             {overallAccuracy === null ? '—' : `${Math.round(overallAccuracy * 100)}%`}
                         </p>
                     </div>
                     <div className="theme-secondary-bg rounded-lg p-3">
                         <p className="text-xs theme-secondary-text mb-1 flex items-center gap-1">
-                            <Flame size={12} /> Best Streak
+                            <Flame size={12} /> {t.plan.bestStreak}
                         </p>
                         <p className="text-xl font-bold theme-text">{bestStreak}</p>
                     </div>
@@ -162,7 +170,7 @@ export default function PlanPage() {
 
             <section className="theme-card rounded-xl shadow-lg p-5 mb-6">
                 <h2 className="text-lg font-bold theme-text flex items-center gap-2 mb-3">
-                    <Sparkles size={20} /> Up Next
+                    <Sparkles size={20} /> {t.plan.upNext}
                 </h2>
                 {upNext ? (
                     <>
@@ -173,12 +181,12 @@ export default function PlanPage() {
                             href="/app/curriculum"
                             className="inline-flex items-center gap-1.5 px-4 py-2 theme-btn rounded-lg text-sm font-medium hover:opacity-90"
                         >
-                            Continue Lesson <ArrowRight size={14} />
+                            {t.plan.continueLesson} <ArrowRight size={14} />
                         </Link>
                         {laterLessons.length > 0 && (
                             <div className="mt-4 pt-4 border-t border-white/10">
                                 <p className="text-xs font-semibold theme-secondary-text uppercase tracking-wide mb-2">
-                                    Coming Up After This
+                                    {t.plan.comingUpAfterThis}
                                 </p>
                                 <ul className="space-y-1.5">
                                     {laterLessons.map((lesson, i) => (
@@ -195,18 +203,17 @@ export default function PlanPage() {
                     </>
                 ) : (
                     <p className="text-sm theme-secondary-text">
-                        You&apos;ve completed every lesson in the curriculum. Revisit any unit below, or head to the
-                        practice page for Expert-tier drills.
+                        {t.plan.allLessonsComplete}
                     </p>
                 )}
             </section>
 
             <section className="theme-card rounded-xl shadow-lg p-5 mb-6">
                 <h2 className="text-lg font-bold theme-text flex items-center gap-2 mb-3">
-                    <Target size={20} /> Today&apos;s Practice
+                    <Target size={20} /> {t.plan.todaysPractice}
                 </h2>
                 <p className="text-sm theme-secondary-text mb-4">
-                    A short mixed session targeting the areas that need the most attention right now.
+                    {t.plan.todaysPracticeSubtitle}
                 </p>
                 <div className="grid sm:grid-cols-3 gap-3">
                     {weakAreas.map(({ category, difficulty }) => (
@@ -217,7 +224,7 @@ export default function PlanPage() {
                         >
                             <p className="font-semibold theme-text mb-1">{CATEGORY_LABELS[category as Category]}</p>
                             <p className="text-xs theme-secondary-text flex items-center gap-1">
-                                Practice Now <ArrowRight size={12} />
+                                {t.plan.practiceNow} <ArrowRight size={12} />
                             </p>
                         </Link>
                     ))}
@@ -227,10 +234,10 @@ export default function PlanPage() {
             {achievementPreview.length > 0 && (
                 <section className="theme-card rounded-xl shadow-lg p-5 mb-6">
                     <h2 className="text-lg font-bold theme-text flex items-center gap-2 mb-3">
-                        <Award size={20} /> Almost There
+                        <Award size={20} /> {t.plan.almostThere}
                     </h2>
                     <p className="text-sm theme-secondary-text mb-4">
-                        The achievements closest to unlocking based on your current progress.
+                        {t.plan.almostThereSubtitle}
                     </p>
                     <div className="grid sm:grid-cols-3 gap-3">
                         {achievementPreview.map(({ achievement, current }) => {
@@ -244,7 +251,7 @@ export default function PlanPage() {
                                         <div className="h-full theme-accent-bg transition-all" style={{ width: `${pct}%` }} />
                                     </div>
                                     <p className="text-xs theme-secondary-text mt-1">
-                                        {current} / {target}
+                                        {t.plan.progressFraction(current, target)}
                                     </p>
                                 </div>
                             );
@@ -255,10 +262,10 @@ export default function PlanPage() {
 
             <section className="theme-card rounded-xl shadow-lg p-5">
                 <h2 className="text-lg font-bold theme-text flex items-center gap-2 mb-4">
-                    <BookOpen size={20} /> Roadmap
+                    <BookOpen size={20} /> {t.plan.roadmap}
                 </h2>
                 <div className="space-y-4">
-                    {CURRICULUM.map((unit) => {
+                    {curriculum.map((unit) => {
                         const unitCompletedCount = unit.lessons.filter((lesson) => completed.has(lesson.id)).length;
                         const unitDone = unitCompletedCount === unit.lessons.length;
                         return (
@@ -292,14 +299,14 @@ export default function PlanPage() {
                                                 <span className={!isUpNext && !unlocked ? 'theme-secondary-text opacity-60' : 'theme-text'}>
                                                     {lesson.title}
                                                 </span>
-                                                {isUpNext && <span className="text-[10px] uppercase tracking-wide font-semibold ml-auto">Up Next</span>}
+                                                {isUpNext && <span className="text-[10px] uppercase tracking-wide font-semibold ml-auto">{t.plan.upNextBadge}</span>}
                                             </li>
                                         );
                                     })}
                                 </ul>
                                 {unitDone && (
                                     <p className="text-xs theme-secondary-text mt-2 flex items-center gap-1">
-                                        <CheckCircle2 size={12} /> Unit complete
+                                        <CheckCircle2 size={12} /> {t.plan.unitComplete}
                                     </p>
                                 )}
                             </div>

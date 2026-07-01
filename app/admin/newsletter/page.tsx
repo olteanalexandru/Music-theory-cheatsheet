@@ -5,6 +5,7 @@ import { Bold, Italic, Link as LinkIcon, List, ListOrdered, Loader2, Mail, Quote
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { useAuth } from '@/app/utils/AuthContext';
+import { useTranslations } from '@/app/utils/i18n/LocaleContext';
 import { getSupabaseClient } from '@/app/utils/supabaseClient';
 import { fetchProfileByUserId } from '@/app/utils/profileStore';
 import { fetchCampaigns, fetchSubscriberCount, sendNewsletter, type NewsletterCampaign } from '@/app/utils/newsletterStore';
@@ -51,6 +52,7 @@ const EDITOR_CONTENT_CLASS =
     '[&_a]:underline [&_a]:opacity-90';
 
 export default function AdminNewsletterPage() {
+    const t = useTranslations('legal');
     const { user, loading: authLoading } = useAuth();
     const [checkingAdmin, setCheckingAdmin] = useState(true);
     const [isAdmin, setIsAdmin] = useState(false);
@@ -106,14 +108,14 @@ export default function AdminNewsletterPage() {
     const setLink = useCallback(() => {
         if (!editor) return;
         const previousUrl = editor.getAttributes('link').href as string | undefined;
-        const url = window.prompt('Link URL', previousUrl ?? 'https://');
+        const url = window.prompt(t.adminNewsletter.linkPromptLabel, previousUrl ?? 'https://');
         if (url === null) return;
         if (url === '') {
             editor.chain().focus().extendMarkRange('link').unsetLink().run();
             return;
         }
         editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
-    }, [editor]);
+    }, [editor, t]);
 
     const handleSend = async () => {
         const supabase = getSupabaseClient();
@@ -125,7 +127,7 @@ export default function AdminNewsletterPage() {
             setResult({ ok: false, message: error });
         } else {
             const sentCount = recipientCount ?? subscriberCount;
-            setResult({ ok: true, message: `Sent to ${sentCount} subscriber${sentCount === 1 ? '' : 's'}.` });
+            setResult({ ok: true, message: t.adminNewsletter.sentTo(sentCount) });
             setSubject('');
             editor.commands.clearContent();
             await load();
@@ -143,15 +145,15 @@ export default function AdminNewsletterPage() {
     }
 
     if (!getSupabaseClient()) {
-        return <Centered>The newsletter composer requires cloud sync, which isn&apos;t configured for this deployment.</Centered>;
+        return <Centered>{t.adminNewsletter.requiresCloudSync}</Centered>;
     }
 
     if (!user) {
-        return <Centered>Sign in to access the newsletter composer.</Centered>;
+        return <Centered>{t.adminNewsletter.signInRequired}</Centered>;
     }
 
     if (!isAdmin) {
-        return <Centered>You don&apos;t have access to this page.</Centered>;
+        return <Centered>{t.adminNewsletter.noAccess}</Centered>;
     }
 
     const canSend = subject.trim().length > 0 && !!editor && !editor.isEmpty && subscriberCount > 0;
@@ -159,50 +161,48 @@ export default function AdminNewsletterPage() {
     return (
         <div className="max-w-3xl mx-auto px-4 md:px-8 py-10">
             <h1 className="text-2xl font-bold theme-text flex items-center gap-2 mb-1">
-                <Mail size={24} /> Newsletter
+                <Mail size={24} /> {t.adminNewsletter.newsletter}
             </h1>
-            <p className="theme-secondary-text text-sm mb-6">
-                {subscriberCount} subscriber{subscriberCount === 1 ? '' : 's'}.
-            </p>
+            <p className="theme-secondary-text text-sm mb-6">{t.adminNewsletter.subscriberCount(subscriberCount)}</p>
 
             <div className="theme-card rounded-xl shadow-lg p-4 mb-6">
                 <input
                     value={subject}
                     onChange={(e) => setSubject(e.target.value)}
-                    placeholder="Subject"
+                    placeholder={t.adminNewsletter.subjectPlaceholder}
                     className="w-full rounded-lg theme-muted-bg theme-text px-3 py-2 text-sm font-medium outline-none mb-3"
                 />
 
                 <div className="flex flex-wrap items-center gap-1 rounded-t-lg theme-muted-bg px-2 py-1.5">
-                    <ToolbarButton label="Bold" active={editor?.isActive('bold')} onClick={() => editor?.chain().focus().toggleBold().run()}>
+                    <ToolbarButton label={t.adminNewsletter.toolbar.bold} active={editor?.isActive('bold')} onClick={() => editor?.chain().focus().toggleBold().run()}>
                         <Bold size={15} />
                     </ToolbarButton>
-                    <ToolbarButton label="Italic" active={editor?.isActive('italic')} onClick={() => editor?.chain().focus().toggleItalic().run()}>
+                    <ToolbarButton label={t.adminNewsletter.toolbar.italic} active={editor?.isActive('italic')} onClick={() => editor?.chain().focus().toggleItalic().run()}>
                         <Italic size={15} />
                     </ToolbarButton>
-                    <ToolbarButton label="Underline" active={editor?.isActive('underline')} onClick={() => editor?.chain().focus().toggleUnderline().run()}>
+                    <ToolbarButton label={t.adminNewsletter.toolbar.underline} active={editor?.isActive('underline')} onClick={() => editor?.chain().focus().toggleUnderline().run()}>
                         <UnderlineIcon size={15} />
                     </ToolbarButton>
-                    <ToolbarButton label="Heading" active={editor?.isActive('heading', { level: 2 })} onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}>
+                    <ToolbarButton label={t.adminNewsletter.toolbar.heading} active={editor?.isActive('heading', { level: 2 })} onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}>
                         H2
                     </ToolbarButton>
-                    <ToolbarButton label="Bullet list" active={editor?.isActive('bulletList')} onClick={() => editor?.chain().focus().toggleBulletList().run()}>
+                    <ToolbarButton label={t.adminNewsletter.toolbar.bulletList} active={editor?.isActive('bulletList')} onClick={() => editor?.chain().focus().toggleBulletList().run()}>
                         <List size={15} />
                     </ToolbarButton>
-                    <ToolbarButton label="Numbered list" active={editor?.isActive('orderedList')} onClick={() => editor?.chain().focus().toggleOrderedList().run()}>
+                    <ToolbarButton label={t.adminNewsletter.toolbar.numberedList} active={editor?.isActive('orderedList')} onClick={() => editor?.chain().focus().toggleOrderedList().run()}>
                         <ListOrdered size={15} />
                     </ToolbarButton>
-                    <ToolbarButton label="Quote" active={editor?.isActive('blockquote')} onClick={() => editor?.chain().focus().toggleBlockquote().run()}>
+                    <ToolbarButton label={t.adminNewsletter.toolbar.quote} active={editor?.isActive('blockquote')} onClick={() => editor?.chain().focus().toggleBlockquote().run()}>
                         <Quote size={15} />
                     </ToolbarButton>
-                    <ToolbarButton label="Link" active={editor?.isActive('link')} onClick={setLink}>
+                    <ToolbarButton label={t.adminNewsletter.toolbar.link} active={editor?.isActive('link')} onClick={setLink}>
                         <LinkIcon size={15} />
                     </ToolbarButton>
                     <span className="mx-1 h-4 w-px theme-secondary-text opacity-30" />
-                    <ToolbarButton label="Undo" onClick={() => editor?.chain().focus().undo().run()}>
+                    <ToolbarButton label={t.adminNewsletter.toolbar.undo} onClick={() => editor?.chain().focus().undo().run()}>
                         <Undo size={15} />
                     </ToolbarButton>
-                    <ToolbarButton label="Redo" onClick={() => editor?.chain().focus().redo().run()}>
+                    <ToolbarButton label={t.adminNewsletter.toolbar.redo} onClick={() => editor?.chain().focus().redo().run()}>
                         <Redo size={15} />
                     </ToolbarButton>
                 </div>
@@ -218,13 +218,11 @@ export default function AdminNewsletterPage() {
                     onClick={() => setConfirming(true)}
                     className="px-4 py-2 theme-btn rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-50"
                 >
-                    Send to {subscriberCount} subscriber{subscriberCount === 1 ? '' : 's'}
+                    {t.adminNewsletter.sendToSubscribers(subscriberCount)}
                 </button>
             ) : (
                 <div className="theme-card rounded-xl p-4 flex flex-wrap items-center gap-3">
-                    <p className="theme-text text-sm">
-                        Send &ldquo;{subject.trim()}&rdquo; to all {subscriberCount} subscriber{subscriberCount === 1 ? '' : 's'}? This can&apos;t be undone.
-                    </p>
+                    <p className="theme-text text-sm">{t.adminNewsletter.confirmSend(subject.trim(), subscriberCount)}</p>
                     <div className="flex gap-2 ml-auto">
                         <button
                             type="button"
@@ -232,7 +230,7 @@ export default function AdminNewsletterPage() {
                             disabled={sending}
                             className="px-3 py-1.5 theme-muted-bg theme-text rounded-lg text-sm disabled:opacity-50"
                         >
-                            Cancel
+                            {t.adminNewsletter.cancel}
                         </button>
                         <button
                             type="button"
@@ -240,22 +238,22 @@ export default function AdminNewsletterPage() {
                             disabled={sending}
                             className="flex items-center gap-1 px-3 py-1.5 theme-btn rounded-lg text-sm font-medium disabled:opacity-50"
                         >
-                            {sending && <Loader2 className="animate-spin" size={14} />} Confirm send
+                            {sending && <Loader2 className="animate-spin" size={14} />} {t.adminNewsletter.confirmSendButton}
                         </button>
                     </div>
                 </div>
             )}
 
-            <h2 className="text-lg font-bold theme-text mt-10 mb-3">Send history</h2>
+            <h2 className="text-lg font-bold theme-text mt-10 mb-3">{t.adminNewsletter.sendHistory}</h2>
             {campaigns.length === 0 ? (
-                <p className="theme-secondary-text text-sm">No newsletters sent yet.</p>
+                <p className="theme-secondary-text text-sm">{t.adminNewsletter.noNewslettersSent}</p>
             ) : (
                 <ul className="theme-card rounded-xl shadow-lg divide-y divide-white/10 overflow-hidden">
                     {campaigns.map((c) => (
                         <li key={c.id} className="px-4 py-3">
                             <p className="theme-text font-medium">{c.subject}</p>
                             <p className="theme-secondary-text text-xs">
-                                {new Date(c.sentAt).toLocaleString()} · {c.recipientCount} recipient{c.recipientCount === 1 ? '' : 's'}
+                                {new Date(c.sentAt).toLocaleString()} · {t.adminNewsletter.recipientCount(c.recipientCount)}
                             </p>
                         </li>
                     ))}

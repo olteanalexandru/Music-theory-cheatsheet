@@ -9,6 +9,7 @@ import { fetchFollowingIds } from '@/app/utils/profileStore';
 import { acceptChallenge, createChallenge, declineChallenge, fetchChallenges, type Challenge } from '@/app/utils/challengeStore';
 import { CATEGORIES, CATEGORY_LABELS, DIFFICULTY_LABELS, type Category } from '@/app/components/EarTraining';
 import { DIFFICULTY_LEVELS, type EarTrainingDifficulty } from '@/app/utils/earTrainingData';
+import { useTranslations } from '@/app/utils/i18n/LocaleContext';
 
 const CHALLENGE_LENGTHS = [10, 20, 50];
 
@@ -30,6 +31,7 @@ function Centered({ children }: { children: React.ReactNode }) {
 
 export default function ChallengesPage() {
     const { user, loading: authLoading } = useAuth();
+    const t = useTranslations('social');
     const [loading, setLoading] = useState(true);
     const [challenges, setChallenges] = useState<Challenge[]>([]);
     const [profilesById, setProfilesById] = useState<Map<string, ProfileRow>>(new Map());
@@ -128,34 +130,34 @@ export default function ChallengesPage() {
     }
 
     if (!getSupabaseClient()) {
-        return <Centered>Challenges require cloud sync, which isn&apos;t configured for this deployment.</Centered>;
+        return <Centered>{t.challenges.cloudSyncRequired}</Centered>;
     }
 
     if (!user) {
-        return <Centered>Sign in to challenge your friends.</Centered>;
+        return <Centered>{t.challenges.signInToChallenge}</Centered>;
     }
 
     return (
         <div className="max-w-3xl mx-auto px-4 md:px-8 py-10">
             <div className="flex items-center justify-between gap-4 mb-6">
                 <h1 className="text-2xl font-bold theme-text flex items-center gap-2">
-                    <Swords size={24} /> Challenges
+                    <Swords size={24} /> {t.challenges.title}
                 </h1>
                 <button
                     onClick={() => setShowNewChallenge((v) => !v)}
                     className="px-4 py-2 theme-btn rounded-lg text-sm font-medium hover:opacity-90"
                 >
-                    New Challenge
+                    {t.challenges.newChallenge}
                 </button>
             </div>
 
             {showNewChallenge && (
                 <form onSubmit={handleCreate} className="theme-card rounded-xl shadow-lg p-6 mb-6 space-y-3">
                     <div>
-                        <label className="block text-sm theme-secondary-text mb-1">Challenge who?</label>
+                        <label className="block text-sm theme-secondary-text mb-1">{t.challenges.challengeWho}</label>
                         {friends.length === 0 ? (
                             <p className="text-sm theme-secondary-text">
-                                You aren&apos;t following anyone yet. Follow someone from their profile first.
+                                {t.challenges.notFollowingAnyone}
                             </p>
                         ) : (
                             <select
@@ -164,7 +166,7 @@ export default function ChallengesPage() {
                                 required
                                 className="w-full rounded-lg theme-muted-bg theme-text px-3 py-2 text-sm outline-none"
                             >
-                                <option value="">Select a friend…</option>
+                                <option value="">{t.challenges.selectFriend}</option>
                                 {friends.map((friend) => (
                                     <option key={friend.userId} value={friend.userId}>
                                         {friend.displayName || friend.username}
@@ -174,7 +176,7 @@ export default function ChallengesPage() {
                         )}
                     </div>
                     <div>
-                        <label className="block text-sm theme-secondary-text mb-1">Category</label>
+                        <label className="block text-sm theme-secondary-text mb-1">{t.challenges.category}</label>
                         <div className="flex flex-wrap gap-2">
                             {CATEGORIES.map((cat) => (
                                 <button
@@ -191,7 +193,7 @@ export default function ChallengesPage() {
                         </div>
                     </div>
                     <div>
-                        <label className="block text-sm theme-secondary-text mb-1">Difficulty</label>
+                        <label className="block text-sm theme-secondary-text mb-1">{t.challenges.difficulty}</label>
                         <div className="flex flex-wrap gap-2">
                             {DIFFICULTY_LEVELS.map((level) => (
                                 <button
@@ -208,7 +210,7 @@ export default function ChallengesPage() {
                         </div>
                     </div>
                     <div>
-                        <label className="block text-sm theme-secondary-text mb-1">Length</label>
+                        <label className="block text-sm theme-secondary-text mb-1">{t.challenges.length}</label>
                         <div className="flex flex-wrap gap-2">
                             {CHALLENGE_LENGTHS.map((len) => (
                                 <button
@@ -230,20 +232,20 @@ export default function ChallengesPage() {
                         disabled={creating || friends.length === 0}
                         className="px-4 py-2 theme-btn rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50"
                     >
-                        {creating ? 'Sending…' : 'Send Challenge'}
+                        {creating ? t.challenges.sending : t.challenges.sendChallenge}
                     </button>
                 </form>
             )}
 
             {challenges.length === 0 ? (
-                <p className="theme-secondary-text text-center py-16">No challenges yet — challenge a friend above.</p>
+                <p className="theme-secondary-text text-center py-16">{t.challenges.noChallengesYet}</p>
             ) : (
                 <ul className="theme-card rounded-xl shadow-lg divide-y divide-white/10 overflow-hidden">
                     {challenges.map((challenge) => {
                         const isChallenger = challenge.challengerId === user.id;
                         const opponentId = isChallenger ? challenge.challengeeId : challenge.challengerId;
                         const opponent = profilesById.get(opponentId);
-                        const opponentName = opponent?.display_name || opponent?.username || 'Unknown';
+                        const opponentName = opponent?.display_name || opponent?.username || t.challenges.unknownOpponent;
                         const myScore = isChallenger ? challenge.challengerScore : challenge.challengeeScore;
                         const opponentScore = isChallenger ? challenge.challengeeScore : challenge.challengerScore;
 
@@ -251,20 +253,20 @@ export default function ChallengesPage() {
                             <li key={challenge.id} className="flex items-center justify-between gap-4 px-4 py-3">
                                 <div>
                                     <p className="theme-text font-medium">
-                                        {isChallenger ? 'You challenged ' : 'Challenge from '}
+                                        {isChallenger ? t.challenges.youChallenged : t.challenges.challengeFrom}
                                         {opponentName}
                                     </p>
                                     <p className="theme-secondary-text text-xs">
-                                        {CATEGORY_LABELS[challenge.category]} · {DIFFICULTY_LABELS[challenge.difficulty]} · {challenge.length} questions
+                                        {CATEGORY_LABELS[challenge.category]} · {DIFFICULTY_LABELS[challenge.difficulty]} · {t.challenges.questionsCount(challenge.length)}
                                     </p>
                                     {challenge.status === 'completed' && (
                                         <p className="theme-secondary-text text-xs mt-1">
-                                            {myScore ?? 0} vs {opponentScore ?? 0}
+                                            {t.challenges.scoreLine(myScore ?? 0, opponentScore ?? 0)}
                                             {challenge.winnerId === user.id
-                                                ? ' — You won!'
+                                                ? t.challenges.youWon
                                                 : challenge.winnerId === opponentId
-                                                ? ' — You lost.'
-                                                : ' — Tie.'}
+                                                ? t.challenges.youLost
+                                                : t.challenges.tie}
                                         </p>
                                     )}
                                 </div>
@@ -276,32 +278,32 @@ export default function ChallengesPage() {
                                                 disabled={busyId === challenge.id}
                                                 className="flex items-center gap-1 px-3 py-1.5 theme-btn rounded-lg text-sm hover:opacity-90 disabled:opacity-50"
                                             >
-                                                <Check size={14} /> Accept
+                                                <Check size={14} /> {t.challenges.accept}
                                             </button>
                                             <button
                                                 onClick={() => handleDecline(challenge.id)}
                                                 disabled={busyId === challenge.id}
                                                 className="flex items-center gap-1 px-3 py-1.5 theme-muted-bg theme-secondary-text rounded-lg text-sm hover:opacity-90 disabled:opacity-50"
                                             >
-                                                <X size={14} /> Decline
+                                                <X size={14} /> {t.challenges.decline}
                                             </button>
                                         </>
                                     )}
                                     {challenge.status === 'pending' && isChallenger && (
-                                        <span className="theme-secondary-text text-sm">Waiting…</span>
+                                        <span className="theme-secondary-text text-sm">{t.challenges.waiting}</span>
                                     )}
                                     {challenge.status === 'active' && myScore === null && (
                                         <Link
                                             href={`/app/ear-training?focus=${challenge.category}&difficulty=${challenge.difficulty}&length=${challenge.length}&challenge=${challenge.id}`}
                                             className="px-3 py-1.5 theme-btn rounded-lg text-sm hover:opacity-90"
                                         >
-                                            Play
+                                            {t.challenges.play}
                                         </Link>
                                     )}
                                     {challenge.status === 'active' && myScore !== null && (
-                                        <span className="theme-secondary-text text-sm">Waiting for opponent…</span>
+                                        <span className="theme-secondary-text text-sm">{t.challenges.waitingForOpponent}</span>
                                     )}
-                                    {challenge.status === 'declined' && <span className="theme-secondary-text text-sm">Declined</span>}
+                                    {challenge.status === 'declined' && <span className="theme-secondary-text text-sm">{t.challenges.declined}</span>}
                                 </div>
                             </li>
                         );

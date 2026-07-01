@@ -3,18 +3,13 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { useAuth } from '@/app/utils/AuthContext';
+import { useTranslations } from '@/app/utils/i18n/LocaleContext';
 
 interface AuthModalProps {
     onClose: () => void;
 }
 
 type Mode = 'signIn' | 'signUp' | 'magicLink';
-
-const MODE_LABEL: Record<Mode, string> = {
-    signIn: 'Sign in',
-    signUp: 'Create account',
-    magicLink: 'Email me a link',
-};
 
 function GoogleIcon() {
     return (
@@ -29,6 +24,8 @@ function GoogleIcon() {
 
 const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
     const { isConfigured, signInWithPassword, signUp, signInWithMagicLink, signInWithGoogle } = useAuth();
+    const t = useTranslations('common');
+    const MODE_LABEL: Record<Mode, string> = t.auth.modeLabel;
     const [mode, setMode] = useState<Mode>('signIn');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -49,11 +46,11 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
             } else if (mode === 'signUp') {
                 const result = await signUp(email, password);
                 if (result.error) setError(result.error);
-                else setInfo('Account created — check your email to confirm it, then sign in.');
+                else setInfo(t.auth.signUpSuccess);
             } else {
                 const result = await signInWithMagicLink(email);
                 if (result.error) setError(result.error);
-                else setInfo('Check your email for a sign-in link.');
+                else setInfo(t.auth.magicLinkSuccess);
             }
         } finally {
             setSubmitting(false);
@@ -81,7 +78,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
             >
                 <button
                     onClick={onClose}
-                    aria-label="Close"
+                    aria-label={t.auth.close}
                     className="absolute right-3 top-3 theme-secondary-text hover:opacity-80"
                 >
                     <X size={18} />
@@ -89,12 +86,12 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
 
                 <h2 className="text-xl font-bold theme-text mb-1">{MODE_LABEL[mode]}</h2>
                 <p className="theme-secondary-text text-sm mb-4">
-                    Sign in to save your practice progress and Play Along files across devices.
+                    {t.auth.subtitle}
                 </p>
 
                 {!isConfigured && (
                     <p className="mb-4 text-sm theme-warning-text theme-warning-bg border theme-warning-border rounded-lg px-3 py-2">
-                        Cloud sync isn&apos;t configured for this deployment yet — sign-in is unavailable.
+                        {t.auth.notConfigured}
                     </p>
                 )}
 
@@ -103,12 +100,12 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
                     disabled={!isConfigured || submitting}
                     className="mb-4 flex w-full items-center justify-center gap-2 rounded-lg theme-muted-bg theme-text px-4 py-2 font-medium hover:opacity-90 disabled:opacity-50"
                 >
-                    <GoogleIcon /> Continue with Google
+                    <GoogleIcon /> {t.auth.continueWithGoogle}
                 </button>
 
                 <div className="mb-4 flex items-center gap-2">
                     <div className="h-px flex-1 theme-muted-bg" />
-                    <span className="text-xs theme-secondary-text">or</span>
+                    <span className="text-xs theme-secondary-text">{t.auth.or}</span>
                     <div className="h-px flex-1 theme-muted-bg" />
                 </div>
 
@@ -116,7 +113,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
                     <input
                         type="email"
                         required
-                        placeholder="Email"
+                        placeholder={t.auth.emailPlaceholder}
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         disabled={!isConfigured}
@@ -126,7 +123,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
                         <input
                             type="password"
                             required
-                            placeholder="Password"
+                            placeholder={t.auth.passwordPlaceholder}
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             disabled={!isConfigured}
@@ -143,24 +140,24 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
                         disabled={!isConfigured || submitting}
                         className="w-full rounded-lg theme-btn px-4 py-2 font-medium hover:opacity-90 disabled:opacity-50"
                     >
-                        {submitting ? 'Please wait…' : MODE_LABEL[mode]}
+                        {submitting ? t.auth.pleaseWait : MODE_LABEL[mode]}
                     </button>
                 </form>
 
                 <div className="mt-4 flex flex-wrap justify-center gap-3 text-sm">
                     {mode !== 'signIn' && (
                         <button onClick={() => setMode('signIn')} className="text-indigo-400 hover:underline">
-                            Sign in
+                            {t.auth.switchToSignIn}
                         </button>
                     )}
                     {mode !== 'signUp' && (
                         <button onClick={() => setMode('signUp')} className="text-indigo-400 hover:underline">
-                            Create account
+                            {t.auth.switchToSignUp}
                         </button>
                     )}
                     {mode !== 'magicLink' && (
                         <button onClick={() => setMode('magicLink')} className="text-indigo-400 hover:underline">
-                            Email me a link instead
+                            {t.auth.switchToMagicLink}
                         </button>
                     )}
                 </div>

@@ -19,6 +19,7 @@ import {
 } from '@/app/utils/clefTrainerStore';
 import type { SynthController } from '@/app/utils/useSynth';
 import type { MidiInputController } from '@/app/utils/useMidiInput';
+import { useTranslations } from '@/app/utils/i18n/LocaleContext';
 
 interface ClefTrainerProps {
     synth: SynthController;
@@ -31,33 +32,6 @@ type TrainerMode = 'practice' | 'sprint';
 type NamingSystem = 'letters' | 'solfege-fixed' | 'solfege-movable';
 
 const NOTE_LETTERS = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
-
-const CLEF_MODE_OPTIONS: { value: ClefMode; label: string }[] = [
-    { value: 'treble', label: 'Treble' },
-    { value: 'bass', label: 'Bass' },
-    { value: 'grand', label: 'Grand Staff' },
-];
-
-const NAMING_SYSTEM_OPTIONS: { value: NamingSystem; label: string }[] = [
-    { value: 'letters', label: 'Letters' },
-    { value: 'solfege-fixed', label: 'Solfège (Fixed Do)' },
-    { value: 'solfege-movable', label: 'Solfège (Relative Do)' },
-];
-
-// Maps a question's natural letter to its display label under the active naming
-// system. Fixed-do is a constant per-letter lookup; movable/relative-do depends on
-// the question's key signature, since "Do" shifts to whichever note is the tonic.
-function noteLabel(namingSystem: NamingSystem, letter: string, keyName: string): string {
-    if (namingSystem === 'solfege-fixed') return FIXED_DO_SYLLABLES[letter];
-    if (namingSystem === 'solfege-movable') return movableDoSyllable(letter, keyName);
-    return letter;
-}
-
-const RANGE_OPTIONS: { value: RangePreset; label: string }[] = [
-    { value: 'staff', label: 'Staff Only' },
-    { value: 'extended', label: '+ Ledger Lines' },
-    { value: 'wide', label: 'Wide Range' },
-];
 
 const SPRINT_DURATIONS = [30, 60, 120];
 const KEYBOARD_PADDING_SEMITONES = 12;
@@ -83,7 +57,36 @@ function buildQuestion(mode: ClefMode, keys: string[], range: RangePreset): Note
     return generateNoteQuestion(drawClefForMode(mode), keys, range);
 }
 
+// Maps a question's natural letter to its display label under the active naming
+// system. Fixed-do is a constant per-letter lookup; movable/relative-do depends on
+// the question's key signature, since "Do" shifts to whichever note is the tonic.
+function noteLabel(namingSystem: NamingSystem, letter: string, keyName: string): string {
+    if (namingSystem === 'solfege-fixed') return FIXED_DO_SYLLABLES[letter];
+    if (namingSystem === 'solfege-movable') return movableDoSyllable(letter, keyName);
+    return letter;
+}
+
 const ClefTrainer: React.FC<ClefTrainerProps> = ({ synth, midi }) => {
+    const t = useTranslations('clefTrainer');
+
+    const CLEF_MODE_OPTIONS: { value: ClefMode; label: string }[] = [
+        { value: 'treble', label: t.settings.clefOptions.treble },
+        { value: 'bass', label: t.settings.clefOptions.bass },
+        { value: 'grand', label: t.settings.clefOptions.grand },
+    ];
+
+    const NAMING_SYSTEM_OPTIONS: { value: NamingSystem; label: string }[] = [
+        { value: 'letters', label: t.settings.namingOptions.letters },
+        { value: 'solfege-fixed', label: t.settings.namingOptions.solfegeFixed },
+        { value: 'solfege-movable', label: t.settings.namingOptions.solfegeMovable },
+    ];
+
+    const RANGE_OPTIONS: { value: RangePreset; label: string }[] = [
+        { value: 'staff', label: t.settings.rangeOptions.staff },
+        { value: 'extended', label: t.settings.rangeOptions.extended },
+        { value: 'wide', label: t.settings.rangeOptions.wide },
+    ];
+
     const [data, setData] = useState<ClefTrainerData>(() => loadClefTrainerData());
     const [mode, setMode] = useState<TrainerMode>('practice');
     const [clefMode, setClefMode] = useState<ClefMode>('treble');
@@ -310,7 +313,7 @@ const ClefTrainer: React.FC<ClefTrainerProps> = ({ synth, midi }) => {
 
     return (
         <div id="clef-trainer-section" className="theme-card rounded-lg p-4 md:p-6 shadow-lg">
-            <h3 className="text-lg md:text-xl font-bold theme-text mb-4">Clef Trainer</h3>
+            <h3 className="text-lg md:text-xl font-bold theme-text mb-4">{t.title}</h3>
 
             <div className="flex flex-wrap items-center gap-2 mb-4">
                 <button
@@ -318,18 +321,18 @@ const ClefTrainer: React.FC<ClefTrainerProps> = ({ synth, midi }) => {
                     disabled={sprintActive}
                     className={`px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 ${mode === 'practice' ? 'theme-accent-bg' : 'theme-muted-bg theme-secondary-text hover:opacity-90'}`}
                 >
-                    Practice
+                    {t.modes.practice}
                 </button>
                 <button
                     onClick={() => handleSetMode('sprint')}
                     disabled={sprintActive}
                     className={`px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 ${mode === 'sprint' ? 'theme-accent-bg' : 'theme-muted-bg theme-secondary-text hover:opacity-90'}`}
                 >
-                    Speed Run
+                    {t.modes.speedRun}
                 </button>
                 {mode === 'practice' && (
                     <span className="theme-secondary-text text-sm ml-auto">
-                        Score: {score.correct} / {score.total}
+                        {t.modes.score(score.correct, score.total)}
                     </span>
                 )}
             </div>
@@ -337,13 +340,13 @@ const ClefTrainer: React.FC<ClefTrainerProps> = ({ synth, midi }) => {
             <ClefTrainerStats data={data} onReset={handleResetStats} />
             {weakNoteCount > 0 && (
                 <p className="theme-secondary-text text-xs mb-4 -mt-2">
-                    You have {weakNoteCount} note{weakNoteCount === 1 ? '' : 's'} under 70% accuracy - see Note Reading Stats above.
+                    {t.weakNotes(weakNoteCount)}
                 </p>
             )}
 
             <div className="mb-6 p-4 rounded-lg theme-secondary-bg space-y-3">
                 <div>
-                    <p className="theme-secondary-text text-xs font-semibold uppercase tracking-wide mb-1.5">Clef</p>
+                    <p className="theme-secondary-text text-xs font-semibold uppercase tracking-wide mb-1.5">{t.settings.clef}</p>
                     <div className="flex flex-wrap gap-1.5">
                         {CLEF_MODE_OPTIONS.map((option) => (
                             <button
@@ -359,7 +362,7 @@ const ClefTrainer: React.FC<ClefTrainerProps> = ({ synth, midi }) => {
                 </div>
 
                 <div>
-                    <p className="theme-secondary-text text-xs font-semibold uppercase tracking-wide mb-1.5">Range</p>
+                    <p className="theme-secondary-text text-xs font-semibold uppercase tracking-wide mb-1.5">{t.settings.range}</p>
                     <div className="flex flex-wrap gap-1.5">
                         {RANGE_OPTIONS.map((option) => (
                             <button
@@ -376,13 +379,13 @@ const ClefTrainer: React.FC<ClefTrainerProps> = ({ synth, midi }) => {
 
                 <div>
                     <div className="flex items-center justify-between mb-1.5">
-                        <p className="theme-secondary-text text-xs font-semibold uppercase tracking-wide">Key Signatures</p>
+                        <p className="theme-secondary-text text-xs font-semibold uppercase tracking-wide">{t.settings.keySignatures}</p>
                         <div className="flex gap-2">
                             <button onClick={() => handleSelectKeyPreset(['C'])} disabled={sprintActive} className="text-xs theme-secondary-text underline disabled:opacity-50">
-                                Just C
+                                {t.settings.justC}
                             </button>
                             <button onClick={() => handleSelectKeyPreset(KEY_NAMES)} disabled={sprintActive} className="text-xs theme-secondary-text underline disabled:opacity-50">
-                                All 12 Keys
+                                {t.settings.all12Keys}
                             </button>
                         </div>
                     </div>
@@ -404,7 +407,7 @@ const ClefTrainer: React.FC<ClefTrainerProps> = ({ synth, midi }) => {
                 </div>
 
                 <div>
-                    <p className="theme-secondary-text text-xs font-semibold uppercase tracking-wide mb-1.5">Note Naming</p>
+                    <p className="theme-secondary-text text-xs font-semibold uppercase tracking-wide mb-1.5">{t.settings.noteNaming}</p>
                     <div className="flex flex-wrap gap-1.5">
                         {NAMING_SYSTEM_OPTIONS.map((option) => (
                             <button
@@ -420,14 +423,14 @@ const ClefTrainer: React.FC<ClefTrainerProps> = ({ synth, midi }) => {
                 </div>
 
                 <div>
-                    <p className="theme-secondary-text text-xs font-semibold uppercase tracking-wide mb-1.5">Answer With</p>
+                    <p className="theme-secondary-text text-xs font-semibold uppercase tracking-wide mb-1.5">{t.settings.answerWith}</p>
                     <div className="flex flex-wrap items-center gap-2">
                         <button
                             onClick={() => setAnswerMode('choices')}
                             disabled={sprintActive}
                             className={`px-3 py-1.5 rounded-lg text-sm font-medium disabled:opacity-50 ${answerMode === 'choices' ? 'theme-accent-bg' : 'theme-muted-bg theme-secondary-text hover:opacity-90'}`}
                         >
-                            Multiple Choice
+                            {t.settings.multipleChoice}
                         </button>
                         {midi.permission === 'granted' ? (
                             <button
@@ -435,11 +438,11 @@ const ClefTrainer: React.FC<ClefTrainerProps> = ({ synth, midi }) => {
                                 disabled={sprintActive}
                                 className={`px-3 py-1.5 rounded-lg text-sm font-medium disabled:opacity-50 ${answerMode === 'midi' ? 'theme-accent-bg' : 'theme-muted-bg theme-secondary-text hover:opacity-90'}`}
                             >
-                                Play the Note
+                                {t.settings.playTheNote}
                             </button>
                         ) : (
                             <button onClick={midi.connect} className="px-3 py-1.5 theme-muted-bg theme-secondary-text rounded-lg text-sm hover:opacity-90">
-                                {midi.permission === 'pending' ? 'Connecting…' : 'Connect MIDI Keyboard'}
+                                {midi.permission === 'pending' ? t.settings.connecting : t.settings.connectMidiKeyboard}
                             </button>
                         )}
                     </div>
@@ -448,7 +451,7 @@ const ClefTrainer: React.FC<ClefTrainerProps> = ({ synth, midi }) => {
 
             {mode === 'sprint' && !sprintActive && !sprintResult && (
                 <div className="mb-6 p-4 rounded-lg theme-secondary-bg text-center">
-                    <p className="theme-text font-semibold mb-3">Speed Run</p>
+                    <p className="theme-text font-semibold mb-3">{t.sprint.title}</p>
                     <div className="flex justify-center gap-2 mb-4">
                         {SPRINT_DURATIONS.map((d) => (
                             <button
@@ -461,17 +464,17 @@ const ClefTrainer: React.FC<ClefTrainerProps> = ({ synth, midi }) => {
                         ))}
                     </div>
                     <button onClick={startSprint} className="px-5 py-2 theme-accent-bg rounded-lg font-semibold hover:opacity-90">
-                        Start Speed Run
+                        {t.sprint.start}
                     </button>
                 </div>
             )}
 
             {mode === 'sprint' && sprintActive && (
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-2 p-3 rounded-lg theme-secondary-bg">
-                    <span className="theme-text font-semibold">{Math.ceil(sprintRemainingMs / 1000)}s left</span>
-                    <span className="theme-secondary-text text-sm">{score.correct} / {score.total} correct</span>
+                    <span className="theme-text font-semibold">{t.sprint.secondsLeft(Math.ceil(sprintRemainingMs / 1000))}</span>
+                    <span className="theme-secondary-text text-sm">{t.sprint.correctOf(score.correct, score.total)}</span>
                     <button onClick={finishSprint} className="px-3 py-1 theme-muted-bg theme-secondary-text rounded-lg text-sm hover:opacity-90">
-                        End Early
+                        {t.sprint.endEarly}
                     </button>
                 </div>
             )}
@@ -479,18 +482,21 @@ const ClefTrainer: React.FC<ClefTrainerProps> = ({ synth, midi }) => {
             {mode === 'sprint' && sprintResult && (
                 <div className="mb-6 p-5 rounded-lg theme-secondary-bg text-center">
                     <p className="theme-text text-xl font-bold mb-1">
-                        {sprintResult.correct} / {sprintResult.total} correct
+                        {t.sprint.resultCorrectOf(sprintResult.correct, sprintResult.total)}
                     </p>
                     <p className="theme-secondary-text text-sm mb-3">
-                        {sprintResult.total > 0 ? Math.round((sprintResult.correct / sprintResult.total) * 100) : 0}% accuracy in {sprintDuration}s
+                        {t.sprint.accuracyInSeconds(
+                            sprintResult.total > 0 ? Math.round((sprintResult.correct / sprintResult.total) * 100) : 0,
+                            sprintDuration
+                        )}
                     </p>
-                    {sprintResult.isNewBest && <p className="text-green-400 font-semibold mb-3">New best!</p>}
+                    {sprintResult.isNewBest && <p className="text-green-400 font-semibold mb-3">{t.sprint.newBest}</p>}
                     <div className="flex justify-center gap-2">
                         <button onClick={startSprint} className="px-4 py-2 theme-accent-bg rounded-lg font-semibold hover:opacity-90">
-                            Run Again
+                            {t.sprint.runAgain}
                         </button>
                         <button onClick={() => setSprintResult(null)} className="px-4 py-2 theme-muted-bg theme-secondary-text rounded-lg hover:opacity-90">
-                            Done
+                            {t.sprint.done}
                         </button>
                     </div>
                 </div>
@@ -505,8 +511,10 @@ const ClefTrainer: React.FC<ClefTrainerProps> = ({ synth, midi }) => {
                             <NoteStaffPrompt clef={question.clef} step={question.step} ledgerSteps={question.ledgerSteps} />
                         )}
                         <p className="theme-secondary-text text-sm text-center mt-1">
-                            Key: {question.keyName} major
-                            {clefMode === 'grand' ? ` · ${question.clef === 'treble' ? 'Treble' : 'Bass'} clef` : ''}
+                            {t.flashcard.keyMajor(question.keyName)}
+                            {clefMode === 'grand'
+                                ? ` · ${question.clef === 'treble' ? t.flashcard.trebleClefSuffix : t.flashcard.bassClefSuffix}`
+                                : ''}
                         </p>
                     </div>
 
@@ -545,10 +553,10 @@ const ClefTrainer: React.FC<ClefTrainerProps> = ({ synth, midi }) => {
                     {status !== 'idle' && (
                         <p className={`mt-4 font-semibold ${status === 'correct' ? 'text-green-400' : 'text-red-400'}`}>
                             {status === 'correct'
-                                ? 'Correct!'
+                                ? t.flashcard.correct
                                 : namingSystem === 'letters'
-                                ? `Not quite — that was ${question.displayName}${question.octave}.`
-                                : `Not quite — that was ${noteLabel(namingSystem, question.letter, question.keyName)} (${question.displayName}${question.octave}).`}
+                                ? t.flashcard.incorrectLetters(question.displayName, question.octave)
+                                : t.flashcard.incorrectSolfege(noteLabel(namingSystem, question.letter, question.keyName), question.displayName, question.octave)}
                         </p>
                     )}
                 </>

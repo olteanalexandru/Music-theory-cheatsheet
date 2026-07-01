@@ -1,55 +1,44 @@
+'use client';
+
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import ScrollHint from '@/app/components/ScrollHint';
-
-const PILLARS: { index: string; title: string; description: string }[] = [
-    {
-        index: '01',
-        title: 'Public profiles',
-        description:
-            "A username, a bio, your level and achievements. Keep it public for the leaderboard, or private if you'd rather practice without an audience.",
-    },
-    {
-        index: '02',
-        title: 'Follow other musicians',
-        description:
-            'Follow players whose progress you want to track. Their rank, streaks, and level show up wherever yours does — starting with your friends leaderboard.',
-    },
-    {
-        index: '03',
-        title: 'Share progress cards',
-        description:
-            "One tap turns your level, XP, and recent achievements into an image — share it, don't just talk about it.",
-    },
-];
+import { useTranslations, useLocale } from '@/app/utils/i18n/LocaleContext';
 
 export default function CommunityPage() {
+    const t = useTranslations('marketing');
+    const { locale } = useLocale();
+
+    const PILLARS: { index: string; title: string; description: string }[] = [
+        { index: '01', title: t.community.pillars.profiles.title, description: t.community.pillars.profiles.description },
+        { index: '02', title: t.community.pillars.follow.title, description: t.community.pillars.follow.description },
+        { index: '03', title: t.community.pillars.share.title, description: t.community.pillars.share.description },
+    ];
+
     return (
         <div className="theme-bg">
             <section className="max-w-5xl mx-auto px-4 md:px-8 pt-16 md:pt-24 pb-16 md:pb-20">
                 <p className="text-xs font-semibold uppercase tracking-widest theme-secondary-text mb-6">
-                    Community
+                    {t.community.eyebrow}
                 </p>
                 <h1 className="text-4xl md:text-6xl font-bold theme-text tracking-tight leading-[1.05] mb-6 max-w-3xl">
-                    Practicing alone is optional, not required.
+                    {t.community.title}
                 </h1>
                 <p className="text-lg theme-secondary-text max-w-xl mb-10">
-                    Build a public profile, follow other musicians, and see where you land on the
-                    leaderboard. It all runs on the same XP and achievements your practice already
-                    earns — no separate point system to game.
+                    {t.community.subtitle}
                 </p>
                 <div className="flex flex-wrap items-center gap-6">
                     <Link
                         href="/app"
                         className="inline-flex items-center gap-2 px-6 py-3 theme-btn rounded-md font-semibold hover:opacity-90"
                     >
-                        Open the app <ArrowRight size={18} />
+                        {t.community.openApp} <ArrowRight size={18} />
                     </Link>
                     <Link
                         href="/features"
                         className="inline-flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide theme-secondary-text hover:theme-text"
                     >
-                        See every feature <ArrowRight size={14} />
+                        {t.community.seeEveryFeature} <ArrowRight size={14} />
                     </Link>
                 </div>
             </section>
@@ -58,22 +47,20 @@ export default function CommunityPage() {
                 <div className="grid md:grid-cols-2 gap-10 md:gap-16 items-center">
                     <div>
                         <p className="text-xs font-semibold uppercase tracking-widest theme-secondary-text mb-4">
-                            Leaderboard
+                            {t.community.leaderboardEyebrow}
                         </p>
                         <h2 className="text-3xl md:text-4xl font-bold theme-text tracking-tight mb-4">
-                            Global, or just the people you follow.
+                            {t.community.leaderboardTitle}
                         </h2>
                         <p className="theme-secondary-text max-w-md">
-                            Toggle between everyone with a public profile and the musicians you
-                            follow. Ranked by level and XP, pulled straight from real practice — no
-                            leaderboard padding.
+                            {t.community.leaderboardDescription}
                         </p>
                     </div>
                     <ScrollHint className="theme-card rounded-lg shadow-lg">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                            src="/screenshots/leaderboard.png"
-                            alt="Leaderboard page with Global and Friends toggle"
+                            src={locale === 'ro' ? '/screenshots/leaderboard-ro.png' : '/screenshots/leaderboard.png'}
+                            alt={t.community.leaderboardImageAlt}
                             className="min-w-[640px] w-full h-auto block"
                         />
                     </ScrollHint>
@@ -96,20 +83,20 @@ export default function CommunityPage() {
 
             <section className="max-w-4xl mx-auto px-4 md:px-8 py-20 md:py-28 text-center">
                 <h2 className="text-4xl md:text-5xl font-bold theme-text tracking-tight mb-8">
-                    Find out where you rank.
+                    {t.community.ctaTitle}
                 </h2>
                 <div className="flex flex-wrap items-center justify-center gap-6">
                     <Link
                         href="/leaderboard"
                         className="inline-flex items-center gap-2 px-7 py-3.5 theme-btn rounded-md font-semibold text-lg hover:opacity-90"
                     >
-                        View the leaderboard <ArrowRight size={20} />
+                        {t.community.viewLeaderboard} <ArrowRight size={20} />
                     </Link>
                     <Link
                         href="/app"
                         className="inline-flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide theme-secondary-text hover:theme-text"
                     >
-                        Open the app <ArrowRight size={14} />
+                        {t.community.openApp2} <ArrowRight size={14} />
                     </Link>
                 </div>
             </section>

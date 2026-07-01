@@ -304,10 +304,11 @@ a:hover {
 }
 
 @keyframes psy-wobble {
-  0%, 100% { transform: rotate(0deg) scale(1); }
-  25% { transform: rotate(0.6deg) scale(1.01); }
-  50% { transform: rotate(-0.5deg) scale(1); }
-  75% { transform: rotate(0.4deg) scale(1.01); }
+  0%   { transform: rotate(0deg) scale(1); }
+  25%  { transform: rotate(0.3deg) scale(1.003); }
+  50%  { transform: rotate(-0.25deg) scale(1); }
+  75%  { transform: rotate(0.2deg) scale(1.002); }
+  100% { transform: rotate(0deg) scale(1); }
 }
 
 @keyframes psy-glow {
@@ -383,4 +384,31 @@ a:hover {
 @keyframes mushroom-hue {
   0% { filter: blur(1.5px) hue-rotate(0deg) saturate(1.5) drop-shadow(0 0 6px rgba(236, 72, 153, 0.6)); }
   100% { filter: blur(1.5px) hue-rotate(360deg) saturate(1.5) drop-shadow(0 0 6px rgba(34, 211, 238, 0.6)); }
+}
+
+/* Psychedelic star field — tiny fixed dots that twinkle with rainbow colors */
+.psy-star-field {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.psy-star {
+  position: absolute;
+  border-radius: 50%;
+  animation-name: psy-star-twinkle, psy-star-hue;
+  animation-timing-function: ease-in-out, linear;
+  animation-iteration-count: infinite, infinite;
+}
+
+@keyframes psy-star-twinkle {
+  0%, 100% { opacity: 0.15; transform: scale(1); }
+  50%       { opacity: 0.9;  transform: scale(1.4); }
+}
+
+@keyframes psy-star-hue {
+  0%   { filter: hue-rotate(0deg); }
+  100% { filter: hue-rotate(360deg); }
 }

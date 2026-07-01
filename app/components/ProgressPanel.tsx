@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react';
 import type { ProgressStore } from '@/app/utils/progressStore';
+import { useTranslations } from '@/app/utils/i18n/LocaleContext';
+import type { SocialDict } from '@/app/utils/i18n/dictionaries/social';
 
 interface ProgressPanelProps {
     progress: ProgressStore;
@@ -15,20 +17,21 @@ function accuracy(stats: { correct: number; total: number } | undefined): number
     return Math.round((stats.correct / stats.total) * 100);
 }
 
-function formatLastPracticed(timestamp: number | null): string {
-    if (!timestamp) return 'Never';
+function formatLastPracticed(timestamp: number | null, t: SocialDict['progress']): string {
+    if (!timestamp) return t.never;
     const diffMs = Date.now() - timestamp;
     const minute = 60_000;
     const hour = 60 * minute;
     const day = 24 * hour;
-    if (diffMs < minute) return 'Just now';
-    if (diffMs < hour) return `${Math.floor(diffMs / minute)}m ago`;
-    if (diffMs < day) return `${Math.floor(diffMs / hour)}h ago`;
-    if (diffMs < 7 * day) return `${Math.floor(diffMs / day)}d ago`;
+    if (diffMs < minute) return t.justNow;
+    if (diffMs < hour) return t.minutesAgo(Math.floor(diffMs / minute));
+    if (diffMs < day) return t.hoursAgo(Math.floor(diffMs / hour));
+    if (diffMs < 7 * day) return t.daysAgo(Math.floor(diffMs / day));
     return new Date(timestamp).toLocaleDateString();
 }
 
 const ProgressPanel: React.FC<ProgressPanelProps> = ({ progress, categories, labels, onReset }) => {
+    const t = useTranslations('social');
     const [expanded, setExpanded] = useState(false);
 
     const overall = categories.reduce(
@@ -52,11 +55,11 @@ const ProgressPanel: React.FC<ProgressPanelProps> = ({ progress, categories, lab
                 className="w-full flex items-center justify-between gap-2 text-left"
             >
                 <span className="theme-text font-semibold">
-                    Overall Progress: {overall.total > 0 ? `${accuracy(overall)}% ` : '— '}
+                    {t.progress.overallProgress}: {overall.total > 0 ? `${accuracy(overall)}% ` : `${t.progress.overallProgressNoAttempts} `}
                     ({overall.correct} / {overall.total})
-                    {overall.bestStreak > 0 && ` · Best streak: ${overall.bestStreak}`}
+                    {overall.bestStreak > 0 && t.progress.bestStreakSuffix(overall.bestStreak)}
                 </span>
-                <span className="theme-secondary-text text-sm whitespace-nowrap">{expanded ? '▲ Hide' : '▼ Details'}</span>
+                <span className="theme-secondary-text text-sm whitespace-nowrap">{expanded ? t.progress.hideDetails : t.progress.showDetails}</span>
             </button>
 
             {expanded && (
@@ -69,16 +72,16 @@ const ProgressPanel: React.FC<ProgressPanelProps> = ({ progress, categories, lab
                                 <div className="flex items-center justify-between gap-2 text-sm mb-1">
                                     <span className="theme-secondary-text">{labels[cat] ?? cat}</span>
                                     <span className="theme-secondary-text whitespace-nowrap">
-                                        {stats ? `${stats.correct} / ${stats.total} (${pct}%)` : 'No attempts yet'}
+                                        {stats ? `${stats.correct} / ${stats.total} (${pct}%)` : t.progress.noAttemptsYet}
                                     </span>
                                 </div>
                                 {stats && (
                                     <div className="flex items-center justify-between gap-2 text-xs theme-secondary-text opacity-80 mb-1">
                                         <span>
-                                            Streak: {stats.currentStreak}
-                                            {stats.bestStreak > 0 ? ` (best ${stats.bestStreak})` : ''}
+                                            {t.progress.streak}: {stats.currentStreak}
+                                            {stats.bestStreak > 0 ? t.progress.bestSuffix(stats.bestStreak) : ''}
                                         </span>
-                                        <span>Last practiced: {formatLastPracticed(stats.lastPracticed)}</span>
+                                        <span>{t.progress.lastPracticed}: {formatLastPracticed(stats.lastPracticed, t.progress)}</span>
                                     </div>
                                 )}
                                 <div className="h-2 rounded-full theme-muted-bg overflow-hidden">
@@ -91,7 +94,7 @@ const ProgressPanel: React.FC<ProgressPanelProps> = ({ progress, categories, lab
                         onClick={onReset}
                         className="mt-2 px-3 py-1.5 theme-muted-bg theme-secondary-text rounded-lg text-sm hover:opacity-90"
                     >
-                        Reset Progress
+                        {t.progress.resetProgress}
                     </button>
                 </div>
             )}

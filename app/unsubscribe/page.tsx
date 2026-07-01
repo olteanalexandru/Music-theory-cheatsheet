@@ -5,12 +5,14 @@ import { useSearchParams } from 'next/navigation';
 import { CheckCircle2, Loader2, XCircle } from 'lucide-react';
 import { getSupabaseClient } from '@/app/utils/supabaseClient';
 import { unsubscribeFromNewsletter } from '@/app/utils/newsletterStore';
+import { useTranslations } from '@/app/utils/i18n/LocaleContext';
 
 function Centered({ children }: { children: React.ReactNode }) {
     return <div className="max-w-xl mx-auto px-4 py-24 text-center theme-secondary-text">{children}</div>;
 }
 
 function UnsubscribeContent() {
+    const t = useTranslations('legal');
     const searchParams = useSearchParams();
     const token = searchParams.get('token');
     const [state, setState] = useState<'loading' | 'done' | 'error'>('loading');
@@ -21,12 +23,12 @@ function UnsubscribeContent() {
             const supabase = getSupabaseClient();
             if (!supabase) {
                 setState('error');
-                setMessage("This deployment doesn't have cloud sync configured, so unsubscribing isn't available.");
+                setMessage(t.unsubscribe.noCloudSync);
                 return;
             }
             if (!token) {
                 setState('error');
-                setMessage('Missing unsubscribe token.');
+                setMessage(t.unsubscribe.missingToken);
                 return;
             }
             const { error } = await unsubscribeFromNewsletter(supabase, token);
@@ -37,7 +39,7 @@ function UnsubscribeContent() {
                 setState('done');
             }
         })();
-    }, [token]);
+    }, [token, t]);
 
     if (state === 'loading') {
         return (
@@ -51,7 +53,7 @@ function UnsubscribeContent() {
         return (
             <Centered>
                 <XCircle className="mx-auto mb-3 text-red-500" size={32} />
-                <p className="theme-text font-medium mb-1">Couldn&apos;t unsubscribe</p>
+                <p className="theme-text font-medium mb-1">{t.unsubscribe.couldNotUnsubscribe}</p>
                 <p>{message}</p>
             </Centered>
         );
@@ -60,8 +62,8 @@ function UnsubscribeContent() {
     return (
         <Centered>
             <CheckCircle2 className="mx-auto mb-3 text-green-500" size={32} />
-            <p className="theme-text font-medium mb-1">You&apos;re unsubscribed</p>
-            <p>You won&apos;t receive any more newsletter emails from us.</p>
+            <p className="theme-text font-medium mb-1">{t.unsubscribe.unsubscribed}</p>
+            <p>{t.unsubscribe.noMoreEmails}</p>
         </Centered>
     );
 }

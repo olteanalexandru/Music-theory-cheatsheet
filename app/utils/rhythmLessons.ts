@@ -1,4 +1,5 @@
 import type { RhythmEvent, TimeSignatureName } from '@/app/utils/rhythmData';
+import { RHYTHM_LESSONS_RO } from '@/app/utils/rhythmLessons.ro';
 
 export interface RhythmLessonExample {
     label: string;
@@ -140,3 +141,7 @@ export const RHYTHM_LESSONS: RhythmLesson[] = [
         ],
     },
 ];
+
+export function getRhythmLessons(locale: string): RhythmLesson[] {
+    return locale === 'ro' ? RHYTHM_LESSONS_RO : RHYTHM_LESSONS;
+}

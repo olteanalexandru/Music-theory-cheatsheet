@@ -7,6 +7,7 @@ import { useAuth } from '@/app/utils/AuthContext';
 import { getSupabaseClient } from '@/app/utils/supabaseClient';
 import { fetchFollowingIds } from '@/app/utils/profileStore';
 import { levelFromXp, levelTitle } from '@/app/utils/gamificationStore';
+import { useTranslations } from '@/app/utils/i18n/LocaleContext';
 
 type Scope = 'global' | 'friends';
 
@@ -25,6 +26,7 @@ interface ProfileRow {
 
 export default function LeaderboardPage() {
     const { user } = useAuth();
+    const t = useTranslations('social');
     const [scope, setScope] = useState<Scope>('global');
     const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
     const [loading, setLoading] = useState(() => !!getSupabaseClient());
@@ -90,7 +92,7 @@ export default function LeaderboardPage() {
         <div className="max-w-3xl mx-auto px-4 md:px-8 py-10">
             <div className="flex items-center justify-between gap-4 mb-6">
                 <h1 className="text-2xl font-bold theme-text flex items-center gap-2">
-                    <Trophy size={24} /> Leaderboard
+                    <Trophy size={24} /> {t.leaderboard.title}
                 </h1>
                 <div className="flex items-center gap-1 theme-muted-bg rounded-lg p-1">
                     <button
@@ -99,7 +101,7 @@ export default function LeaderboardPage() {
                             scope === 'global' ? 'theme-accent-bg' : 'theme-secondary-text hover:opacity-90'
                         }`}
                     >
-                        Global
+                        {t.leaderboard.global}
                     </button>
                     <button
                         onClick={() => setScope('friends')}
@@ -107,24 +109,24 @@ export default function LeaderboardPage() {
                             scope === 'friends' ? 'theme-accent-bg' : 'theme-secondary-text hover:opacity-90'
                         }`}
                     >
-                        Friends
+                        {t.leaderboard.friends}
                     </button>
                 </div>
             </div>
 
             {!getSupabaseClient() ? (
                 <p className="theme-secondary-text text-center py-16">
-                    The leaderboard requires cloud sync, which isn&apos;t configured for this deployment.
+                    {t.leaderboard.cloudSyncRequired}
                 </p>
             ) : loading ? (
                 <div className="flex items-center justify-center py-16 theme-secondary-text">
                     <Loader2 className="animate-spin" size={24} />
                 </div>
             ) : scope === 'friends' && !user ? (
-                <p className="theme-secondary-text text-center py-16">Sign in to see your friends&apos; leaderboard.</p>
+                <p className="theme-secondary-text text-center py-16">{t.leaderboard.signInForFriends}</p>
             ) : entries.length === 0 ? (
                 <p className="theme-secondary-text text-center py-16">
-                    {scope === 'friends' ? "You aren't following anyone with a public profile yet." : 'No public profiles yet.'}
+                    {scope === 'friends' ? t.leaderboard.noFriendsPublic : t.leaderboard.noPublicProfiles}
                 </p>
             ) : (
                 <ol className="theme-card rounded-xl shadow-lg divide-y divide-white/10 overflow-hidden">
@@ -141,10 +143,10 @@ export default function LeaderboardPage() {
                                     </span>
                                     <span className="flex-1 truncate theme-text font-medium">
                                         {entry.displayName || entry.username}
-                                        {isMe && <span className="theme-secondary-text font-normal"> (you)</span>}
+                                        {isMe && <span className="theme-secondary-text font-normal"> ({t.leaderboard.you})</span>}
                                     </span>
                                     <span className="theme-secondary-text text-sm whitespace-nowrap">
-                                        Level {levelFromXp(entry.xp)} · {levelTitle(levelFromXp(entry.xp))} · {entry.xp} XP
+                                        {t.leaderboard.levelLine(levelFromXp(entry.xp), levelTitle(levelFromXp(entry.xp)), entry.xp)}
                                     </span>
                                 </Link>
                             </li>

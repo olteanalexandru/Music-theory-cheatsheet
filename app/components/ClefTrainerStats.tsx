@@ -8,41 +8,40 @@ import {
     type ClefMode,
     type ClefTrainerData,
 } from '@/app/utils/clefTrainerStore';
+import { useTranslations } from '@/app/utils/i18n/LocaleContext';
+import type { ClefTrainerDict } from '@/app/utils/i18n/dictionaries/clefTrainer';
 
 interface ClefTrainerStatsProps {
     data: ClefTrainerData;
     onReset: () => void;
 }
 
-const CLEF_LABELS: Record<ClefMode, string> = {
-    treble: 'Treble',
-    bass: 'Bass',
-    grand: 'Grand Staff',
-};
-
 // Splits a "{clef}-{letter}{accidental}{octave}" key (e.g. "bass-F♯4") back into
 // a clef label and a note label for display, since the store only keeps the raw key.
-function describeNoteKey(key: string): { clefLabel: string; noteLabel: string } {
+function describeNoteKey(key: string, clefLabels: Record<ClefMode, string>): { clefLabel: string; noteLabel: string } {
     const dashIndex = key.indexOf('-');
     const clef = key.slice(0, dashIndex) as ClefMode;
-    return { clefLabel: CLEF_LABELS[clef] ?? clef, noteLabel: key.slice(dashIndex + 1) };
+    return { clefLabel: clefLabels[clef] ?? clef, noteLabel: key.slice(dashIndex + 1) };
 }
 
-function formatLastPracticed(timestamp: number | null): string {
-    if (!timestamp) return 'Never';
+function formatLastPracticed(timestamp: number | null, t: ClefTrainerDict['stats']): string {
+    if (!timestamp) return t.never;
     const diffMs = Date.now() - timestamp;
     const minute = 60_000;
     const hour = 60 * minute;
     const day = 24 * hour;
-    if (diffMs < minute) return 'Just now';
-    if (diffMs < hour) return `${Math.floor(diffMs / minute)}m ago`;
-    if (diffMs < day) return `${Math.floor(diffMs / hour)}h ago`;
-    if (diffMs < 7 * day) return `${Math.floor(diffMs / day)}d ago`;
+    if (diffMs < minute) return t.justNow;
+    if (diffMs < hour) return t.minutesAgo(Math.floor(diffMs / minute));
+    if (diffMs < day) return t.hoursAgo(Math.floor(diffMs / hour));
+    if (diffMs < 7 * day) return t.daysAgo(Math.floor(diffMs / day));
     return new Date(timestamp).toLocaleDateString();
 }
 
 const ClefTrainerStats: React.FC<ClefTrainerStatsProps> = ({ data, onReset }) => {
+    const t = useTranslations('clefTrainer');
     const [expanded, setExpanded] = useState(false);
+
+    const clefLabels = t.stats.clefLabels;
 
     const entries = Object.values(data.notes);
     const totals = entries.reduce(
@@ -62,31 +61,30 @@ const ClefTrainerStats: React.FC<ClefTrainerStatsProps> = ({ data, onReset }) =>
                 className="w-full flex items-center justify-between gap-2 text-left"
             >
                 <span className="theme-text font-semibold">
-                    Note Reading Stats: {totals.attempts > 0 ? `${overallAccuracy}% ` : '— '}
-                    ({totals.correct} / {totals.attempts})
+                    {t.stats.noteReadingStats(totals.attempts > 0 ? `${overallAccuracy}%` : '—', totals.correct, totals.attempts)}
                 </span>
-                <span className="theme-secondary-text text-sm whitespace-nowrap">{expanded ? '▲ Hide' : '▼ Details'}</span>
+                <span className="theme-secondary-text text-sm whitespace-nowrap">{expanded ? t.stats.hide : t.stats.details}</span>
             </button>
 
             {expanded && (
                 <div className="mt-4 space-y-4">
                     <div>
-                        <p className="theme-text font-semibold text-sm mb-2">Weakest Notes</p>
+                        <p className="theme-text font-semibold text-sm mb-2">{t.stats.weakestNotes}</p>
                         {weak.length === 0 ? (
                             <p className="theme-secondary-text text-sm">
-                                Not enough attempts yet — practice a few notes to see your weak spots here.
+                                {t.stats.notEnoughAttempts}
                             </p>
                         ) : (
                             <ul className="space-y-1.5">
                                 {weak.map(({ key, entry }) => {
-                                    const { clefLabel, noteLabel } = describeNoteKey(key);
+                                    const { clefLabel, noteLabel } = describeNoteKey(key, clefLabels);
                                     return (
                                         <li key={key} className="flex items-center justify-between gap-2 text-sm">
                                             <span className="theme-secondary-text truncate">
-                                                {clefLabel} clef: <span className="theme-text">{noteLabel}</span>
+                                                {t.stats.clefNote(clefLabel)} <span className="theme-text">{noteLabel}</span>
                                             </span>
                                             <span className="theme-secondary-text whitespace-nowrap text-xs">
-                                                {Math.round(noteAccuracy(entry) * 100)}% · {Math.round(noteAverageMs(entry))}ms avg
+                                                {t.stats.accuracyAvgMs(Math.round(noteAccuracy(entry) * 100), Math.round(noteAverageMs(entry)))}
                                             </span>
                                         </li>
                                     );
@@ -96,9 +94,9 @@ const ClefTrainerStats: React.FC<ClefTrainerStatsProps> = ({ data, onReset }) =>
                     </div>
 
                     <div>
-                        <p className="theme-text font-semibold text-sm mb-2">Best Sprint Results</p>
+                        <p className="theme-text font-semibold text-sm mb-2">{t.stats.bestSprintResults}</p>
                         {bestSprints.length === 0 ? (
-                            <p className="theme-secondary-text text-sm">No timed runs yet.</p>
+                            <p className="theme-secondary-text text-sm">{t.stats.noTimedRuns}</p>
                         ) : (
                             <ul className="space-y-1.5">
                                 {bestSprints.map(([key, best]) => {
@@ -106,10 +104,10 @@ const ClefTrainerStats: React.FC<ClefTrainerStatsProps> = ({ data, onReset }) =>
                                     return (
                                         <li key={key} className="flex items-center justify-between gap-2 text-sm">
                                             <span className="theme-secondary-text">
-                                                {CLEF_LABELS[mode] ?? mode} · {best.durationSec}s
+                                                {t.stats.durationCorrect(clefLabels[mode] ?? mode, best.durationSec)}
                                             </span>
                                             <span className="theme-text whitespace-nowrap text-xs">
-                                                {best.correct} / {best.total} correct
+                                                {t.stats.correctOfTotal(best.correct, best.total)}
                                             </span>
                                         </li>
                                     );
@@ -120,7 +118,7 @@ const ClefTrainerStats: React.FC<ClefTrainerStatsProps> = ({ data, onReset }) =>
 
                     {entries.length > 0 && (
                         <p className="theme-secondary-text text-xs opacity-80">
-                            Tracking {entries.length} distinct notes · last practiced {formatLastPracticed(mostRecent)}
+                            {t.stats.trackingNotes(entries.length, formatLastPracticed(mostRecent, t.stats))}
                         </p>
                     )}
 
@@ -128,7 +126,7 @@ const ClefTrainerStats: React.FC<ClefTrainerStatsProps> = ({ data, onReset }) =>
                         onClick={onReset}
                         className="px-3 py-1.5 theme-muted-bg theme-secondary-text rounded-lg text-sm hover:opacity-90"
                     >
-                        Reset Note Reading Stats
+                        {t.stats.resetStats}
                     </button>
                 </div>
             )}

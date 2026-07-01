@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { CheckCircle2, RotateCcw } from 'lucide-react';
 import type { QuizQuestion } from '@/app/utils/curriculumData';
+import { useTranslations } from '@/app/utils/i18n/LocaleContext';
 
 interface LessonQuizProps {
     quiz: QuizQuestion[];
@@ -11,6 +12,7 @@ interface LessonQuizProps {
 }
 
 const LessonQuiz: React.FC<LessonQuizProps> = ({ quiz, passThreshold, onComplete }) => {
+    const t = useTranslations('social');
     const [answers, setAnswers] = useState<(number | null)[]>(() => quiz.map(() => null));
     const [submitted, setSubmitted] = useState(false);
 
@@ -74,24 +76,24 @@ const LessonQuiz: React.FC<LessonQuizProps> = ({ quiz, passThreshold, onComplete
                     disabled={!allAnswered}
                     className="px-4 py-2 theme-btn rounded-lg text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                    Submit Quiz
+                    {t.lessonQuiz.submitQuiz}
                 </button>
             ) : (
                 <div className="flex flex-wrap items-center gap-3">
                     {passed ? (
                         <span className="flex items-center gap-1.5 text-sm font-semibold theme-text">
-                            <CheckCircle2 size={18} /> Passed — {Math.round(score * 100)}%
+                            <CheckCircle2 size={18} /> {t.lessonQuiz.passed(Math.round(score * 100))}
                         </span>
                     ) : (
                         <>
                             <span className="text-sm font-semibold theme-warning-text">
-                                Scored {Math.round(score * 100)}% — need {Math.round(passThreshold * 100)}% to pass
+                                {t.lessonQuiz.scoredNeed(Math.round(score * 100), Math.round(passThreshold * 100))}
                             </span>
                             <button
                                 onClick={handleRetry}
                                 className="flex items-center gap-1.5 px-3 py-1.5 theme-muted-bg theme-secondary-text rounded-lg text-sm hover:opacity-90"
                             >
-                                <RotateCcw size={14} /> Retry
+                                <RotateCcw size={14} /> {t.lessonQuiz.retry}
                             </button>
                         </>
                     )}

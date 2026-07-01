@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 import { ArrowRight, BookOpen, CheckCircle2, ChevronDown, ChevronRight, Circle, Lock, Sparkles } from 'lucide-react';
 import {
     ALL_LESSONS,
-    CURRICULUM,
     QUIZ_PASS_THRESHOLD,
-    getUnitForLesson,
+    getCurriculum,
+    getAllLessons,
     isLessonUnlocked,
     nextIncompleteLesson,
     type Lesson,
@@ -15,8 +15,13 @@ import {
 import { completedLessonIds, loadCurriculum, markLessonComplete, saveCurriculum, type CurriculumStore } from '@/app/utils/curriculumStore';
 import { applyXpAndAchievements, XP_LESSON_COMPLETE, XP_QUIZ_PERFECT_BONUS } from '@/app/utils/gamificationStore';
 import LessonQuiz from '@/app/components/LessonQuiz';
+import { useLocale, useTranslations } from '@/app/utils/i18n/LocaleContext';
 
 const Curriculum: React.FC = () => {
+    const t = useTranslations('social');
+    const { locale } = useLocale();
+    const curriculum = getCurriculum(locale);
+    const allLessons = getAllLessons(locale);
     const router = useRouter();
     const [store, setStore] = useState<CurriculumStore>(() => loadCurriculum());
     const completed = useMemo(() => completedLessonIds(store), [store]);
@@ -24,7 +29,9 @@ const Curriculum: React.FC = () => {
     const [selectedLessonId, setSelectedLessonId] = useState<string>(
         () => nextIncompleteLesson(completedLessonIds(loadCurriculum()))?.id ?? ALL_LESSONS[0].id
     );
-    const [expandedUnitId, setExpandedUnitId] = useState<string | null>(() => getUnitForLesson(selectedLessonId)?.id ?? null);
+    const [expandedUnitId, setExpandedUnitId] = useState<string | null>(
+        () => curriculum.find((u) => u.lessons.some((l) => l.id === selectedLessonId))?.id ?? null
+    );
 
     // Persist completed lessons across sessions, mirroring progressStore's pattern.
     useEffect(() => {
@@ -32,18 +39,18 @@ const Curriculum: React.FC = () => {
     }, [store]);
 
     const selectedLesson = useMemo<Lesson | undefined>(
-        () => ALL_LESSONS.find((lesson) => lesson.id === selectedLessonId),
-        [selectedLessonId]
+        () => allLessons.find((lesson) => lesson.id === selectedLessonId),
+        [selectedLessonId, allLessons]
     );
 
-    const totalCount = ALL_LESSONS.length;
+    const totalCount = allLessons.length;
     const completedCount = completed.size;
-    const selectedIndex = ALL_LESSONS.findIndex((lesson) => lesson.id === selectedLessonId);
+    const selectedIndex = allLessons.findIndex((lesson) => lesson.id === selectedLessonId);
 
     const selectLesson = (lesson: Lesson) => {
         if (!isLessonUnlocked(lesson.id, completed)) return;
         setSelectedLessonId(lesson.id);
-        setExpandedUnitId(getUnitForLesson(lesson.id)?.id ?? null);
+        setExpandedUnitId(curriculum.find((u) => u.lessons.some((l) => l.id === lesson.id))?.id ?? null);
     };
 
     const handleQuizComplete = (score: number) => {
@@ -56,12 +63,12 @@ const Curriculum: React.FC = () => {
         if (!isNewCompletion && !isNewPerfect) return;
 
         const completedIds = completedLessonIds(updatedStore);
-        const unit = getUnitForLesson(selectedLessonId);
+        const unit = curriculum.find((u) => u.lessons.some((l) => l.id === selectedLessonId));
         applyXpAndAchievements((isNewCompletion ? XP_LESSON_COMPLETE : 0) + (isNewPerfect ? XP_QUIZ_PERFECT_BONUS : 0), {
             lessonCompleted: isNewCompletion,
             quizPerfect: isNewPerfect,
             curriculumUnitCompleted: isNewCompletion && !!unit && unit.lessons.every((lesson) => completedIds.has(lesson.id)),
-            curriculumAllCompleted: isNewCompletion && completedIds.size >= ALL_LESSONS.length,
+            curriculumAllCompleted: isNewCompletion && completedIds.size >= allLessons.length,
         });
     };
 
@@ -71,7 +78,7 @@ const Curriculum: React.FC = () => {
     };
 
     const goToNextLesson = () => {
-        const next = ALL_LESSONS[selectedIndex + 1];
+        const next = allLessons[selectedIndex + 1];
         if (next) selectLesson(next);
     };
 
@@ -79,10 +86,10 @@ const Curriculum: React.FC = () => {
         <div id="curriculum-section" className="mt-8 theme-card rounded-lg p-4 md:p-6 shadow-lg">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
                 <h2 className="text-2xl font-bold theme-text flex items-center gap-2">
-                    <BookOpen size={24} /> Curriculum
+                    <BookOpen size={24} /> {t.curriculum.title}
                 </h2>
                 <span className="text-sm theme-secondary-text">
-                    {completedCount} / {totalCount} lessons complete
+                    {t.curriculum.lessonsComplete(completedCount, totalCount)}
                 </span>
             </div>
             <div className="h-2 rounded-full theme-muted-bg overflow-hidden mb-6">
@@ -93,7 +100,7 @@ const Curriculum: React.FC = () => {
             </div>
 
             <div className="space-y-3 mb-6">
-                {CURRICULUM.map((unit) => {
+                {curriculum.map((unit) => {
                     const unitCompletedCount = unit.lessons.filter((lesson) => completed.has(lesson.id)).length;
                     const isExpanded = expandedUnitId === unit.id;
                     return (
@@ -172,11 +179,11 @@ const Curriculum: React.FC = () => {
                             onClick={handlePracticeClick}
                             className="mb-5 flex items-center gap-2 px-4 py-2 theme-btn rounded-lg text-sm font-medium hover:opacity-90"
                         >
-                            <Sparkles size={16} /> Practice: {selectedLesson.practice.label}
+                            <Sparkles size={16} /> {t.curriculum.practiceLabel(selectedLesson.practice.label)}
                         </button>
                     )}
 
-                    <h4 className="text-sm font-semibold theme-text mb-3">Concept Check</h4>
+                    <h4 className="text-sm font-semibold theme-text mb-3">{t.curriculum.conceptCheck}</h4>
                     <LessonQuiz
                         key={selectedLesson.id}
                         quiz={selectedLesson.quiz}
@@ -184,12 +191,12 @@ const Curriculum: React.FC = () => {
                         onComplete={handleQuizComplete}
                     />
 
-                    {completed.has(selectedLesson.id) && selectedIndex < ALL_LESSONS.length - 1 && (
+                    {completed.has(selectedLesson.id) && selectedIndex < allLessons.length - 1 && (
                         <button
                             onClick={goToNextLesson}
                             className="mt-4 flex items-center gap-1.5 px-3 py-1.5 theme-btn rounded-lg text-sm hover:opacity-90"
                         >
-                            Next Lesson <ArrowRight size={14} />
+                            {t.curriculum.nextLesson} <ArrowRight size={14} />
                         </button>
                     )}
                 </div>

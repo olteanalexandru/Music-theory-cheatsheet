@@ -7,9 +7,11 @@ import { usePracticeTools } from '@/app/utils/PracticeToolsContext';
 import { DIFFICULTY_LEVELS, type EarTrainingDifficulty } from '@/app/utils/earTrainingData';
 import { requestPracticeFocus } from '@/app/utils/practiceFocusBus';
 import { requestChallengeSession } from '@/app/utils/challengeBus';
+import { useTranslations } from '@/app/utils/i18n/LocaleContext';
 
 function EarTrainingPageContent() {
     const { midi, synth } = usePracticeTools();
+    const t = useTranslations('tools');
     const searchParams = useSearchParams();
 
     // Cross-page deep link (e.g. from /plan or /challenges):
@@ -41,8 +43,8 @@ function EarTrainingPageContent() {
     return (
         <div>
             <div className="mb-8 text-center md:text-left">
-                <h1 className="text-2xl md:text-3xl font-bold theme-text mb-2">Ear Training</h1>
-                <p className="theme-secondary-text">Drill intervals, chords, scales, and progressions by ear</p>
+                <h1 className="text-2xl md:text-3xl font-bold theme-text mb-2">{t.earTrainingPage.title}</h1>
+                <p className="theme-secondary-text">{t.earTrainingPage.subtitle}</p>
             </div>
 
             <EarTraining midi={midi} synth={synth} />

@@ -18,6 +18,8 @@ import {
 } from '@/app/utils/activityStore';
 import { CATEGORY_LABELS, type Category } from '@/app/components/EarTraining';
 import { ACHIEVEMENTS } from '@/app/utils/gamificationStore';
+import { useTranslations } from '@/app/utils/i18n/LocaleContext';
+import type { SocialDict } from '@/app/utils/i18n/dictionaries/social';
 
 type Scope = 'global' | 'following';
 
@@ -27,38 +29,39 @@ function Centered({ children }: { children: React.ReactNode }) {
     return <div className="max-w-xl mx-auto px-4 py-24 text-center theme-secondary-text">{children}</div>;
 }
 
-function describeActivity(item: ActivityFeedItem): string {
+function describeActivity(item: ActivityFeedItem, t: SocialDict['feed']): string {
     switch (item.type) {
         case 'achievement_unlocked': {
             const id = item.data.achievementId as string | undefined;
             const title = (item.data.title as string | undefined) ?? ACHIEVEMENTS.find((a) => a.id === id)?.title ?? 'an achievement';
-            return `unlocked the "${title}" achievement`;
+            return t.unlockedAchievement(title);
         }
         case 'level_up':
-            return `reached level ${item.data.level ?? '?'}`;
+            return t.reachedLevel((item.data.level as number | string | undefined) ?? '?');
         case 'lesson_complete':
-            return 'completed a curriculum lesson';
+            return t.completedLesson;
         case 'challenge_completed': {
             const category = item.data.category as Category | undefined;
-            return `finished a ${category ? CATEGORY_LABELS[category] : ''} challenge (${item.data.correct ?? '?'} / ${item.data.total ?? '?'})`;
+            return t.finishedChallenge(category ? CATEGORY_LABELS[category] : '', (item.data.correct as number | string | undefined) ?? '?', (item.data.total as number | string | undefined) ?? '?');
         }
         default:
-            return 'did something noteworthy';
+            return t.didSomething;
     }
 }
 
-function timeAgo(iso: string): string {
+function timeAgo(iso: string, t: SocialDict['feed']): string {
     const seconds = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
-    if (seconds < 60) return 'just now';
+    if (seconds < 60) return t.justNow;
     const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m ago`;
+    if (minutes < 60) return t.minutesAgo(minutes);
     const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours}h ago`;
-    return `${Math.floor(hours / 24)}d ago`;
+    if (hours < 24) return t.hoursAgo(hours);
+    return t.daysAgo(Math.floor(hours / 24));
 }
 
 export default function FeedPage() {
     const { user, loading: authLoading } = useAuth();
+    const t = useTranslations('social');
     const [scope, setScope] = useState<Scope>('global');
     const [items, setItems] = useState<ActivityFeedItem[]>([]);
     const [loading, setLoading] = useState(true);
@@ -151,14 +154,14 @@ export default function FeedPage() {
     };
 
     if (!getSupabaseClient()) {
-        return <Centered>The activity feed requires cloud sync, which isn&apos;t configured for this deployment.</Centered>;
+        return <Centered>{t.feed.cloudSyncRequired}</Centered>;
     }
 
     return (
         <div className="max-w-2xl mx-auto px-4 md:px-8 py-10">
             <div className="flex items-center justify-between gap-4 mb-6">
                 <h1 className="text-2xl font-bold theme-text flex items-center gap-2">
-                    <Rss size={24} /> Activity Feed
+                    <Rss size={24} /> {t.feed.title}
                 </h1>
                 <div className="flex items-center gap-1 theme-muted-bg rounded-lg p-1">
                     <button
@@ -167,7 +170,7 @@ export default function FeedPage() {
                             scope === 'global' ? 'theme-accent-bg' : 'theme-secondary-text hover:opacity-90'
                         }`}
                     >
-                        Global
+                        {t.feed.global}
                     </button>
                     <button
                         onClick={() => setScope('following')}
@@ -175,7 +178,7 @@ export default function FeedPage() {
                             scope === 'following' ? 'theme-accent-bg' : 'theme-secondary-text hover:opacity-90'
                         }`}
                     >
-                        Following
+                        {t.feed.following}
                     </button>
                 </div>
             </div>
@@ -185,10 +188,10 @@ export default function FeedPage() {
                     <Loader2 className="animate-spin" size={24} />
                 </div>
             ) : scope === 'following' && !user ? (
-                <p className="theme-secondary-text text-center py-16">Sign in to see activity from people you follow.</p>
+                <p className="theme-secondary-text text-center py-16">{t.feed.signInForFollowing}</p>
             ) : items.length === 0 ? (
                 <p className="theme-secondary-text text-center py-16">
-                    {scope === 'following' ? "No activity yet from people you follow." : 'No activity yet.'}
+                    {scope === 'following' ? t.feed.noActivityFollowing : t.feed.noActivityYet}
                 </p>
             ) : (
                 <div className="space-y-4">
@@ -200,9 +203,9 @@ export default function FeedPage() {
                                     <Link href={`/profile?u=${item.username}`} className="theme-text font-medium hover:opacity-90">
                                         {item.displayName || item.username}
                                     </Link>
-                                    <span className="theme-secondary-text text-xs">{timeAgo(item.createdAt)}</span>
+                                    <span className="theme-secondary-text text-xs">{timeAgo(item.createdAt, t.feed)}</span>
                                 </div>
-                                <p className="theme-secondary-text text-sm mt-1">{describeActivity(item)}</p>
+                                <p className="theme-secondary-text text-sm mt-1">{describeActivity(item, t.feed)}</p>
 
                                 <div className="flex flex-wrap items-center gap-1 mt-3">
                                     {REACTION_EMOJIS.map((emoji) => {
@@ -225,7 +228,7 @@ export default function FeedPage() {
                                         onClick={() => toggleComments(item.id)}
                                         className="flex items-center gap-1 px-2 py-1 rounded-lg text-sm theme-muted-bg theme-secondary-text hover:opacity-90 ml-auto"
                                     >
-                                        <MessageCircle size={14} /> Comments
+                                        <MessageCircle size={14} /> {t.feed.comments}
                                     </button>
                                 </div>
 
@@ -237,7 +240,7 @@ export default function FeedPage() {
                                             </p>
                                         ))}
                                         {(comments.get(item.id) ?? []).length === 0 && (
-                                            <p className="text-sm theme-secondary-text">No comments yet.</p>
+                                            <p className="text-sm theme-secondary-text">{t.feed.noCommentsYet}</p>
                                         )}
                                         {user && (
                                             <div className="flex items-center gap-2 pt-1">
@@ -249,7 +252,7 @@ export default function FeedPage() {
                                                     onKeyDown={(e) => {
                                                         if (e.key === 'Enter') void handleAddComment(item.id);
                                                     }}
-                                                    placeholder="Add a comment…"
+                                                    placeholder={t.feed.commentPlaceholder}
                                                     maxLength={500}
                                                     className="flex-1 rounded-lg theme-muted-bg theme-text px-3 py-1.5 text-sm outline-none"
                                                 />
@@ -257,7 +260,7 @@ export default function FeedPage() {
                                                     onClick={() => handleAddComment(item.id)}
                                                     className="px-3 py-1.5 theme-btn rounded-lg text-sm hover:opacity-90"
                                                 >
-                                                    Post
+                                                    {t.feed.post}
                                                 </button>
                                             </div>
                                         )}

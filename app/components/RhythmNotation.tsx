@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import type { DurationName, RhythmEvent } from '@/app/utils/rhythmData';
 import type { RhythmJudgement } from '@/app/utils/rhythmFollow';
+import { useTranslations } from '@/app/utils/i18n/LocaleContext';
 
 interface RhythmNotationProps {
     events: RhythmEvent[];
@@ -100,6 +101,8 @@ function RestGlyph({ x, y, duration, color }: { x: number; y: number; duration: 
 // each event's width by its beat duration. compact shrinks it for use inside
 // multiple-choice answer buttons.
 const RhythmNotation: React.FC<RhythmNotationProps> = ({ events, compact = false, judgements, playheadBeats }) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const t = useTranslations('rhythm');
     const [isLightMode, setIsLightMode] = useState(false);
 
     useEffect(() => {

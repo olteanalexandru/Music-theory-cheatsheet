@@ -4,7 +4,9 @@ import { useState } from "react";
 import Footer from "./Footer";
 import AppHeader from "./AppHeader";
 import Mushrooms from "./Mushrooms";
+import PsychedelicStars from "./PsychedelicStars";
 import { AuthProvider } from "@/app/utils/AuthContext";
+import { LocaleProvider } from "@/app/utils/i18n/LocaleContext";
 
 // Assuming geistSans and geistMono are passed as props or defined/imported here
 // For simplicity, let's assume they are passed as props for now.
@@ -33,12 +35,15 @@ export default function ThemeWrapper({
     <body
       className={`${geistSansVariable} ${geistMonoVariable} antialiased ${THEME_BODY_CLASS[theme]} flex min-h-screen flex-col`}
     >
-      <AuthProvider>
-        <AppHeader />
-        <main className="flex-1 flex flex-col">{children}</main>
-        <Footer theme={theme} setTheme={setTheme} />
-      </AuthProvider>
+      <LocaleProvider>
+        <AuthProvider>
+          <AppHeader />
+          <main className="flex-1 flex flex-col">{children}</main>
+          <Footer theme={theme} setTheme={setTheme} />
+        </AuthProvider>
+      </LocaleProvider>
       {theme === "psychedelic" && <Mushrooms />}
+      {theme === "psychedelic" && <PsychedelicStars />}
     </body>
   );
 }

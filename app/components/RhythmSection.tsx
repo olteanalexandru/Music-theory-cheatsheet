@@ -6,7 +6,6 @@ import type { MidiInputController } from '@/app/utils/useMidiInput';
 import type { AudioInputController } from '@/app/utils/useAudioInput';
 import {
     DURATION_NAMES,
-    DURATION_LABELS,
     TIME_SIGNATURE_NAMES,
     TIME_SIGNATURES,
     generateRhythmPattern,
@@ -16,6 +15,7 @@ import {
 import RhythmNotation from '@/app/components/RhythmNotation';
 import RhythmLessons from '@/app/components/RhythmLessons';
 import RhythmTapAlong from '@/app/components/RhythmTapAlong';
+import { useTranslations } from '@/app/utils/i18n/LocaleContext';
 
 interface RhythmSectionProps {
     synth: SynthController;
@@ -24,12 +24,6 @@ interface RhythmSectionProps {
 }
 
 type RhythmTab = 'reference' | 'lessons' | 'tap-along';
-
-const RHYTHM_TABS: { key: RhythmTab; label: string }[] = [
-    { key: 'reference', label: 'Reference' },
-    { key: 'lessons', label: 'Lessons' },
-    { key: 'tap-along', label: 'Tap-Along' },
-];
 
 const EXAMPLE_BPM = 90;
 
@@ -59,6 +53,12 @@ function buildDefaultExamplePatterns(): Record<TimeSignatureName, RhythmEvent[]>
 }
 
 const RhythmSection: React.FC<RhythmSectionProps> = ({ synth, midi, audio }) => {
+    const t = useTranslations('rhythm');
+    const RHYTHM_TABS: { key: RhythmTab; label: string }[] = [
+        { key: 'reference', label: t.section.tabs.reference },
+        { key: 'lessons', label: t.section.tabs.lessons },
+        { key: 'tap-along', label: t.section.tabs.tapAlong },
+    ];
     const [tab, setTab] = useState<RhythmTab>('reference');
     const [bpm, setBpm] = useState(100);
     const [timeSig, setTimeSig] = useState<TimeSignatureName>('4/4');
@@ -100,7 +100,7 @@ const RhythmSection: React.FC<RhythmSectionProps> = ({ synth, midi, audio }) => 
 
     return (
         <div className="mt-8 theme-card rounded-lg p-4 md:p-6 shadow-lg">
-            <h2 className="text-2xl font-bold theme-text mb-6">Rhythm</h2>
+            <h2 className="text-2xl font-bold theme-text mb-6">{t.section.heading}</h2>
 
             <div className="flex flex-wrap gap-2 mb-6">
                 {RHYTHM_TABS.map(({ key, label }) => (
@@ -121,11 +121,11 @@ const RhythmSection: React.FC<RhythmSectionProps> = ({ synth, midi, audio }) => 
             {tab === 'reference' && (
                 <>
                     <div className="mb-8">
-                        <h3 className="text-lg font-semibold theme-text mb-3">Note &amp; Rest Durations</h3>
+                        <h3 className="text-lg font-semibold theme-text mb-3">{t.section.reference.durationsHeading}</h3>
                         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                             {DURATION_NAMES.map((duration) => (
                                 <div key={duration} className="p-3 rounded-lg theme-secondary-bg">
-                                    <p className="theme-secondary-text text-xs mb-1">{DURATION_LABELS[duration]}</p>
+                                    <p className="theme-secondary-text text-xs mb-1">{t.section.reference.durationLabels[duration]}</p>
                                     <RhythmNotation events={[{ type: 'note', duration, beats: 1 }]} compact />
                                 </div>
                             ))}
@@ -133,26 +133,26 @@ const RhythmSection: React.FC<RhythmSectionProps> = ({ synth, midi, audio }) => 
                     </div>
 
                     <div className="mb-8">
-                        <h3 className="text-lg font-semibold theme-text mb-3">Time Signatures</h3>
+                        <h3 className="text-lg font-semibold theme-text mb-3">{t.section.reference.timeSignaturesHeading}</h3>
                         <div className="space-y-4">
                             {TIME_SIGNATURE_NAMES.map((name) => (
                                 <div key={name} className="p-3 md:p-4 rounded-lg theme-secondary-bg">
                                     <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                                         <p className="theme-text font-semibold">
-                                            {TIME_SIGNATURES[name].label} — {TIME_SIGNATURES[name].beatsPerMeasure} beats per measure
+                                            {TIME_SIGNATURES[name].label} — {t.section.reference.beatsPerMeasure(TIME_SIGNATURES[name].beatsPerMeasure)}
                                         </p>
                                         <div className="flex gap-2">
                                             <button
                                                 onClick={() => synth.playRhythm(examplePatterns[name], EXAMPLE_BPM)}
                                                 className="px-3 py-1.5 theme-btn rounded-lg text-sm hover:opacity-90"
                                             >
-                                                ▶ Play
+                                                {t.section.reference.play}
                                             </button>
                                             <button
                                                 onClick={() => regenerateExample(name)}
                                                 className="px-3 py-1.5 theme-muted-bg theme-secondary-text rounded-lg text-sm hover:opacity-90"
                                             >
-                                                New Example
+                                                {t.section.reference.newExample}
                                             </button>
                                         </div>
                                     </div>
@@ -163,10 +163,10 @@ const RhythmSection: React.FC<RhythmSectionProps> = ({ synth, midi, audio }) => 
                     </div>
 
                     <div>
-                        <h3 className="text-lg font-semibold theme-text mb-3">Metronome</h3>
+                        <h3 className="text-lg font-semibold theme-text mb-3">{t.section.reference.metronomeHeading}</h3>
                         <div className="p-3 md:p-4 rounded-lg theme-secondary-bg space-y-3">
                             <div className="flex flex-wrap items-center gap-2">
-                                <span className="theme-secondary-text text-sm">Time Signature:</span>
+                                <span className="theme-secondary-text text-sm">{t.section.reference.timeSignatureLabel}</span>
                                 {TIME_SIGNATURE_NAMES.map((name) => (
                                     <button
                                         key={name}
@@ -179,7 +179,7 @@ const RhythmSection: React.FC<RhythmSectionProps> = ({ synth, midi, audio }) => 
                                 ))}
                             </div>
                             <label className="flex flex-wrap items-center gap-3 text-sm theme-secondary-text">
-                                Tempo: {bpm} BPM
+                                {t.section.reference.tempo(bpm)}
                                 <input
                                     type="range"
                                     min={40}
@@ -196,7 +196,7 @@ const RhythmSection: React.FC<RhythmSectionProps> = ({ synth, midi, audio }) => 
                                     isPlaying ? 'bg-red-500 text-white hover:opacity-90' : 'theme-btn hover:opacity-90'
                                 }`}
                             >
-                                {isPlaying ? '■ Stop' : '▶ Start'}
+                                {isPlaying ? t.section.reference.stop : t.section.reference.start}
                             </button>
                         </div>
                     </div>

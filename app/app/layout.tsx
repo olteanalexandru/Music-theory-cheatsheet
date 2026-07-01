@@ -8,23 +8,24 @@ import ScrollHint from '@/app/components/ScrollHint';
 import GamificationPanel from '@/app/components/GamificationPanel';
 import { PracticeToolsProvider, usePracticeTools } from '@/app/utils/PracticeToolsContext';
 import type { Waveform } from '@/app/utils/audioSynth';
+import { useTranslations } from '@/app/utils/i18n/LocaleContext';
 
 const WAVEFORMS: Waveform[] = ['sine', 'triangle', 'sawtooth', 'square'];
 
-const TOOL_LINKS = [
-    { href: '/app', label: 'Overview' },
-    { href: '/app/fretboard', label: 'Fretboard' },
-    { href: '/app/circle-of-fifths', label: 'Circle of Fifths' },
-    { href: '/app/staff', label: 'Staff' },
-    { href: '/app/clef-trainer', label: 'Clef Trainer' },
-    { href: '/app/rhythm', label: 'Rhythm' },
-    { href: '/app/ear-training', label: 'Ear Training' },
-    { href: '/app/play-along', label: 'Play Along' },
-    { href: '/app/curriculum', label: 'Curriculum' },
-];
-
 function ToolNav() {
     const pathname = usePathname();
+    const t = useTranslations('common');
+    const TOOL_LINKS = [
+        { href: '/app', label: t.toolNav.overview },
+        { href: '/app/fretboard', label: t.toolNav.fretboard },
+        { href: '/app/circle-of-fifths', label: t.toolNav.circleOfFifths },
+        { href: '/app/staff', label: t.toolNav.staff },
+        { href: '/app/clef-trainer', label: t.toolNav.clefTrainer },
+        { href: '/app/rhythm', label: t.toolNav.rhythm },
+        { href: '/app/ear-training', label: t.toolNav.earTraining },
+        { href: '/app/play-along', label: t.toolNav.playAlong },
+        { href: '/app/curriculum', label: t.toolNav.curriculum },
+    ];
     return (
         <ScrollHint as="nav" className="mb-6 flex items-center gap-1">
             {TOOL_LINKS.map((link) => (
@@ -50,6 +51,7 @@ const settingsToggleClass = (isActive: boolean) =>
 function AudioMidiSettings() {
     const { midi, audio, synth } = usePracticeTools();
     const [showSettings, setShowSettings] = useState(false);
+    const t = useTranslations('common');
 
     return (
         <div className="mb-6 theme-card rounded-xl shadow-lg overflow-hidden">
@@ -59,7 +61,7 @@ function AudioMidiSettings() {
                 aria-expanded={showSettings}
             >
                 <span className="flex items-center gap-2 text-sm font-semibold theme-text">
-                    <Settings size={16} /> Display &amp; Audio Settings
+                    <Settings size={16} /> {t.audioSettings.title}
                 </span>
                 {showSettings ? <ChevronUp size={18} className="theme-secondary-text" /> : <ChevronDown size={18} className="theme-secondary-text" />}
             </button>
@@ -67,7 +69,7 @@ function AudioMidiSettings() {
             {showSettings && (
                 <div className="border-t theme-secondary-bg p-3">
                     <div className="flex flex-wrap items-center gap-3">
-                        <p className="text-sm font-semibold theme-text">Synth</p>
+                        <p className="text-sm font-semibold theme-text">{t.audioSettings.synth}</p>
                         <div className="flex flex-wrap gap-2">
                             {WAVEFORMS.map((wave) => (
                                 <button
@@ -80,7 +82,7 @@ function AudioMidiSettings() {
                             ))}
                         </div>
                         <label className="flex items-center gap-2 text-sm theme-secondary-text">
-                            Volume
+                            {t.audioSettings.volume}
                             <input
                                 type="range"
                                 min={0}
@@ -93,38 +95,38 @@ function AudioMidiSettings() {
                         </label>
                     </div>
                     <div className="mt-3 flex flex-wrap items-center gap-3 border-t theme-secondary-bg pt-3">
-                        <p className="text-sm font-semibold theme-text">MIDI</p>
+                        <p className="text-sm font-semibold theme-text">{t.audioSettings.midi}</p>
                         {midi.permission !== 'granted' ? (
                             <div className="flex flex-wrap items-center gap-3">
                                 <button
                                     onClick={midi.connect}
                                     className="px-3 py-1.5 theme-btn rounded-lg text-sm hover:opacity-90"
                                 >
-                                    Connect MIDI Device
+                                    {t.audioSettings.connectMidi}
                                 </button>
                                 {midi.permission === 'pending' && (
-                                    <span className="text-sm theme-secondary-text">Requesting access…</span>
+                                    <span className="text-sm theme-secondary-text">{t.audioSettings.requestingAccess}</span>
                                 )}
                                 {midi.permission === 'unsupported' && (
                                     <span className="text-sm theme-warning-text">
-                                        Web MIDI isn&apos;t supported in this browser. Try Chrome or Edge.
+                                        {t.audioSettings.midiUnsupported}
                                     </span>
                                 )}
                                 {midi.permission === 'denied' && (
                                     <span className="text-sm theme-warning-text">
-                                        {midi.error || 'MIDI access was denied.'}
+                                        {midi.error || t.audioSettings.midiDenied}
                                     </span>
                                 )}
                             </div>
                         ) : (
                             <div className="flex flex-wrap items-center gap-2">
-                                <label className="text-sm theme-secondary-text">Device:</label>
+                                <label className="text-sm theme-secondary-text">{t.audioSettings.device}</label>
                                 <select
                                     value={midi.selectedDeviceId ?? ''}
                                     onChange={(e) => midi.selectDevice(e.target.value || null)}
                                     className="theme-muted-bg theme-secondary-text px-3 py-1.5 rounded-lg text-sm"
                                 >
-                                    <option value="">All devices</option>
+                                    <option value="">{t.audioSettings.allDevices}</option>
                                     {midi.devices.map((device) => (
                                         <option key={device.id} value={device.id}>
                                             {device.name}
@@ -132,48 +134,48 @@ function AudioMidiSettings() {
                                     ))}
                                 </select>
                                 {midi.devices.length === 0 && (
-                                    <span className="text-sm theme-warning-text">No MIDI devices detected.</span>
+                                    <span className="text-sm theme-warning-text">{t.audioSettings.noMidiDevices}</span>
                                 )}
                             </div>
                         )}
                     </div>
                     <div className="mt-3 flex flex-wrap items-center gap-3 border-t theme-secondary-bg pt-3">
-                        <p className="text-sm font-semibold theme-text">Microphone</p>
+                        <p className="text-sm font-semibold theme-text">{t.audioSettings.microphone}</p>
                         {audio.permission !== 'granted' ? (
                             <div className="flex flex-wrap items-center gap-3">
                                 <button
                                     onClick={audio.connect}
                                     className="px-3 py-1.5 theme-btn rounded-lg text-sm hover:opacity-90"
                                 >
-                                    Connect Microphone
+                                    {t.audioSettings.connectMicrophone}
                                 </button>
                                 {audio.permission === 'pending' && (
-                                    <span className="text-sm theme-secondary-text">Requesting access…</span>
+                                    <span className="text-sm theme-secondary-text">{t.audioSettings.requestingAccess}</span>
                                 )}
                                 {audio.permission === 'unsupported' && (
                                     <span className="text-sm theme-warning-text">
-                                        Microphone input isn&apos;t supported in this browser.
+                                        {t.audioSettings.microphoneUnsupported}
                                     </span>
                                 )}
                                 {audio.permission === 'denied' && (
                                     <span className="text-sm theme-warning-text">
-                                        {audio.error || 'Microphone access was denied.'}
+                                        {audio.error || t.audioSettings.microphoneDenied}
                                     </span>
                                 )}
                             </div>
                         ) : (
                             <div className="flex flex-wrap items-center gap-3">
-                                <span className="text-sm theme-secondary-text">Listening for taps and notes.</span>
+                                <span className="text-sm theme-secondary-text">{t.audioSettings.listening}</span>
                                 <button
                                     onClick={audio.disconnect}
                                     className="px-3 py-1.5 theme-muted-bg theme-secondary-text rounded-lg text-sm hover:opacity-90"
                                 >
-                                    Disconnect
+                                    {t.audioSettings.disconnect}
                                 </button>
                             </div>
                         )}
                         <span className="text-xs theme-secondary-text">
-                            Tip: use headphones — the mic can mistake the app&apos;s own sound for your input.
+                            {t.audioSettings.micTip}
                         </span>
                     </div>
                 </div>
