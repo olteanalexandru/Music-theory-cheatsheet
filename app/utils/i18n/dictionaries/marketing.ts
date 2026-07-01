@@ -348,7 +348,7 @@ export const ro: MarketingDict = {
             follow: {
                 title: 'Urmărește alți muzicieni',
                 description:
-                    'Urmărește jucătorii al căror progres vrei să-l vezi. Rangul, seriile și nivelul lor apar oriunde apar și ale tale — începând cu clasamentul prietenilor.',
+                    'Urmărește muzicienii al căror progres vrei să-l urmărești. Nivelul, seriile și rangul lor apar alături de ale tale — inclusiv în clasamentul prietenilor.',
             },
             share: {
                 title: 'Distribuie carduri de progres',

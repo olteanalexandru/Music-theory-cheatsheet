@@ -4,6 +4,7 @@ import { useState } from "react";
 import Footer from "./Footer";
 import AppHeader from "./AppHeader";
 import Mushrooms from "./Mushrooms";
+import PsychedelicStars from "./PsychedelicStars";
 import { AuthProvider } from "@/app/utils/AuthContext";
 import { LocaleProvider } from "@/app/utils/i18n/LocaleContext";
 
@@ -42,6 +43,7 @@ export default function ThemeWrapper({
         </AuthProvider>
       </LocaleProvider>
       {theme === "psychedelic" && <Mushrooms />}
+      {theme === "psychedelic" && <PsychedelicStars />}
     </body>
   );
 }

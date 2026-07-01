@@ -218,7 +218,7 @@ export const ro: EarTrainingDict = {
         missedItem: (categoryLabel, correctAnswer) => `${categoryLabel}: ${correctAnswer}`,
         perfectScore: 'Punctaj perfect — nicio întrebare greșită!',
         startNewSession: 'Începe o Sesiune Nouă',
-        backToFreePractice: 'Înapoi la Exersare Liberă',
+        backToFreePractice: 'Înapoi la exersare liberă',
         questionProgress: (index, length, correct) => `Întrebarea ${index} / ${length} · ${correct} corecte`,
         endSession: 'Încheie Sesiunea',
     },
